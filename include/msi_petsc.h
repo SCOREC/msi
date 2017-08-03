@@ -1,31 +1,24 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifdef M3DC1_PETSC
-#ifndef M3DC1_SOLVER_H
-#define M3DC1_SOLVER_H
-//#include "superlu_ddefs.h" // gridinfo_t
+#ifndef MSI_PETSC_HEADER_H
+#define MSI_PETSC_HEADER_H
 #include "apf.h"
 #include "petscksp.h"
-#include "apfNumbering.h"
-#include "m3dc1_scorec.h"
+#include "pumi.h"
 #include <vector>
 
-int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
-int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
-void printMemStat();
-// NOTE: all field realted interaction is done through m3dc1 api rather than apf
-class m3dc1_matrix
+class msi_matrix
 {
 public:
-  m3dc1_matrix(int i, int s, FieldID field); // constructor cannot be virtual
-  virtual ~m3dc1_matrix(); // the base class destructor automatically executes after the derived-class destructor
+  msi_matrix(int i, pField f); // constructor cannot be virtual
+  virtual ~msi_matrix(); // the base class destructor automatically executes after the derived-class destructor
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
@@ -35,14 +28,17 @@ public:
   void set_status(int s) {mat_status=s;}
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
-  int get_fieldOrdering() { return fieldOrdering;}
+  pField get_field() { return field;}
+  int get_num_field_value() { return num_values;}
   int write( const char* file_name);
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
   virtual int setupMat() =0;
-  virtual int preAllocate() =0;
+  virtual void preAllocate() =0;
   virtual int flushAssembly();
-  int printInfo();
+  void printInfo();
+  pMeshTag num_global_adj_node_tag;
+  pMeshTag num_own_adj_node_tag;
   // PETSc data structures
   Mat* A;
 protected:
@@ -53,39 +49,40 @@ protected:
   int id;
   int scalar_type;
   int mat_status; 
-  int fieldOrdering; // the field that provide numbering
+  pField field; // the field that provide dof numbering
+  int num_values;
 };
 
-class matrix_mult: public m3dc1_matrix
+class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i, int s, FieldID field): m3dc1_matrix(i,s,field), localMat(1) { initialize();}
+  matrix_mult(int i, pField field): msi_matrix(i,field), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
-  int multiply(FieldID in_field, FieldID out_field);
-  virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
+  int multiply(pField in_field, pField out_field);
+  virtual int get_type() const { return 0; } //MSI_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
-  virtual int preAllocate();
+  virtual void preAllocate();
 private:
   bool localMat;
 };
 
-class matrix_solve: public m3dc1_matrix
+class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, int s,  FieldID fieldOrdering);
+  matrix_solve(int i, pField f);
   virtual int initialize();
   virtual ~matrix_solve();
-  int solve(FieldID field_id);
-  int set_bc( int row);
-  int set_row( int row, int numVals, int* colums, double * vals);
-  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
+  int solve(pField x_f, pField b_f);
+  void set_bc( int row);
+  void set_row( int row, int numVals, int* colums, double * vals);
+  void add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   virtual int get_type() const {return 1; }
   virtual int assemble(); 
   virtual int setupMat();
-  virtual int preAllocate();
+  virtual void preAllocate();
   int iterNum;
 private:  
   int setUpRemoteAStruct();
@@ -98,21 +95,21 @@ private:
   std::map<int, int> remoteNodeRowSize;
 };
 
-class m3dc1_solver
+class msi_solver
 {
 public:
 // functions
-  m3dc1_solver():assembleOption(0) {matrix_container = new std::map<int, m3dc1_matrix*>;PetscMemorySetGetMaximumUsage();}
-  ~m3dc1_solver();
-  static m3dc1_solver* instance();
-  m3dc1_matrix* get_matrix(int matrix_id);
-  void add_matrix(int matrix_id, m3dc1_matrix*);
+  msi_solver(): assembleOption(0) 
+  {matrix_container = new std::map<int, msi_matrix*>;PetscMemorySetGetMaximumUsage();}
+  ~msi_solver();
+  static msi_solver* instance();
+  msi_matrix* get_matrix(int matrix_id);
+  void add_matrix(int matrix_id, msi_matrix*);
 // data
-  std::map<int, m3dc1_matrix*>* matrix_container;
+  std::map<int, msi_matrix*>* matrix_container;
   int assembleOption; // 0 use scorec; 1 use petsc
 private:
-  static m3dc1_solver* _instance;
+  static msi_solver* _instance;
 };
 
 #endif
-#endif //#ifndef M3DC1_MESHGEN
