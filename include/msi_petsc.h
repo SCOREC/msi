@@ -17,7 +17,7 @@
 class msi_matrix
 {
 public:
-  msi_matrix(int i, pField f); // constructor cannot be virtual
+  msi_matrix(int i, pField f, int n); // constructor cannot be virtual
   virtual ~msi_matrix(); // the base class destructor automatically executes after the derived-class destructor
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
@@ -37,8 +37,6 @@ public:
   virtual void preAllocate() =0;
   virtual int flushAssembly();
   void printInfo();
-  pMeshTag num_global_adj_node_tag;
-  pMeshTag num_own_adj_node_tag;
   // PETSc data structures
   Mat* A;
 protected:
@@ -56,7 +54,7 @@ protected:
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i, pField field): msi_matrix(i,field), localMat(1) { initialize();}
+  matrix_mult(int i, pField field, int n): msi_matrix(i,field, n), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
@@ -72,7 +70,7 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, pField f);
+  matrix_solve(int i, pField f, int n);
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(pField x_f, pField b_f);
@@ -99,8 +97,7 @@ class msi_solver
 {
 public:
 // functions
-  msi_solver(): assembleOption(0) 
-  {matrix_container = new std::map<int, msi_matrix*>;PetscMemorySetGetMaximumUsage();}
+  msi_solver();
   ~msi_solver();
   static msi_solver* instance();
   msi_matrix* get_matrix(int matrix_id);
@@ -108,6 +105,8 @@ public:
 // data
   std::map<int, msi_matrix*>* matrix_container;
   int assembleOption; // 0 use scorec; 1 use petsc
+  pMeshTag num_global_adj_node_tag;
+  pMeshTag num_own_adj_node_tag;
 private:
   static msi_solver* _instance;
 };

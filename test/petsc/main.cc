@@ -14,29 +14,28 @@
 #include "PCU.h"
 #include "petscksp.h"
 
-static char help[] = "testing petsc-pumi; \n do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";
+// do mat-vec product A*b=c; solve Ax=c; compare x and b";
 
-bool AlmostEqualDoubles(double A, double B,
-            double maxDiff, double maxRelDiff);
+static char help[] = "example: /usr/local/openmpi/latest/bin/mpirun -np 4 ./petsc /lore/seol/meshes/1K-4part/model.dmg /lore/seol/meshes/1K-4part/part.smb\n";
+
+bool AlmostEqualDoubles(double A, double B, double maxDiff, double maxRelDiff);
 
 const char* modelFile = 0;
 const char* meshFile = 0;
-const char* outFile = 0;
-int num_in_part = 0;
 
 void getConfig(int argc, char** argv)
 {
-  if ( argc < 4 ) {
+  if ( argc < 3 ) {
     if ( !PCU_Comm_Self() )
-      printf("Usage: %s <model> <mesh> <outMesh> <num_part_in_mesh> <do_distribution(0/1)>\n", argv[0]);
+    {
+      printf("Usage: %s <model> <distributed mesh>>\n", argv[0]);
+      std::cout<<help;
+    }
     MPI_Finalize();
     exit(EXIT_FAILURE);
   }
   modelFile = argv[1];
   meshFile = argv[2];
-  outFile = argv[3];
-  if (argc>=4)
-    num_in_part = atoi(argv[4]);
 }
 
 int main( int argc, char** argv)
@@ -65,8 +64,10 @@ int main( int argc, char** argv)
 
   // load model
   pGeom g = pumi_geom_load(modelFile);
-  pMesh m = pumi_mesh_load(g, meshFile, num_in_part);
+  pMesh m = pumi_mesh_load(g, meshFile, pumi_size());
   pumi_mesh_verify(m, false);
+
+  msi_start(m, NULL); // default ownership
 
   int mesh_dim = pumi_mesh_getDim(m);
   int num_vertex = pumi_mesh_getNumEnt(m, 0);
@@ -85,7 +86,7 @@ int main( int argc, char** argv)
   pField c_field = pumi_field_create (m, "c_field", num_dofs, PUMI_PACKED);
   pField x_field = pumi_field_create (m, "x_field", num_dofs, PUMI_PACKED);
 
-  if (!PCU_Comm_Self()) std::cout<<"* set b field ..."<<std::endl;
+  if (!PCU_Comm_Self()) std::cout<<"* field created..."<<std::endl;
 
   pMeshEnt e;
   double xyz[3];
@@ -97,22 +98,20 @@ int main( int argc, char** argv)
     std::vector<double> dofs(num_dofs*(1+scalar_type));
     for(int i=0; i<num_dofs_node*(1+scalar_type); ++i)
       dofs.at(i)=xyz[i%3];
-    pumi_ment_setField(e, b_field, num_dofs_node, &dofs.at(0));
+    pumi_ment_setField(e, b_field, 0, &dofs.at(0));
   }
   m->end(it);
 
+  if (!PCU_Comm_Self()) std::cout<<"* set b_field..."<<std::endl;
 //  PetscMemoryGetCurrentUsage(&mem);
 //  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
 //  PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
-  if(!PCU_Comm_Self()) std::cout<<"* set matrix ..."<<std::endl; 
   t1 = MPI_Wtime();
   // fill matrix 
   // the matrix is diagnal dominant; thus should be positive definite
   int matrix_mult=1, matrix_solve=2;
-  int matrix_mult_type = MSI_MULTIPLY;
-  int matrix_solve_type = MSI_SOLVE;
-  msi_matrix_create(matrix_mult, matrix_mult_type, b_field);
-  msi_matrix_create(matrix_solve, matrix_solve_type, b_field);
+  msi_matrix_create(1, MSI_MULTIPLY, b_field);
+  msi_matrix_create(2, MSI_SOLVE, b_field);
 
   double diag_value=2.0, off_diag=1.0;
   int num_dofs_element = num_dofs_node*node_elm;
@@ -130,7 +129,16 @@ int main( int argc, char** argv)
       }
     }
   }
-  m->end(it);
+  
+  if (!pumi_rank())
+  for (int i=0; i<num_dofs_element; ++i)
+  {
+    std::cout<<"block["<<i<<"] = ";
+    for (int j=0; j<num_dofs_element; ++j)
+      std::cout<<block[i*num_dofs_element+j]<<" ";
+    std::cout<<"\n";
+  }
+  std::cout<<"\n";
 
   std::vector<pMeshEnt> adj_ents;
   it = m->begin(mesh_dim);
@@ -218,6 +226,7 @@ int main( int argc, char** argv)
   pumi_field_delete(b_field);
   pumi_field_delete(c_field);
 
+  msi_finalize(m);
   pumi_mesh_delete(m);
 
   PetscFinalize();

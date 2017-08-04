@@ -53,63 +53,6 @@ msi_solver* msi_solver::instance()
   return _instance;
 }
 
-msi_solver::~msi_solver()
-{
-  if (matrix_container!=NULL)
-    matrix_container->clear();
-  matrix_container=NULL;
-  delete _instance;
-}
-
-// ***********************************
-// 		MSI_MATRIX
-// ***********************************
-
-void msi_solver::add_matrix(int matrix_id, msi_matrix* matrix)
-{
-  assert(matrix_container->find(matrix_id)==matrix_container->end());
-  matrix_container->insert(std::map<int, msi_matrix*>::value_type(matrix_id, matrix));
-}
-
-msi_matrix* msi_solver::get_matrix(int matrix_id)
-{
-  std::map<int, msi_matrix*>::iterator mit = matrix_container->find(matrix_id);
-  if (mit == matrix_container->end()) 
-    return (msi_matrix*)NULL;
-  return mit->second;
-}
-
-
-int matrix_solve::initialize()
-{
-  // initialize matrix
-  setupMat();
-  preAllocate();
-  if(!msi_solver::instance()->assembleOption) setUpRemoteAStruct();
-  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
-  //disable error when preallocate not enough
-  //check later
-  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); 
-  CHKERRQ(ierr);
-  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); 
-  CHKERRQ(ierr);
-}
-
-int matrix_mult::initialize()
-{
-  // initialize matrix
-  setupMat();
-  preAllocate();
-  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
-  //disable error when preallocate not enough
-  //check later
-  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
-  CHKERRQ(ierr);
-}
-
 struct entMsg
 {
   int pid;
@@ -238,13 +181,84 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
   }
 }
 
-msi_matrix::msi_matrix(int i, pField f): id(i), field(f)
-{
-// initialize tag
-  num_global_adj_node_tag = pumi::instance()->mesh->createIntTag("m3dc1_num_global_adj_node", 1);
-  num_own_adj_node_tag = pumi::instance()->mesh->createIntTag("m3dc1_num_own_adj_node", 1);
-  set_adj_node_tag(num_global_adj_node_tag, num_own_adj_node_tag);
 
+msi_solver::msi_solver()
+: assembleOption(0) 
+{
+  matrix_container = new std::map<int, msi_matrix*>;
+  PetscMemorySetGetMaximumUsage();
+  num_global_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_global_adj_node", 1);
+  num_own_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_own_adj_node", 1);
+  set_adj_node_tag(num_global_adj_node_tag, num_own_adj_node_tag);
+}
+
+msi_solver::~msi_solver()
+{
+  pMesh mesh = pumi::instance()->mesh;
+  apf::removeTagFromDimension(mesh, num_global_adj_node_tag, 0);
+  mesh->destroyTag(num_global_adj_node_tag);
+  apf::removeTagFromDimension(mesh, num_own_adj_node_tag, 0);
+  mesh->destroyTag(num_own_adj_node_tag);
+
+  if (matrix_container!=NULL)
+    matrix_container->clear();
+  matrix_container=NULL;
+  delete _instance;
+}
+
+// ***********************************
+// 		MSI_MATRIX
+// ***********************************
+
+void msi_solver::add_matrix(int matrix_id, msi_matrix* matrix)
+{
+  assert(matrix_container->find(matrix_id)==matrix_container->end());
+  matrix_container->insert(std::map<int, msi_matrix*>::value_type(matrix_id, matrix));
+}
+
+msi_matrix* msi_solver::get_matrix(int matrix_id)
+{
+  std::map<int, msi_matrix*>::iterator mit = matrix_container->find(matrix_id);
+  if (mit == matrix_container->end()) 
+    return (msi_matrix*)NULL;
+  return mit->second;
+}
+
+
+int matrix_solve::initialize()
+{
+  // initialize matrix
+  setupMat();
+  preAllocate();
+  if (!msi_solver::instance()->assembleOption) //0 by default
+    setUpRemoteAStruct();
+  if (!PCU_Comm_Self()) std::cout <<__func__<<": "<<__LINE__<<"\n";
+  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
+  //disable error when preallocate not enough
+  //check later
+  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); 
+  CHKERRQ(ierr);
+  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); 
+  CHKERRQ(ierr);
+}
+
+int matrix_mult::initialize()
+{
+  // initialize matrix
+  setupMat();
+  preAllocate();
+  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
+  //disable error when preallocate not enough
+  //check later
+  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
+  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
+  CHKERRQ(ierr);
+}
+
+msi_matrix::msi_matrix(int i, pField f, int n): id(i), field(f), num_values(n)
+{
 #ifdef MSI_COMPLEX
   scalar_type=1;
 #else
@@ -256,12 +270,6 @@ msi_matrix::msi_matrix(int i, pField f): id(i), field(f)
 
 int msi_matrix::destroy()
 {
-  pMesh mesh = pumi::instance()->mesh;
-  apf::removeTagFromDimension(mesh, num_global_adj_node_tag, 0);
-  mesh->destroyTag(num_global_adj_node_tag);
-  apf::removeTagFromDimension(mesh, num_own_adj_node_tag, 0);
-  mesh->destroyTag(num_own_adj_node_tag);
-
   PetscErrorCode ierr = MatDestroy(A);
   CHKERRQ(ierr);    
 }
@@ -436,7 +444,7 @@ int matrix_mult::assemble()
 // ***********************************
 // 		matrix_solve
 // ***********************************
-matrix_solve::matrix_solve(int i, pField f): msi_matrix(i,f) 
+matrix_solve::matrix_solve(int i, pField f, int n): msi_matrix(i,f,n) 
 {  
   ksp = new KSP;
   kspSet=0;
@@ -641,7 +649,7 @@ int matrix_solve::assemble()
   mat_status=MSI_FIXED;
 }
 
-int msi_matrix :: flushAssembly()
+int msi_matrix::flushAssembly()
 {
   PetscErrorCode ierr;
   ierr = MatAssemblyBegin(*A, MAT_FLUSH_ASSEMBLY);
@@ -730,8 +738,8 @@ int msi_matrix::preAllocateParaMat()
     startIdx /=bs; 
 
     int adjNodeOwned, adjNodeGlb;
-    pumi::instance()->mesh->getIntTag(ent, num_global_adj_node_tag, &adjNodeGlb);
-    pumi::instance()->mesh->getIntTag(ent, num_own_adj_node_tag, &adjNodeOwned);
+    pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
+    pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_own_adj_node_tag, &adjNodeOwned);
     assert(adjNodeGlb>=adjNodeOwned);
 
     for(int i=0; i<numBlockNode; ++i)
@@ -744,11 +752,9 @@ int msi_matrix::preAllocateParaMat()
     MatMPIAIJSetPreallocation(*A, 0, &dnnz[0], 0, &onnz[0]);
   else  
     MatMPIBAIJSetPreallocation(*A, bs, 0, &dnnz[0], 0, &onnz[0]);
-  //std::cout<<" nnzStash "<<nnzStash*2<<std::endl;
-  //MatStashSetInitialSize(*A, nnzStash*2, 0);
 } 
 
-int matrix_solve :: setUpRemoteAStruct()
+int matrix_solve::setUpRemoteAStruct()
 {
   int total_num_dof = apf::countComponents(field);
 #ifdef MSI_COMPLEX
@@ -757,6 +763,11 @@ int matrix_solve :: setUpRemoteAStruct()
   int dofPerVar=total_num_dof/num_values;
 
   int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+
+  if (!PCU_Comm_Self())
+    std::cout <<__func__
+              <<" num_vtx " << num_vtx
+              <<" dofPerVar " << dofPerVar<< std::endl;
 
   std::vector<int> nnz_remote(num_values*num_vtx);
   int brgType = 2;
@@ -800,21 +811,21 @@ int matrix_solve :: setUpRemoteAStruct()
   ierr = MatSetUp (remoteA);CHKERRQ(ierr);
 }
 
-int msi_matrix :: preAllocateSeqMat()
+int msi_matrix::preAllocateSeqMat()
 {
-  int bs=1, vertex_type=0;
+  pMesh m = pumi::instance()->mesh;
+  int bs=1;
   MatType type;
   MatGetType(*A, &type);
 
-  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+  int num_vtx=pumi_mesh_getNumEnt(m, 0);
 //  num_components = (*num_values)*(*scalar_type+1)*(*num_dofs_per_value);
-  int num_dof = apf::countComponents(field);
+  int dofPerEnt = apf::countComponents(field);
 #ifdef MSI_COMPLEX
-  num_dof/=2;
+  dofPerEnt/=2;
 #endif
 
-  num_dof *= num_vtx;
-  int dofPerEnt=num_dof/num_vtx;
+  int num_dof = dofPerEnt*num_vtx;
 
   if (strcmp(type, MATSEQAIJ)==0 || strcmp(type, MATMPIAIJ)==0) 
     bs=1;
@@ -824,24 +835,25 @@ int msi_matrix :: preAllocateSeqMat()
   int numBlocks = num_dof / bs;
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> nnz(numBlocks);
-  int brgType = 2;
-  if (pumi::instance()->mesh->getDimension()==3) brgType = 3;
+  int brgType = m->getDimension();
 
-  apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; ++inode)
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+  while ((e = m->iterate(it)))
   {
-    ent = pumi_mesh_findEnt(pumi::instance()->mesh, 0, inode);
     int start_dof, end_dof_plus_one;
-    msi_ment_getLocalFieldID (ent, field, &start_dof, &end_dof_plus_one);
+    msi_ment_getLocalFieldID (e, field, &start_dof, &end_dof_plus_one);
     int startIdx = start_dof;
+    if (startIdx>=num_dof)
+    std::cout<<"("<<pumi_rank()<<") e "<<pumi_ment_getID(e)<<" startIdx="<<startIdx<<" num_dof "<<num_dof<<" dofPerEnt "<<dofPerEnt<<"\n";
     assert(startIdx<num_dof);
 
     apf::Adjacent elements;
-    getBridgeAdjacent(pumi::instance()->mesh, ent, brgType, 0, elements);
+    getBridgeAdjacent(m, e, brgType, 0, elements);
     int numAdj=0;
     for (int i=0; i<elements.getSize(); ++i)
     {
-      if (!pumi::instance()->mesh->isGhost(elements[i]))
+      if (!m->isGhost(elements[i]))
         ++numAdj;
     }
 
@@ -851,13 +863,15 @@ int msi_matrix :: preAllocateSeqMat()
       nnz.at(startIdx+i)=(1+numAdj)*numBlockNode;
     }
   }
+  m->end(it);
+
   if (bs==1) 
     MatSeqAIJSetPreallocation(*A, 0, &nnz[0]);
   else  
     MatSeqBAIJSetPreallocation(*A, bs, 0, &nnz[0]);
 } 
 
-int msi_matrix :: setupParaMat()
+int msi_matrix::setupParaMat()
 {
   int num_own_ent = pumi_mesh_getNumOwnEnt (pumi::instance()->mesh, 0);
   int num_own_dof = msi_field_getNumOwnDOF(field);
@@ -875,7 +889,7 @@ int msi_matrix :: setupParaMat()
   ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
 }
 
-int msi_matrix :: setupSeqMat()
+int msi_matrix::setupSeqMat()
 {
   int num_ent=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
   int num_dof = apf::countComponents(field);
@@ -900,7 +914,7 @@ int msi_matrix :: setupSeqMat()
   ierr = MatSetFromOptions(*A);CHKERRQ(ierr);
 }
 
-int matrix_solve :: setupMat()
+int matrix_solve::setupMat()
 {
   setupParaMat();
 }
@@ -911,14 +925,14 @@ int matrix_mult :: setupMat()
   else setupParaMat();
 }
 
-void matrix_solve :: preAllocate ()
+void matrix_solve::preAllocate ()
 {
   preAllocateParaMat();
 }
 
 void matrix_mult :: preAllocate ()
 {
-  if(localMat) preAllocateSeqMat();
+  if (localMat) preAllocateSeqMat();
   else preAllocateParaMat();
 }
 
@@ -972,7 +986,7 @@ int copyField2PetscVec(pField f, Vec& petscVec, int scalar_type)
 
 int copyPetscVec2Field(Vec& petscVec, pField f, int scalar_type)
 {
-  int num_own_ent,num_own_dof=0, vertex_type=0;
+  int num_own_ent,num_own_dof=0;
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   num_own_dof = msi_field_getNumOwnDOF(f);
 
@@ -1058,7 +1072,7 @@ int matrix_solve:: setKspType()
   kspSet=1;
 }
 
-int msi_matrix :: write (const char* file_name)
+int msi_matrix::write (const char* file_name)
 {
   PetscErrorCode ierr;
   PetscViewer lab;
@@ -1077,7 +1091,7 @@ int msi_matrix :: write (const char* file_name)
   ierr = PetscViewerDestroy(&lab); CHKERRQ(ierr);
 }
 
-void msi_matrix :: printInfo()
+void msi_matrix::printInfo()
 {
   MatInfo info;
   MatGetInfo(*A, MAT_LOCAL,&info);

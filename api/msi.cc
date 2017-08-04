@@ -15,14 +15,9 @@
 #include <vector>
 #include <assert.h>
 
-void msi_setOwnership(pOwnership o)
-{  
-  assert(!msi_ownership); // changing ownership is not allowed 
-  msi_ownership=o;
-  pumi_mesh_setCount(pumi::instance()->mesh, o);
-  pumi_mesh_createGlobalID(pumi::instance()->mesh, o);
-}
+extern pOwnership msi_ownership=NULL;
 
+// Error if serial mesh is loaded and partitioned as pumi_ment_getID(e) is not sequential
 void msi_ment_getLocalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
 {
   int num_dof = apf::countComponents(f);
@@ -67,6 +62,38 @@ void msi_field_getOwnDOFID(pField f,
   *end_dof_id_plus_one=*start_dof_id+num_own_ent*num_dof;
 }
 
+void msi_start(pMesh m, pOwnership o)
+{  
+  if (!o && !pumi_rank())
+    std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
+
+  msi_ownership=o;
+  pumi_mesh_setCount(m, o);
+  pumi_mesh_createGlobalID(m, o);
+}
+
+void msi_finalize(pMesh m)
+{  
+  typedef std::map<int, msi_matrix*> matrix_container_map;
+  for (std::map<int, msi_matrix*>::iterator it=msi_solver::instance()->matrix_container->begin();
+      it!=msi_solver::instance()->matrix_container->end(); ++it)
+  {
+    if(!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": matrix "<<it->first<<" deleted\n";
+    delete it->second;
+  }
+  msi_solver::instance()->matrix_container->clear();
+
+  while(m->countFields())
+  {
+    apf::Field* f = m->getField(0);
+    if(!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
+    destroyField(f);
+  }
+
+  pumi_mesh_deleteGlobalID(m);  // delete global id
+}
+
+
 #ifdef MSI_PETSC
 /** matrix and solver functions */
 std::map<int, int> matHit;
@@ -74,36 +101,26 @@ int getMatHit(int id) { return matHit[id];};
 void addMatHit(int id) { matHit[id]++; }
 
 //*******************************************************
-void msi_matrix_create(int matrix_id, int matrix_type, pField f)
+void msi_matrix_create(int matrix_id, int matrix_type, pField f, int n)
 //*******************************************************
 {  
-  static bool set_ownership=false;
-  if (!msi_ownership && !set_ownership)
-  {
-    if (!pumi_rank())
-      std::cout<<"[MSI INFO] "<<__func__<<": the mesh ownership is set to the PUMI default\n";
-    pumi_mesh_setCount(pumi::instance()->mesh);
-    pumi_mesh_createGlobalID(pumi::instance()->mesh);
-  }
-
   msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
   assert(!mat);
 
-#ifdef DEBUG
-  if (!PCU_Comm_Self())
-    std::cout<<"[MSI INFO] "<<__func__<<": ID "<<matrix_id<<", field "<<getName(f)<<"\n";
-#endif 
-
   if (matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(matrix_id, f);
+    matrix_mult* new_mat = new matrix_mult(matrix_id, f, n);
     msi_solver::instance()->add_matrix(matrix_id, (msi_matrix*)new_mat);
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(matrix_id, f);
+    matrix_solve* new_mat= new matrix_solve(matrix_id, f, n);
     msi_solver::instance()->add_matrix(matrix_id, (msi_matrix*)new_mat);
   }
+#ifdef DEBUG
+  if (!PCU_Comm_Self())
+    std::cout<<"[MSI INFO] "<<__func__<<": ID "<<matrix_id<<", field "<<getName(f)<<" num_dof="<<apf::countComponents(f)<<"\n";
+#endif 
 }
 
 //*******************************************************
@@ -225,6 +242,11 @@ void msi_matrix_addBlock(int matrix_id, pMeshEnt e,
   pumi_ment_getAdj(e, 0, adj_nodes);
   int nodes_per_element = adj_nodes.size();
 
+  if (!PCU_Comm_Self())
+     std::cout<<__func__<<"dofPerVar "<<dofPerVar
+              <<" nodes_per_element "<<nodes_per_element
+              <<"\n";
+
   int* nodes = new int[nodes_per_element];
   for (int i=0; i<nodes_per_element; ++i)
     nodes[i] = getMdsIndex(pumi::instance()->mesh, adj_nodes[i]);
@@ -268,7 +290,7 @@ void msi_matrix_addBlock(int matrix_id, pMeshEnt e,
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
     int nodeOwner[6];
     int columns_bloc[6], rows_bloc[6];
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<nodes_per_element; ++inode)
     {
       pMeshEnt e = pumi_mesh_findEnt(pumi::instance()->mesh, 0, nodes[inode]);
       nodeOwner[inode] = pumi_ment_getOwnPID(e);
