@@ -60,6 +60,7 @@ configure_file(
 #Source and header files
 set(SOURCES
   api/msi.cc
+  src/msi_solver.cc
   src/msi_petsc.cc
   src/msi_trilinos.cc
 )
@@ -105,11 +106,9 @@ include_directories(${PETSC_INCLUDE_DIRS})
 set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES} )
 endif()
 
-message(${DEP_LIBS})
-
 if(ENABLE_COMPLEX)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMSI_COMPLEX")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSI_COMPLEX")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX")
 set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
 endif()
 
@@ -123,12 +122,11 @@ INSTALL(TARGETS ${TARGET_LIB_NAME}
 
 if (ENABLE_TESTING)
 if (ENABLE_PETSC)
-  add_executable(petsc test/petsc/main.cc)
-  target_link_libraries(petsc ${DEP_LIBS})
-  target_link_libraries(petsc ${TARGET_LIB_NAME})
-  INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+add_executable(petsc test/petsc/main.cc)
+target_link_libraries(petsc ${DEP_LIBS})
+target_link_libraries(petsc ${TARGET_LIB_NAME})
+INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)  
 endif()
-
 if (ENABLE_TRILINOS)
     add_executable(epetra test/epetra/main.cc)
     target_link_libraries(epetra ${DEP_LIBS})

@@ -7,18 +7,25 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifndef MSI_PETSC_HEADER_H
-#define MSI_PETSC_HEADER_H
+#ifdef MSI_PETSC
+#ifndef MSI_SOLVER_H
+#define MSI_SOLVER_H
+//#include "superlu_ddefs.h" // gridinfo_t
 #include "apf.h"
 #include "petscksp.h"
-#include "pumi.h"
+#include "apfNumbering.h"
+#include "msi.h"
 #include <vector>
 
+int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
+int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
+void printMemStat();
+// NOTE: all field realted interaction is done through msi api rather than apf
 class msi_matrix
 {
 public:
-  msi_matrix(int i, pField f, int n); // constructor cannot be virtual
-  virtual ~msi_matrix(); // the base class destructor automatically executes after the derived-class destructor
+  msi_matrix(int i, int s, FieldID field);
+  virtual ~msi_matrix();
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
@@ -28,15 +35,14 @@ public:
   void set_status(int s) {mat_status=s;}
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
-  pField get_field() { return field;}
-  int get_num_field_value() { return num_values;}
+  int get_fieldOrdering() { return fieldOrdering;}
   int write( const char* file_name);
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
   virtual int setupMat() =0;
-  virtual void preAllocate() =0;
+  virtual int preAllocate() =0;
   virtual int flushAssembly();
-  void printInfo();
+  int printInfo();
   // PETSc data structures
   Mat* A;
 protected:
@@ -47,22 +53,21 @@ protected:
   int id;
   int scalar_type;
   int mat_status; 
-  pField field; // the field that provide dof numbering
-  int num_values;
+  int fieldOrdering; // the field that provide numbering
 };
 
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i, pField field, int n): msi_matrix(i,field, n), localMat(1) { initialize();}
+  matrix_mult(int i, int s, FieldID field): msi_matrix(i,s,field), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
-  int multiply(pField in_field, pField out_field);
+  int multiply(FieldID in_field, FieldID out_field);
   virtual int get_type() const { return 0; } //MSI_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
-  virtual void preAllocate();
+  virtual int preAllocate();
 private:
   bool localMat;
 };
@@ -70,17 +75,17 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, pField f, int n);
+  matrix_solve(int i, int s,  FieldID fieldOrdering);
   virtual int initialize();
   virtual ~matrix_solve();
-  int solve(pField x_f, pField b_f);
-  void set_bc( int row);
-  void set_row( int row, int numVals, int* colums, double * vals);
-  void add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
+  int solve(FieldID field_id);
+  int set_bc( int row);
+  int set_row( int row, int numVals, int* colums, double * vals);
+  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   virtual int get_type() const {return 1; }
   virtual int assemble(); 
   virtual int setupMat();
-  virtual void preAllocate();
+  virtual int preAllocate();
   int iterNum;
 private:  
   int setUpRemoteAStruct();
@@ -105,6 +110,7 @@ public:
 // data
   std::map<int, msi_matrix*>* matrix_container;
   int assembleOption; // 0 use scorec; 1 use petsc
+  void set_node_adj_tag();
   pMeshTag num_global_adj_node_tag;
   pMeshTag num_own_adj_node_tag;
 private:
@@ -112,3 +118,4 @@ private:
 };
 
 #endif
+#endif //#ifndef MSI_MESHGEN

@@ -1,6 +1,6 @@
 PREFIX=/fasttmp/seol/openmpi-gcc4.4.5-install
-PETSC_DIR=/fasttmp/seol/petsc-3.5.4-real
-PETSC_ARCH=openmpi1.6.5
+PETSC_DIR=/lore/seol/petsc-3.5.4
+PETSC_ARCH=real-openmpi1.6.5
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/openmpi/latest/bin/mpicxx" \
@@ -10,7 +10,9 @@ cmake .. \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR=$PREFIX/include \
   -DSCOREC_LIB_DIR=$PREFIX/lib \
-  -DZOLTAN_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libzoltan.a" \
+  -DMSI_INCLUDE_DIR=$PREFIX/include \
+  -DMSI_LIB_DIR=$PREFIX/lib \
+  -DZOLTAN_LIBRARY="$PREFIX/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
   -DENABLE_PETSC=ON \
