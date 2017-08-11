@@ -1,5 +1,5 @@
-PETSC_DIR=/fasttmp/seol/petsc-3.5.4-complex
-PETSC_ARCH=openmpi1.6.5
+PETSC_DIR=/lore/seol/petsc-3.5.4
+PETSC_ARCH=complex-openmpi1.6.5
 PREFIX=/fasttmp/seol/openmpi-gcc4.4.5-install
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
@@ -10,7 +10,7 @@ cmake .. \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR=$PREFIX/include \
   -DSCOREC_LIB_DIR=$PREFIXl/lib \
-  -DZOLTAN_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libzoltan.a" \
+  -DZOLTAN_LIBRARY="$PREFIX/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
   -DENABLE_SIMMETRIX=OFF \

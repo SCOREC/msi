@@ -1,19 +1,17 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifdef M3DC1_TRILINOS
-#ifndef M3DC1_LS_H
-#define M3DC1_LS_H
+#ifdef MSI_TRILINOS
+#ifndef MSI_LS_H
+#define MSI_LS_H
 #include <map>
 #include "apf.h"
-#include "m3dc1_scorec.h"
-
 #include <Epetra_Map.h>
 #include <Epetra_CrsMatrix.h>
 #ifndef EPETRA_NO_32BIT_GLOBAL_INDICES
@@ -24,12 +22,12 @@ typedef int global_ordinal_type;
 
 void write_matrix(Epetra_CrsMatrix*, const char* filename, bool nozero, int start_index);
 
-// NOTE: all field realted interaction is done through m3dc1 api rather than apf
-class m3dc1_epetra
+// NOTE: all field realted interaction is done through msi api rather than apf
+class msi_epetra
 {
 public:
-  m3dc1_epetra(int i, int t, int s, FieldID field);
-  ~m3dc1_epetra();
+  msi_epetra(int i, int t, int s, FieldID field);
+  ~msi_epetra();
   void destroy(); // delete a matrix and solver object
   int get_scalar_type() { return scalar_type; }
   int get_field_id() { return field_id;}
@@ -46,19 +44,19 @@ protected:
   int field_id; // the field that provides numbering
 };
 
-class m3dc1_ls
+class msi_ls
 {
 public:
 // functions
-  m3dc1_ls(){matrix_container = new std::map<int, m3dc1_epetra*>;}
-  ~m3dc1_ls();
-  static m3dc1_ls* instance();
-  m3dc1_epetra* get_matrix(int matrix_id);
-  void add_matrix(int matrix_id, m3dc1_epetra*);
+  msi_ls(){matrix_container = new std::map<int, msi_epetra*>;}
+  ~msi_ls();
+  static msi_ls* instance();
+  msi_epetra* get_matrix(int matrix_id);
+  void add_matrix(int matrix_id, msi_epetra*);
 // data
-  std::map<int, m3dc1_epetra*>* matrix_container;
+  std::map<int, msi_epetra*>* matrix_container;
 private:
-  static m3dc1_ls* _instance;
+  static msi_ls* _instance;
 };
 #endif
 #endif

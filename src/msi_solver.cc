@@ -20,13 +20,12 @@
 #include <assert.h>
 #include <iostream>
 
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
 #include "petscsys.h" // for PetscComplex
 #include <complex>
 using std::complex;
 #endif
 
-#define FIXSIZEBUFF 1024
 // ***********************************
 // 		MSI_SOLVER
 // ***********************************

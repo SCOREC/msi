@@ -1,39 +1,37 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifdef M3DC1_TRILINOS
-#include "m3dc1_ls.h"
-#include "m3dc1_scorec.h"
+#ifdef MSI_TRILINOS
+#include "msi_trilinos.h"
 #include "apf.h"
 #include "apfNumbering.h"
 #include "apfShape.h"
 #include "apfMesh.h"
 #include "apfMDS.h"
 #include "PCU.h"
-#include "m3dc1_mesh.h"
 #include <Epetra_MpiComm.h>
 #include <Epetra_Map.h>
 #include <Epetra_CrsMatrix.h>
 
 // ***********************************
-// 		M3DC1_LINEAR SYSTEM
+// 		MSI_LINEAR SYSTEM
 // ***********************************
 
-m3dc1_ls* m3dc1_ls::_instance=NULL;
-m3dc1_ls* m3dc1_ls::instance()
+msi_ls* msi_ls::_instance=NULL;
+msi_ls* msi_ls::instance()
 {
   if (_instance==NULL)
-    _instance = new m3dc1_ls();
+    _instance = new msi_ls();
   return _instance;
 }
 
-m3dc1_ls::~m3dc1_ls()
+msi_ls::~msi_ls()
 {
   if (matrix_container!=NULL)
     matrix_container->clear();
@@ -41,17 +39,17 @@ m3dc1_ls::~m3dc1_ls()
   delete _instance;
 }
 
-void m3dc1_ls::add_matrix(int matrix_id, m3dc1_epetra* matrix)
+void msi_ls::add_matrix(int matrix_id, msi_epetra* matrix)
 {
   assert(matrix_container->find(matrix_id)==matrix_container->end());
-  matrix_container->insert(std::map<int, m3dc1_epetra*>::value_type(matrix_id, matrix));
+  matrix_container->insert(std::map<int, msi_epetra*>::value_type(matrix_id, matrix));
 }
 
-m3dc1_epetra* m3dc1_ls::get_matrix(int matrix_id)
+msi_epetra* msi_ls::get_matrix(int matrix_id)
 {
-  std::map<int, m3dc1_epetra*>::iterator mit = matrix_container->find(matrix_id);
+  std::map<int, msi_epetra*>::iterator mit = matrix_container->find(matrix_id);
   if (mit == matrix_container->end()) 
-    return (m3dc1_epetra*)NULL;
+    return (msi_epetra*)NULL;
   return mit->second;
 }
 
@@ -60,10 +58,10 @@ m3dc1_epetra* m3dc1_ls::get_matrix(int matrix_id)
 apf::Numbering* get_owned_numbering()
 //*******************************************************
 {
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::Mesh2* m = msi_mesh::instance()->mesh;
   apf::MeshEntity* e;
   int start=0;
-  apf::Numbering* n = createNumbering(m,"m3dc1_owned_numbering",apf::getConstant(0),1);
+  apf::Numbering* n = createNumbering(m,"msi_owned_numbering",apf::getConstant(0),1);
   
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
@@ -79,61 +77,61 @@ apf::Numbering* get_owned_numbering()
 
 
 // ***********************************
-// 		M3DC1_EPETRA
+// 		MSI_EPETRA
 // ***********************************
 
 Epetra_Map* createEpetraMap(global_ordinal_type num_dof, bool owned)
 {
   global_ordinal_type num_node, global_id;
   if (owned) 
-    num_node = static_cast<global_ordinal_type>(m3dc1_mesh::instance()->num_own_ent[0]);
+    num_node = static_cast<global_ordinal_type>(msi_mesh::instance()->num_own_ent[0]);
   else // overlap
-    num_node = static_cast<global_ordinal_type>(m3dc1_mesh::instance()->num_local_ent[0]);
+    num_node = static_cast<global_ordinal_type>(msi_mesh::instance()->num_local_ent[0]);
 
   apf::DynamicArray<global_ordinal_type> dofIndices(num_node*num_dof);
 
   // loop over owned node
   apf::MeshEntity* e;
-  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(0);
+  apf::MeshIterator* it = msi_mesh::instance()->mesh->begin(0);
   int i=0;
-  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  while ((e = msi_mesh::instance()->mesh->iterate(it)))
   {
-    if (owned && get_ent_ownpartid(m3dc1_mesh::instance()->mesh,e)!=PCU_Comm_Self()) continue;
-    global_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
+    if (owned && get_ent_ownpartid(msi_mesh::instance()->mesh,e)!=PCU_Comm_Self()) continue;
+    global_id = get_ent_globalid(msi_mesh::instance()->mesh, e);
     for (global_ordinal_type j=0; j < num_dof; ++j)
       dofIndices[i*num_dof + j] = global_id*num_dof + j;
     ++i;
   }
-  m3dc1_mesh::instance()->mesh->end(it);
+  msi_mesh::instance()->mesh->end(it);
   return new Epetra_Map(-1,dofIndices.getSize(),&dofIndices[0],0,Epetra_MpiComm(MPI_COMM_WORLD));
 }
 
-m3dc1_epetra::m3dc1_epetra(int i, int t, int s, FieldID f_id): id(i), matrix_type(t), scalar_type(s), field_id(f_id), num_solver_iter(0)
+msi_epetra::msi_epetra(int i, int t, int s, FieldID f_id): id(i), matrix_type(t), scalar_type(s), field_id(f_id), num_solver_iter(0)
 {
 
-  _field = (*(m3dc1_mesh::instance()->field_container))[f_id]->get_field();
+  _field = (*(msi_mesh::instance()->field_container))[f_id]->get_field();
   global_ordinal_type num_dof = static_cast<global_ordinal_type>(apf::countComponents(_field));
   _owned_map = createEpetraMap(num_dof,true);
   _overlap_map = createEpetraMap(num_dof,false);
 
   // compute #non_zero_in_row in global/local matrix
-//  nge = static_cast<global_ordinal_type>(m3dc1_mesh::instance()->num_local_ent[0]*num_dof);
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0];
+//  nge = static_cast<global_ordinal_type>(msi_mesh::instance()->num_local_ent[0]*num_dof);
+  int num_own_ent=msi_mesh::instance()->num_own_ent[0];
   int num_own_dof=num_own_ent*num_dof;
 
   std::vector<int> local_dnnz(num_own_dof), global_dnnz(num_own_dof);
 
   int startDof, endDofPlusOne, vertex_type=0;
-  m3dc1_field_getowndofid (&field_id, &startDof, &endDofPlusOne);
+  msi_field_getowndofid (&field_id, &startDof, &endDofPlusOne);
 
-  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+  int brgType = msi_mesh::instance()->mesh->getDimension();
   int start_global_dof_id, end_global_dof_id_plus_one;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<m3dc1_mesh::instance()->num_local_ent[0]; inode++)
+  for(int inode=0; inode<msi_mesh::instance()->num_local_ent[0]; inode++)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
-    m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
+    ent = getMdsEntity(msi_mesh::instance()->mesh, 0, inode);
+    msi_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
       continue;
@@ -141,9 +139,9 @@ m3dc1_epetra::m3dc1_epetra(int i, int t, int s, FieldID f_id): id(i), matrix_typ
     startIdx -= startDof;
 
     int local_num_adj, global_num_adj;
-    m3dc1_mesh::instance()->mesh->getIntTag(ent, m3dc1_mesh::instance()->num_global_adj_node_tag, &global_num_adj);
+    msi_mesh::instance()->mesh->getIntTag(ent, msi_mesh::instance()->num_global_adj_node_tag, &global_num_adj);
     apf::Adjacent elements;
-    getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+    getBridgeAdjacent(msi_mesh::instance()->mesh, ent, brgType, 0, elements);
     local_num_adj = elements.getSize();
 
     for(int i=0; i<num_dof; i++)
@@ -163,16 +161,16 @@ m3dc1_epetra::m3dc1_epetra(int i, int t, int s, FieldID f_id): id(i), matrix_typ
   }
   nge = max_global_dnnz_non_zero;
   if (!PCU_Comm_Self()) 
-      std::cout<<"[M3D-C1 INFO] m3dc1_epetra_create: ID "<<id<<", type "<<matrix_type
+      std::cout<<"[M3D-C1 INFO] msi_epetra_create: ID "<<id<<", type "<<matrix_type
       <<", field "<<field_id<<", #dof "<<num_dof<<", #non_zero global "<<max_global_dnnz_non_zero
       <<", local "<<max_local_dnnz_non_zero<<"\n";
 
   epetra_mat = new Epetra_CrsMatrix(Copy,*_overlap_map,max_local_dnnz_non_zero,false);
 } 
 
-m3dc1_epetra::~m3dc1_epetra() {}
+msi_epetra::~msi_epetra() {}
 
-void m3dc1_epetra::destroy()
+void msi_epetra::destroy()
 {
   delete epetra_mat;
   delete _overlap_map;
@@ -198,7 +196,7 @@ void write_matrix(Epetra_CrsMatrix* A, const char* matrix_filename, bool skip_ze
   else if(A->RowMap().GlobalIndicesLongLong()) 
      Indices_LL = new long long[MaxNumIndices];
   else
-    if (!PCU_Comm_Self()) std::cout<<"[M3DC1_SCOREC FATAL] "<<__func__<<": Unable to determine source global index type\n";
+    if (!PCU_Comm_Self()) std::cout<<"[MSI_SCOREC FATAL] "<<__func__<<": Unable to determine source global index type\n";
 
   double * values  = new double[MaxNumIndices];
 #if !defined(EPETRA_NO_32BIT_GLOBAL_INDICES) || !defined(EPETRA_NO_64BIT_GLOBAL_INDICES)

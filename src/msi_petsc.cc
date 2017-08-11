@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -19,14 +19,11 @@
 #include <assert.h>
 #include <iostream>
 
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
 #include "petscsys.h" // for PetscComplex
 #include <complex>
 using std::complex;
 #endif
-
-#define FIXSIZEBUFF 1024
-#define C1TRIDOFNODE 6
 
 using std::vector;
 using std::set;
@@ -102,7 +99,7 @@ int msi_matrix::set_value(int row, int col, int operation, double real_val, doub
   }
   else // complex
   {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
     PetscScalar value = complex<double>(real_val,imag_val);
     if (operation)
       ierr = MatSetValue(*A, row, col, value, ADD_VALUES);
@@ -122,7 +119,7 @@ int msi_matrix::add_values(int rsize, int * rows, int csize, int * columns, doub
   if (mat_status == MSI_FIXED)
     return MSI_FAILURE;
   PetscErrorCode ierr;
-#if defined(DEBUG) || defined(MSI_COMPLEX)
+#if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   vector<PetscScalar> petscValues(rsize*csize);
   for(int i=0; i<rsize; i++)
   {
@@ -135,7 +132,7 @@ int msi_matrix::add_values(int rsize, int * rows, int csize, int * columns, doub
       if(scalar_type==MSI_REAL) petscValues.at(i*csize+j)=values[i*csize+j];
       else 
       {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
         petscValues.at(i*csize+j)=complex<double>(values[2*i*csize+2*j], values[2*i*csize+2*j+1]);
 #else
         if (!PCU_Comm_Self())
@@ -154,7 +151,7 @@ int msi_matrix::add_values(int rsize, int * rows, int csize, int * columns, doub
 }
 int matrix_solve :: add_blockvalues(int rbsize, int * rows, int cbsize, int * columns, double* values)
 {
-#if defined(DEBUG) || defined(MSI_COMPLEX)
+#if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   int bs;
   MatGetBlockSize(remoteA, &bs);
   vector<PetscScalar> petscValues(rbsize*cbsize*bs*bs);
@@ -168,7 +165,7 @@ int matrix_solve :: add_blockvalues(int rbsize, int * rows, int cbsize, int * co
       if(scalar_type==MSI_REAL) petscValues.at(i*cbsize*bs+j)=values[i*cbsize*bs+j];
       else
       {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
         petscValues.at(i*cbsize*bs+j)=complex<double>(values[2*i*cbsize*bs+2*j], values[2*i*cbsize*bs+2*j+1]);
 #else
         if (!PCU_Comm_Self())
@@ -189,7 +186,7 @@ int msi_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int
 {
   if (mat_status != MSI_FIXED)
     return MSI_FAILURE;
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
    if (!PCU_Comm_Self())
      std::cout<<"[MSI ERROR] "<<__func__<<": not supported for complex\n";
    return MSI_FAILURE;
@@ -227,19 +224,15 @@ int msi_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int
 
 int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 {
-  int scalar_type=0;
-#ifdef MSI_COMPLEX
-  scalar_type=1;
-#endif
   if(!localMat)
   {
     Vec b, c;
-    copyField2PetscVec(in_field, b, scalar_type);
+    copyField2PetscVec(in_field, b, get_scalar_type());
     //std::cout<<" before mult "<<std::endl;
     //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
     int ierr = VecDuplicate(b, &c);CHKERRQ(ierr);
     MatMult(*A, b, c);
-    copyPetscVec2Field(c, out_field, scalar_type);
+    copyPetscVec2Field(c, out_field, get_scalar_type());
     //std::cout<<" after mult "<<std::endl;
     //VecView(c, PETSC_VIEWER_STDOUT_WORLD);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
@@ -249,29 +242,50 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
   else
   {
     Vec b, c;
-    apf::Field* in_f = pumi_mesh_getField(pumi::instance()->mesh, in_field);
-    int num_dof = pumi_mesh_getNumEnt(pumi::instance()->mesh,0)*apf::countComponents(in_f);
-#ifdef MSI_COMPLEX
-    num_dof /=2;
+    pField f1 = pumi_mesh_getField(pumi::instance()->mesh, in_field);
+    int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+    int num_dof = num_vtx*apf::countComponents(f1);
+#ifdef  PETSC_USE_COMPLEX 
+    num_dof /= 2;
 #endif
 
-    apf::Field* out_f = pumi_mesh_getField(pumi::instance()->mesh, out_field);
 #ifdef DEBUG
-    int num_dof2 = pumi_mesh_getNumEnt(pumi::instance()->mesh,0)*apf::countComponents(out_f);
-#ifdef MSI_COMPLEX
-    num_dof2 /=2;
+    pField f2 = pumi_mesh_getField(pumi::instance()->mesh, out_field);
+    int num_dof2 = num_vtx*apf::countComponents(f2);
+#ifdef  PETSC_USE_COMPLEX 
+    num_dof2 /= 2;
 #endif
     assert(num_dof==num_dof2);
 #endif
-
-    int bs, ierr;
+    int bs;
+    int ierr;
     MatGetBlockSize(*A, &bs);
     PetscScalar * array[2];
     msi_field_getdataptr(&in_field, (double**)array);
-
+#ifdef PETSC_USE_COMPLEX
+    if(!get_scalar_type())
+    {
+      double * array_org = (double*)array[0];
+      array[0] = new PetscScalar[num_dof];
+      for(int i=0; i<num_dof; i++)
+      {
+        array[0][i]=array_org[i];
+      }
+    }
+#endif
     ierr = VecCreateSeqWithArray( PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[0],&b); CHKERRQ(ierr);
     msi_field_getdataptr(&out_field, (double**)array+1);
-
+#ifdef PETSC_USE_COMPLEX
+    if(!get_scalar_type())
+    {
+      double * array_org = (double*)array[1];
+      array[1] = new PetscScalar[num_dof];
+      for(int i=0; i<num_dof; i++)
+      {
+        array[1][i]=array_org[i];
+      }
+    }
+#endif
     ierr = VecCreateSeqWithArray( PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[1],&c); CHKERRQ(ierr);
     ierr=VecAssemblyBegin(b);  CHKERRQ(ierr);
     ierr=VecAssemblyEnd(b);  CHKERRQ(ierr);
@@ -280,7 +294,18 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     MatMult(*A, b, c);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
-    pumi_field_accumulate(out_f);
+#ifdef PETSC_USE_COMPLEX
+    if(!get_scalar_type())
+    {
+      double *datapt;
+      msi_field_getdataptr(&out_field, &datapt);
+      for(int i=0; i<num_dof; i++)
+        datapt[i]=std::real(array[1][i]); 
+      delete []array[0];
+      delete []array[1];
+    }
+#endif
+    pumi_field_accumulate(pumi_mesh_getField(pumi::instance()->mesh, out_field));
   }
 }
 int matrix_mult::assemble()
@@ -338,7 +363,7 @@ int matrix_solve::assemble()
     msi_field_getinfo(&fieldOrdering, field_name, &num_values, &value_type, &total_num_dof);
     dofPerVar=total_num_dof/num_values;
  
-    int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
+    int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
     PetscInt firstRow, lastRowPlusOne;
     ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
 
@@ -351,7 +376,7 @@ int matrix_solve::assemble()
       if(owner==PCU_Comm_Self()) continue;
 
       apf::MeshEntity* ent = get_ent(pumi::instance()->mesh, vertex_type, inode);
-      apf::MeshEntity* ownerEnt = pumi_ment_getOwnEnt(ent);
+      apf::MeshEntity* ownerEnt = get_ent_owncopy(pumi::instance()->mesh, ent);
 
       apf::Adjacent elements;
       getBridgeAdjacent(pumi::instance()->mesh, ent, brgType, 0, elements);
@@ -370,7 +395,7 @@ int matrix_solve::assemble()
       std::vector<int> columns(total_num_dof*numAdj);
       for(int i=0; i<numAdj; i++)
       {
-        int local_id = pumi_ment_getID(vecAdj.at(i));
+        int local_id = get_ent_localid(pumi::instance()->mesh, vecAdj.at(i));
         localNodeId.at(i)=local_id;
         int start_global_dof_id, end_global_dof_id_plus_one;
         msi_ent_getglobaldofid (&vertex_type, &local_id, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -626,11 +651,8 @@ int matrix_solve:: set_row( int row, int numVals, int* columns, double * vals)
 #endif
   for(int i=0; i<numVals; i++)
   {
-#ifndef MSI_COMPLEX
-  set_value(row, columns[i], 1, vals[i], 0);
-#else
-  set_value(row, columns[i], 1, vals[2*i], vals[2*i+1]); 
-#endif
+    if(get_scalar_type() == 0) set_value(row, columns[i], 1, vals[i], 0);
+    else set_value(row, columns[i], 1, vals[2*i], vals[2*i+1]); 
   }
 }
 int  msi_matrix :: preAllocateParaMat()
@@ -640,7 +662,7 @@ int  msi_matrix :: preAllocateParaMat()
   MatGetType(*A, &type);
 
   int num_own_ent,num_own_dof=0, vertex_type=0;
-  msi_mesh_getnumownent (&vertex_type, &num_own_ent);
+  num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   msi_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -655,7 +677,7 @@ int  msi_matrix :: preAllocateParaMat()
   int startDof, endDofPlusOne;
   msi_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
 
-  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
+  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
   int nnzStash=0;
   int brgType = 2;
@@ -712,7 +734,7 @@ int matrix_solve :: setUpRemoteAStruct()
   msi_field_getinfo(&fieldOrdering, field_name, &num_values, &value_type, &total_num_dof);
   dofPerVar=total_num_dof/num_values;
 
-  int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
+  int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
   std::vector<int> nnz_remote(num_values*num_vtx);
   int brgType = 2;
@@ -762,14 +784,12 @@ int  msi_matrix :: preAllocateSeqMat()
   MatType type;
   MatGetType(*A, &type);
 
-  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
-  pField f = pumi_mesh_getField(pumi::instance()->mesh,fieldOrdering);
-  int num_f = apf::countComponents(f);
-#ifdef MSI_COMPLEX
-  num_f /= 2;
+  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+  pField f = pumi_mesh_getField(pumi::instance()->mesh, fieldOrdering);
+  int num_dof = num_vtx*apf::countComponents(f);
+#ifdef PETSC_USE_COMPLEX
+  num_dof /= 2;
 #endif
-
-  int num_dof = (pumi_mesh_getNumEnt(pumi::instance()->mesh,0))*num_f;
 
   int dofPerEnt=0;
   if (num_vtx) dofPerEnt = num_dof/num_vtx;
@@ -817,7 +837,7 @@ int  msi_matrix :: preAllocateSeqMat()
 int msi_matrix :: setupParaMat()
 {
   int num_own_ent, vertex_type=0, num_own_dof;
-  msi_mesh_getnumownent (&vertex_type, &num_own_ent); 
+  num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   msi_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -834,14 +854,14 @@ int msi_matrix :: setupParaMat()
 
 int msi_matrix :: setupSeqMat()
 {
-  int num_ent=pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
-  pField f = pumi_mesh_getField(pumi::instance()->mesh,fieldOrdering);
-  int num_f = apf::countComponents(f);
-#ifdef MSI_COMPLEX
-  num_f /= 2;
+  int num_ent=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+
+  pField f = pumi_mesh_getField(pumi::instance()->mesh, fieldOrdering);
+  int num_dof =  num_ent*apf::countComponents(f);
+#ifdef PETSC_USE_COMPLEX
+  num_dof /= 2;
 #endif
 
-  int num_dof = pumi_mesh_getNumEnt(pumi::instance()->mesh,0)*num_f;
   int dofPerEnt=0;
   if (num_ent) dofPerEnt = num_dof/num_ent;
 
@@ -881,10 +901,12 @@ int matrix_mult :: preAllocate ()
   else preAllocateParaMat();
 }
 
+#define FIXSIZEBUFF 1024
+#define C1TRIDOFNODE 6
 int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 {
   int num_own_ent,num_own_dof=0, vertex_type=0;
-  msi_mesh_getnumownent (&vertex_type, &num_own_ent);
+  num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   msi_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -893,7 +915,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
 
-  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
+  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
   double dof_data[FIXSIZEBUFF];
   assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
@@ -917,7 +939,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
       if (scalar_type == MSI_REAL) value = dof_data[startIdx++];
       else 
       {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
         value = complex<double>(dof_data[startIdx*2],dof_data[startIdx*2+1]);
 #else
         if (!PCU_Comm_Self())
@@ -941,11 +963,8 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
 {
-
-  apf::Field* f = pumi_mesh_getField(pumi::instance()->mesh, field_id);
-
   int num_own_ent,num_own_dof=0, vertex_type=0;
-  msi_mesh_getnumownent (&vertex_type, &num_own_ent);
+  num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   msi_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -953,7 +972,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   std::vector<PetscInt> ix(dofPerEnt);
   std::vector<PetscScalar> values(dofPerEnt);
   std::vector<double> dof_data(dofPerEnt*(1+scalar_type));
-  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh,0);
+  int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
   int ierr;
 
@@ -974,7 +993,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
     {
       if (scalar_type == MSI_REAL) 
       {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
         dof_data.at(startIdx++)= values.at(i).real();
 #else
         dof_data.at(startIdx++)= values.at(i);
@@ -982,7 +1001,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
       }
       else
       {
-#ifdef MSI_COMPLEX
+#ifdef PETSC_USE_COMPLEX
         dof_data.at(2*startIdx)=values.at(i).real();
         dof_data.at(2*startIdx+1)=values.at(i).imag();
         startIdx++;
@@ -997,19 +1016,14 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
     //if(!PCU_Comm_Self()) 
     //for(int i=0; i<num_dof; i++) std::cout<<PCU_Comm_Self()<<" copy PetscVec2Field "<<field_id<<" inode "<<inode<<" "<<start_global_dof_id<<" "<<i<<" dof "<<dof_data[i]<<std::endl;
   }
-  pumi_field_synchronize(f);
+  pumi_field_synchronize(pumi_mesh_getField(pumi::instance()->mesh, field_id));
   return 0;
 }
 
 int matrix_solve :: solve(FieldID field_id)
 {
-  int scalar_type=0;
-#ifdef MSI_COMPLEX
-  scalar_type=1;
-#endif
-
   Vec x, b;
-  copyField2PetscVec(field_id, b, scalar_type);
+  copyField2PetscVec(field_id, b, get_scalar_type());
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   //std::cout<<" before solve "<<std::endl;
   //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
@@ -1024,7 +1038,7 @@ int matrix_solve :: solve(FieldID field_id)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   iterNum = its;
   //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
-  copyPetscVec2Field(x, field_id, scalar_type);
+  copyPetscVec2Field(x, field_id, get_scalar_type());
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
 }
@@ -1043,7 +1057,7 @@ int matrix_solve:: setKspType()
   // if 2D problem use superlu
   if (pumi::instance()->mesh->getDimension()==2)
   {
-#ifdef MSI_COMPLEX 
+#ifdef PETSC_USE_COMPLEX 
     ierr=KSPSetType(*ksp, KSPPREONLY);CHKERRQ(ierr);
     PC pc;
     ierr=KSPGetPC(*ksp, &pc); CHKERRQ(ierr);

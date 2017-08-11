@@ -80,28 +80,28 @@ int msi_matrix_print(int* matrix_id);
 //=========================================================================
 /** matrix and solver functions with TRILINOS */
 //=========================================================================
+int msi_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id);
+int msi_epetra_delete(int* matrix_id);
 
-int msi_epetra_create(int matrix_id, int matrix_type, int field_id);
-int msi_epetra_delete(int matrix_id);
+int msi_epetra_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
+int msi_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
 
-int msi_epetra_insert(int matrix_id, int row, int column, double* val);
-int msi_epetra_addblock(int matrix_id, int * ielm, int rowVarIdx, int * columnVarIdx, double * values);
-
-int msi_epetra_setbc(int matrix_id, int row);
+int msi_epetra_setbc(int* matrix_id, int* row);
 int msi_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
-int msi_epetra_freeze(int matrix_id); 
-int msi_epetra_multiply(int matrix_id, int in_fieldid, int out_fieldid);
-int msi_epetra_write(int matrix_id, const char*, int skip_zero, int start_index);
-int msi_epetra_print(int matrix_id);
+int msi_epetra_freeze(int* matrix_id); 
+int msi_epetra_multiply(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldid);
+int msi_epetra_write(int* matrix_id, const char*, int* skip_zero, int* start_index);
+int msi_epetra_print(int* matrix_id);
 
-int msi_solver_aztec(int matrix_id, int x_fieldid, int
-		       b_fieldid, int num_iter, double* tolerance,
+int msi_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
+		       b_fieldid, int* num_iter, double* tolerance,
 		       const char* krylov_solver, const char*
 		       preconditioner, const char* sub_dom_solver,
-		       int overlap, int graph_fill, double*
+		       int* overlap, int* graph_fill, double*
 		       ilu_drop_tol,  double* ilu_fill,
-		       double* ilu_omega, int poly_ord);
+		       double* ilu_omega, int* poly_ord);
   
-int msi_solver_getnumiter(int matrix_id, int * iter_num);
+int msi_solver_amesos(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldid, const char* solver_name);
+int msi_solver_getnumiter(int* matrix_id, int * iter_num);
 #endif //#ifdef MSI_TRILINOS
 #endif

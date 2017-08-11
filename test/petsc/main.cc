@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -17,9 +17,8 @@
 #include <iostream>
 #include <assert.h>
 
-
 using namespace std;
-static char help[] = "testing solver functions; \n first do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";
+static char help[] = "Purpose: testing pumi-petsc interface;\n\tdo mat-vec product A*b=c; solve Ax=c; compare x and b\n";
 
 bool AlmostEqualDoubles(double A, double B,
             double maxDiff, double maxRelDiff);
@@ -29,12 +28,12 @@ const char* meshFile = 0;
 
 void getConfig(int argc, char** argv)
 {
-  if ( argc < 3 ) {
-    if ( !PCU_Comm_Self() )
-    {
-      printf("Usage: %s <model> <distributed mesh>>\n", argv[0]);
-      std::cout<<help;
-    }
+  if (argc<3)
+  {
+    if (!PCU_Comm_Self()) 
+      cout<<help<<"Usage: "<<argv[0]<<" model(.dmg) distributed-mesh(.smb)\n";
+    PetscFinalize();
+    pumi_finalize();
     MPI_Finalize();
     exit(EXIT_FAILURE);
   }
@@ -49,11 +48,6 @@ int main( int argc, char** argv)
   
   PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
   PetscLogDouble mem;
-  if (argc<4 & !PCU_Comm_Self())
-  {
-    cout<<"Usage: ./main  model mesh #planes real(0)/complex(1) "<<endl;
-    return MSI_FAILURE;
-  }
   double t1, t2, t3, t4, t5;
 
   int scalar_type=0; // real	
@@ -81,9 +75,6 @@ int main( int argc, char** argv)
   num_own_vertex = pumi_mesh_getNumOwnEnt(m, 0); 
   num_elem = pumi_mesh_getNumEnt(m, elem_dim);
 
-
-  int value_type[] = {scalar_type,scalar_type};
-
   int b_field=0, c_field=1, x_field=2;
   int num_values=1;
 
@@ -91,9 +82,9 @@ int main( int argc, char** argv)
   if (elem_dim==3) num_dofs=12;
   int num_dofs_node = num_values * num_dofs;
   if(!PCU_Comm_Self()) cout<<"* creating fields ..."<<endl;
-  msi_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);
-  msi_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs);
-  msi_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs);
+  msi_field_create (&b_field, "b_field", &num_values, &scalar_type, &num_dofs);
+  msi_field_create (&c_field, "c_field", &num_values, &scalar_type, &num_dofs);
+  msi_field_create (&x_field, "x_field", &num_values, &scalar_type, &num_dofs);
 
 //  PetscMemoryGetCurrentUsage(&mem);
 //  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
@@ -123,8 +114,8 @@ int main( int argc, char** argv)
   int matrix_mult=1, matrix_solve=2;
   int matrix_mult_type = MSI_MULTIPLY;
   int matrix_solve_type = MSI_SOLVE;
-  msi_matrix_create(&matrix_mult, &matrix_mult_type, value_type, &b_field);
-  msi_matrix_create(&matrix_solve, &matrix_solve_type, value_type, &b_field);
+  msi_matrix_create(&matrix_mult, &matrix_mult_type, &scalar_type, &b_field);
+  msi_matrix_create(&matrix_solve, &matrix_solve_type, &scalar_type, &b_field);
 
   double diag_value=2.0, off_diag=1.0;
   int node_elm = 3;
@@ -240,10 +231,10 @@ int main( int argc, char** argv)
   msi_field_delete(&b_field);
   msi_field_delete(&c_field);
 
-  PetscFinalize();
   msi_finalize(m);
   pumi_mesh_delete(m);
   pumi_finalize();
+  PetscFinalize();
   MPI_Finalize();
   return 0;
 }
