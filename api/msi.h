@@ -22,47 +22,29 @@ enum msi_matrix_type { /*0*/ MSI_MULTIPLY=0,
 enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
                          /*2*/ MSI_FIXED};
 
-// helper routines
-pMeshEnt get_ent(pMesh mesh, int ent_dim, int ent_id);
-void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent);
+// START OF API
+// remember to delete ownership after use
+void msi_start(pMesh m, pOwnership o);
+void msi_finalize(pMesh m);
+
 int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                           int* /* out */ num_dof, double* dof_data);
 int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                           int* /* out */ num_dof, double* dof_data);
-int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                            int* /* out */ owning_partid);
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
-         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
-int msi_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* /*in*/ num_values, 
-int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value);
+
+int msi_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* /*in*/ num_values, int* /*in*/ num_dofs_per_value);
 int msi_field_delete (FieldID* /*in*/ field_id);
-
-int msi_field_getglobaldofid ( FieldID* field_id, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void msi_field_getinfo(int* /*in*/ field_id, 
-     char* /* out*/ field_name, int* num_values, int* scalar_type, int* total_num_dof);
-int msi_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof);
-int msi_field_getdataptr (FieldID* field_id, double** pts);
-int msi_field_getowndofid (FieldID* field_id, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-
-// START OF API
-// remember to delete ownership 
-void msi_start(pMesh m, pOwnership o);
-void msi_finalize(pMesh m);
 
 #ifdef MSI_PETSC
 /** matrix and solver functions with PETSc */
-int msi_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id); //zerosuperlumatrix_
+int msi_matrix_create(int* matrix_id, int* matrix_type, FieldID* field_id); //zerosuperlumatrix_
 int msi_matrix_freeze(int* matrix_id); //finalizematrix_
 int msi_matrix_delete(int* matrix_id); //deletematrix_
 
-int msi_matrix_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
-int msi_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, double* val); //globalinsertval_
+int msi_matrix_insert(int* matrix_id, int* row, int* column, double* val);
+int msi_matrix_add(int* matrix_id, int* row, int* column, double* val); //globalinsertval_
 
-int msi_matrix_insertblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
+int msi_matrix_addBlock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
 int msi_matrix_setbc(int* matrix_id, int* row);
 int msi_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
@@ -80,10 +62,10 @@ int msi_matrix_print(int* matrix_id);
 //=========================================================================
 /** matrix and solver functions with TRILINOS */
 //=========================================================================
-int msi_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id);
+int msi_epetra_create(int* matrix_id, int* matrix_type, FieldID* field_id);
 int msi_epetra_delete(int* matrix_id);
 
-int msi_epetra_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
+int msi_epetra_insert(int* matrix_id, int* row, int* column, double* val);
 int msi_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
 
 int msi_epetra_setbc(int* matrix_id, int* row);

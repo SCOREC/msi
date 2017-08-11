@@ -82,9 +82,9 @@ int main( int argc, char** argv)
   if (elem_dim==3) num_dofs=12;
   int num_dofs_node = num_values * num_dofs;
   if(!PCU_Comm_Self()) cout<<"* creating fields ..."<<endl;
-  msi_field_create (&b_field, "b_field", &num_values, &scalar_type, &num_dofs);
-  msi_field_create (&c_field, "c_field", &num_values, &scalar_type, &num_dofs);
-  msi_field_create (&x_field, "x_field", &num_values, &scalar_type, &num_dofs);
+  msi_field_create (&b_field, "b_field", &num_values, &num_dofs);
+  msi_field_create (&c_field, "c_field", &num_values, &num_dofs);
+  msi_field_create (&x_field, "x_field", &num_values, &num_dofs);
 
 //  PetscMemoryGetCurrentUsage(&mem);
 //  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
@@ -114,8 +114,8 @@ int main( int argc, char** argv)
   int matrix_mult=1, matrix_solve=2;
   int matrix_mult_type = MSI_MULTIPLY;
   int matrix_solve_type = MSI_SOLVE;
-  msi_matrix_create(&matrix_mult, &matrix_mult_type, &scalar_type, &b_field);
-  msi_matrix_create(&matrix_solve, &matrix_solve_type, &scalar_type, &b_field);
+  msi_matrix_create(&matrix_mult, &matrix_mult_type, &b_field);
+  msi_matrix_create(&matrix_solve, &matrix_solve_type, &b_field);
 
   double diag_value=2.0, off_diag=1.0;
   int node_elm = 3;
@@ -157,8 +157,8 @@ int main( int argc, char** argv)
          {
            for(int i=0; i<block_tmp.size(); i++) block_tmp.at(i)*=0.5/num_values;
          }
-         msi_matrix_insertblock(&matrix_solve, &ielm, &rowVar, &colVar, &block_tmp[0]);
-         msi_matrix_insertblock(&matrix_mult, &ielm, &rowVar, &colVar, &block_tmp[0]);
+         msi_matrix_addBlock(&matrix_solve, &ielm, &rowVar, &colVar, &block_tmp[0]);
+         msi_matrix_addBlock(&matrix_mult, &ielm, &rowVar, &colVar, &block_tmp[0]);
       }
     }
   }

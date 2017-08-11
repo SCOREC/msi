@@ -268,17 +268,15 @@ int msi_field_getowndofid (FieldID* field_id,
 //*******************************************************
 void msi_field_getinfo(int* /*in*/ field_id, 
                         char* /* out*/ field_name, int* num_values, 
-                        int* scalar_type, int* total_num_dof)
+                        int* total_num_dof)
 //*******************************************************
 {
   apf::Field* f = pumi_mesh_getField(pumi::instance()->mesh, *field_id);
   strcpy(field_name, getName(f));
   *num_values = 1;
 
-  *scalar_type = 0;
   *total_num_dof = countComponents(f);
 #ifdef PETSC_USE_COMPLEX
-  *scalar_type = 1;
   *total_num_dof/=2;
 #endif
 }
@@ -354,13 +352,14 @@ void msi_finalize(pMesh m)
 
 
 //*******************************************************
-void msi_field_assign(int* field_id, double* fac, int scalar_type)
+void msi_field_assign(int* field_id, double* fac)
 //*******************************************************
 {
   pField f = pumi_mesh_getField(pumi::instance()->mesh, *field_id);
-  int dofPerEnt = countComponents(f);
+  int scalar_type=0, dofPerEnt = countComponents(f);
 #ifdef PETSC_USE_COMPLEX
   dofPerEnt /= 2;
+  scalar_type=1;
 #endif
 
   int vertex_type=0, num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
@@ -376,14 +375,17 @@ void msi_field_assign(int* field_id, double* fac, int scalar_type)
 }
 
 
-int msi_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* /*in*/ num_values, 
-int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value)
+int msi_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* /*in*/ num_values, int* /*in*/ num_dofs_per_value)
 {
-  int components = (*num_values)*(*scalar_type+1)*(*num_dofs_per_value);
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+  int components = (*num_values)*(scalar_type+1)*(*num_dofs_per_value);
   apf::Field* f = createPackedField(pumi::instance()->mesh, field_name, components);
   apf::freeze(f); // switch dof data from tag to array
   double val[2]={0,0};
-  msi_field_assign(field_id, val, *scalar_type);
+  msi_field_assign(field_id, val);
   return MSI_SUCCESS;
 }
 
@@ -404,7 +406,7 @@ int getMatHit(int id) { return matHit[id];};
 void addMatHit(int id) { matHit[id]++; }
 
 //*******************************************************
-int msi_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID *field_id)
+int msi_matrix_create(int* matrix_id, int* matrix_type, FieldID *field_id)
 //*******************************************************
 {
   msi_matrix* mat = msi_solver::instance()->get_matrix(*matrix_id);
@@ -418,12 +420,12 @@ int msi_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldI
 
   if (*matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(*matrix_id, *scalar_type, *field_id);
+    matrix_mult* new_mat = new matrix_mult(*matrix_id, *field_id);
     msi_solver::instance()->add_matrix(*matrix_id, (msi_matrix*)new_mat);
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(*matrix_id, *scalar_type, *field_id);
+    matrix_solve* new_mat= new matrix_solve(*matrix_id, *field_id);
     msi_solver::instance()->add_matrix(*matrix_id, (msi_matrix*)new_mat);
   }
 
@@ -468,7 +470,7 @@ int msi_matrix_delete(int* matrix_id)
 
 //*******************************************************
 int msi_matrix_insert(int* matrix_id, int* row, 
-         int* col, int* scalar_type, double* val)
+         int* col, double* val)
 //*******************************************************
 {  
   msi_matrix* mat = msi_solver::instance()->get_matrix(*matrix_id);
@@ -483,9 +485,9 @@ int msi_matrix_insert(int* matrix_id, int* row,
 
 #ifdef DEBUG
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  msi_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  msi_field_getinfo(&field, field_name, &num_values, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
   apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
@@ -493,16 +495,17 @@ int msi_matrix_insert(int* matrix_id, int* row,
   assert(!pumi::instance()->mesh->isGhost(e));
 #endif
 
-  if (*scalar_type==1)
+#ifdef PETSC_USE_COMPLEX
     mat->set_value(*row, *col, INSERT_VALUES, val[0], val[1]);
-  else
+#else
     mat->set_value(*row, *col, INSERT_VALUES, *val, 0);
+#endif
   return MSI_SUCCESS;
 }
 
 //*******************************************************
 int msi_matrix_add (int* matrix_id, int* row, int* col, 
-                      int* scalar_type, double* val) //globalinsertval_
+                    double* val) //globalinsertval_
 //*******************************************************
 {  
   msi_matrix* mat = msi_solver::instance()->get_matrix(*matrix_id);
@@ -517,9 +520,9 @@ int msi_matrix_add (int* matrix_id, int* row, int* col,
 
 #ifdef DEBUG
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  msi_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  msi_field_getinfo(&field, field_name, &num_values, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
   apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
@@ -527,10 +530,11 @@ int msi_matrix_add (int* matrix_id, int* row, int* col,
   assert(!pumi::instance()->mesh->isGhost(e));
 #endif
 
-  if (*scalar_type==1)
+#ifdef PETSC_USE_COMPLEX
     mat->set_value(*row, *col, ADD_VALUES, val[0], val[1]);
-  else
+#else
     mat->set_value(*row, *col, ADD_VALUES, *val, 0);
+#endif
   return MSI_SUCCESS;
 }
 
@@ -549,9 +553,9 @@ int msi_matrix_setbc(int* matrix_id, int* row)
     return MSI_FAILURE;
   }
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  msi_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  msi_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   msi_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -586,9 +590,9 @@ int msi_matrix_setlaplacebc(int * matrix_id, int *row,
   }
   std::vector <int> columns_g(*numVals);
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  msi_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  msi_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   msi_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -673,7 +677,7 @@ int msi_matrix_getiternum(int* matrix_id, int * iter_num)
 }
 
 //*******************************************************
-int msi_matrix_insertblock(int* matrix_id, int * ielm, 
+int msi_matrix_addBlock(int* matrix_id, int * ielm, 
           int* rowIdx, int * columnIdx, double * values)
 //*******************************************************
 {
@@ -684,8 +688,8 @@ int msi_matrix_insertblock(int* matrix_id, int * ielm,
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
   char field_name[256];
-  int num_values, value_type, total_num_dof; 
-  msi_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  int num_values, total_num_dof; 
+  msi_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
@@ -703,8 +707,11 @@ int msi_matrix_insertblock(int* matrix_id, int * ielm,
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
-  int scalar_type = mat->get_scalar_type();
-  assert(scalar_type==value_type);
+  int scalar_type = 0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowIdx<numVar && *columnIdx<numVar);
@@ -864,7 +871,7 @@ void verifyFieldEpetraVector(apf::Field* f, Epetra_MultiVector* x)
   }
 }
 
-int m3dc1_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id)
+int m3dc1_epetra_create(int* matrix_id, int* matrix_type, FieldID* field_id)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
 
@@ -881,7 +888,7 @@ int m3dc1_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
     return M3DC1_FAILURE; 
   }
-  m3dc1_ls::instance()->add_matrix(*matrix_id, new m3dc1_epetra(*matrix_id, *matrix_type, *scalar_type, *field_id));
+  m3dc1_ls::instance()->add_matrix(*matrix_id, new m3dc1_epetra(*matrix_id, *matrix_type, *field_id));
   return M3DC1_SUCCESS;
 }
 
@@ -898,12 +905,11 @@ int m3dc1_epetra_delete(int* matrix_id)
   return M3DC1_SUCCESS;
 }
 
-int m3dc1_epetra_insert(int* matrix_id, int* row, int* col, int* scalar_type, double* val)
+int m3dc1_epetra_insert(int* matrix_id, int* row, int* col, double* val)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
     return M3DC1_FAILURE;
-  assert(*scalar_type==M3DC1_REAL);
 
   int err = mat->epetra_mat->ReplaceGlobalValues(*row, 1, val, col);
   if (err) {
@@ -980,8 +986,8 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
   char field_name[256];
-  int num_values, value_type, total_num_dof; 
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  int num_values, total_num_dof; 
+  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
@@ -994,8 +1000,11 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
-  int scalar_type = mat->get_scalar_type();
-  assert(scalar_type==value_type);
+  int scalar_type = 0;
+#ifdef MSI_COMPLEX
+  scalar_type=1;
+#endif
+
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowVarIdx<numVar && *columnVarIdx<numVar);
@@ -1060,9 +1069,9 @@ int m3dc1_epetra_setbc(int* matrix_id, int* row)
   }
 
   int field = mat->get_field_id();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -1096,9 +1105,9 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
 
   std::vector <global_ordinal_type> columns_g(*numVals);
   int field = mat->get_field_id();
-  int num_values, value_type, total_num_dof;
+  int num_values, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);

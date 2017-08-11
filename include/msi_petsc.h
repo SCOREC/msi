@@ -17,14 +17,35 @@
 #include "msi.h"
 #include <vector>
 
-int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
-int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
+// helper routines
+// helper routines
+pMeshEnt get_ent(pMesh mesh, int ent_dim, int ent_id);
+void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent);
+
+int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
+                            int* /* out */ owning_partid);
+int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
+
+int msi_field_getglobaldofid (FieldID* field_id, 
+         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+void msi_field_getinfo(int* /*in*/ field_id, 
+     char* /* out*/ field_name, int* num_values, int* total_num_dof);
+int msi_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof);
+int msi_field_getdataptr (FieldID* field_id, double** pts);
+int msi_field_getowndofid (FieldID* field_id, 
+         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+int copyField2PetscVec(FieldID field, Vec& petscVec);
+int copyPetscVec2Field(Vec& petscVec, FieldID field);
 void printMemStat();
+
 // NOTE: all field realted interaction is done through msi api rather than apf
 class msi_matrix
 {
 public:
-  msi_matrix(int i, int s, FieldID field);
+  msi_matrix(int i, FieldID field);
   virtual ~msi_matrix();
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
@@ -34,7 +55,13 @@ public:
   int get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
   void set_status(int s) {mat_status=s;}
   int get_status() {return mat_status;}
-  int get_scalar_type() { return scalar_type; }
+  int get_scalar_type() {
+#ifdef MSI_COMPLEX
+  return 1;
+#else
+  return 0;
+#endif
+}
   int get_fieldOrdering() { return fieldOrdering;}
   int write( const char* file_name);
   virtual int get_type() const = 0;
@@ -51,7 +78,6 @@ protected:
   int preAllocateSeqMat();
   int preAllocateParaMat();
   int id;
-  int scalar_type;
   int mat_status; 
   int fieldOrdering; // the field that provide numbering
 };
@@ -59,7 +85,7 @@ protected:
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i, int s, FieldID field): msi_matrix(i,s,field), localMat(1) { initialize();}
+  matrix_mult(int i, FieldID field): msi_matrix(i,field), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
@@ -75,7 +101,7 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, int s,  FieldID fieldOrdering);
+  matrix_solve(int i, FieldID fieldOrdering);
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(FieldID field_id);
