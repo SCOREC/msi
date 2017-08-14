@@ -24,28 +24,28 @@ void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent);
 
 int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
                             int* /* out */ owning_partid);
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
                        int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
          int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
 
-int msi_field_getglobaldofid (FieldID* field_id, 
+int msi_field_getglobaldofid (pField f, 
          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void msi_field_getinfo(int* /*in*/ field_id, 
+void msi_field_getinfo(pField f, 
      char* /* out*/ field_name, int* num_values, int* total_num_dof);
-int msi_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof);
-int msi_field_getdataptr (FieldID* field_id, double** pts);
-int msi_field_getowndofid (FieldID* field_id, 
+int msi_field_getnumowndof (pField f, int* /* out */ num_own_dof);
+int msi_field_getdataptr (pField f, double** pts);
+int msi_field_getowndofid (pField f, 
          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int copyField2PetscVec(FieldID field, Vec& petscVec);
-int copyPetscVec2Field(Vec& petscVec, FieldID field);
+int copyField2PetscVec(pField f, Vec& petscVec);
+int copyPetscVec2Field(Vec& petscVec, pField f);
 void printMemStat();
 
 // NOTE: all field realted interaction is done through msi api rather than apf
 class msi_matrix
 {
 public:
-  msi_matrix(int i, FieldID field);
+  msi_matrix(int i, pField f);
   virtual ~msi_matrix();
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
@@ -62,7 +62,7 @@ public:
   return 0;
 #endif
 }
-  int get_fieldOrdering() { return fieldOrdering;}
+  pField get_field() { return field;}
   int write( const char* file_name);
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
@@ -79,17 +79,17 @@ protected:
   int preAllocateParaMat();
   int id;
   int mat_status; 
-  int fieldOrdering; // the field that provide numbering
+  pField field; // the field that provide numbering
 };
 
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i, FieldID field): msi_matrix(i,field), localMat(1) { initialize();}
+  matrix_mult(int i,pField f): msi_matrix(i,f), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
-  int multiply(FieldID in_field, FieldID out_field);
+  int multiply(pField in_f, pField out_f);
   virtual int get_type() const { return 0; } //MSI_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -101,10 +101,10 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, FieldID fieldOrdering);
+  matrix_solve(int i, pField f);
   virtual int initialize();
   virtual ~matrix_solve();
-  int solve(FieldID field_id);
+  int solve(pField f);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
