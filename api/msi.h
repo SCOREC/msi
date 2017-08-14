@@ -45,7 +45,7 @@ void msi_matrix_addBlock(pMatrix mat, int ielm, int rowVarIdx, int columnVarIdx,
 void msi_matrix_setBC(pMatrix matd, int row);
 void msi_matrix_setLaplaceBC (pMatrix mat, int row, int numVals, int* columns, double* values);
 
-void msi_matrix_solve(pMatrix mat, pField rhs_sol);
+void msi_matrix_solve(pMatrix mat, pField rhs, pField sol);
 int msi_matrix_getNumIter(pMatrix mat);
 void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
 

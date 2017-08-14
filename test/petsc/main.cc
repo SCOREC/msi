@@ -48,7 +48,7 @@ int main( int argc, char** argv)
   
   PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
   PetscLogDouble mem;
-  double t1, t2, t3, t4, t5;
+  double t1, t2, t3, t4, t5, t6;
 
   int scalar_type=0; // real	
 #ifdef PETSC_USE_COMPLEX
@@ -102,7 +102,7 @@ int main( int argc, char** argv)
     pumi_ment_setField(e, b_field, 0, &dofs.at(0));
   }
 
-  t1 = MPI_Wtime();
+
   // fill matrix 
   // the matrix is diagnal dominant; thus should be positive definite
   pMatrix matrix_mult = msi_matrix_create(MSI_MULTIPLY, b_field);
@@ -133,6 +133,7 @@ int main( int argc, char** argv)
     std::cout<<"\n";
   }
 
+  t1 = MPI_Wtime();
   for(int ielm=0; ielm<num_elem; ielm++)
   {
     for(int rowVar=0; rowVar<nv; rowVar++)
@@ -156,7 +157,7 @@ int main( int argc, char** argv)
   msi_matrix_freeze(matrix_solve); 
   t3 = MPI_Wtime();
 
-  if(!PCU_Comm_Self()) cout<<"* do matrix-vector multiply ..."<<endl;
+  if(!PCU_Comm_Self()) cout<<"* multiply Ab=c ..."<<endl;
   msi_matrix_multiply(matrix_mult, b_field, c_field); 
   t4 = MPI_Wtime();
 
@@ -181,15 +182,17 @@ int main( int argc, char** argv)
   // copy c field to x field
   pumi_field_copy(c_field, x_field);
 
-  if(!PCU_Comm_Self()) cout<<"* solve ..."<<endl;
+  t5 = MPI_Wtime();
+  if(!PCU_Comm_Self()) cout<<"* solve Ax=c ..."<<endl;
   // solve Ax=c
   int solver_type = 0;    // PETSc direct solver
   double solver_tol = 1e-6;
-  msi_matrix_solve(matrix_solve, x_field); //, &solver_type, &solver_tol);
-  //msi_field_print(&x_field);
-  t5 = MPI_Wtime();
+  msi_matrix_solve(matrix_solve, c_field, x_field); 
+
+  t6 = MPI_Wtime();
 
   // verify x=b
+  if(!PCU_Comm_Self()) cout<<"* verify x==b..."<<endl;
   it = m->begin(0);  
   while ((e = m->iterate(it)))
   {
@@ -202,7 +205,7 @@ int main( int argc, char** argv)
   m->end(it);
 
   if(!PCU_Comm_Self())
-    cout<<"* time: fill matrix "<<t2-t1<<" assemble "<<t3-t2<<" mult "<<t4-t3<<" solve "<<t5-t4<<endl; 
+    cout<<"* time: fill matrix "<<t2-t1<<" assemble "<<t3-t2<<" mult "<<t4-t3<<" solve "<<t6-t5<<endl; 
 
   msi_matrix_delete(matrix_mult);
   msi_matrix_delete(matrix_solve);

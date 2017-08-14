@@ -108,7 +108,7 @@ public:
   matrix_solve(pField f);
   virtual int initialize();
   virtual ~matrix_solve();
-  int solve(pField f);
+  int solve(pField rhs, pField sol);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);

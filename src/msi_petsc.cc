@@ -808,10 +808,10 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   return 0;
 }
 
-int matrix_solve::solve(pField f)
+int matrix_solve::solve(pField rhs, pField sol)
 {
   Vec x, b;
-  copyField2PetscVec(f, b);
+  copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   //std::cout<<" before solve "<<std::endl;
   //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
@@ -826,7 +826,7 @@ int matrix_solve::solve(pField f)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   iterNum = its;
   //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
-  copyPetscVec2Field(x, f);
+  copyPetscVec2Field(x, sol);
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
 }

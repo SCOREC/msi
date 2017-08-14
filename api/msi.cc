@@ -519,14 +519,14 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, numVals, &columns_g[0], values);
 }
 
-void msi_matrix_solve(pMatrix mat, pField rhs_sol) 
+void msi_matrix_solve(pMatrix mat, pField rhs, pField sol) 
 {  
   assert(mat->get_type()==MSI_SOLVE);
 
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(rhs_sol)<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": RHS "<<getName(rhs)<<", solution: "<<getName(sol)<<"\n";
 
-  (dynamic_cast<matrix_solve*>(mat))->solve(rhs_sol);
+  (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
 }
 
 //*******************************************************
@@ -978,7 +978,7 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
   global_ordinal_type row_g = start_global_dof_id+*row%total_num_dof;
   for(int i=0; i<*numVals; i++)
     columns_g.at(i) = start_global_dof_id+columns[i]%total_num_dof;
-//  (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, *numVals, &columns_g[0], values);
+
   int err = mat->epetra_mat->SumIntoGlobalValues(row_g, *numVals, values, &columns_g[0]);
   if (err) 
     err =mat->epetra_mat->InsertGlobalValues(row_g, *numVals, values, &columns_g[0]);
