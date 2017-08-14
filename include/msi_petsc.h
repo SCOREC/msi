@@ -29,6 +29,11 @@ int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f,
 int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
          int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
 
+int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
+                          int* /* out */ num_dof, double* dof_data);
+int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
+                          int* /* out */ num_dof, double* dof_data);
+
 int msi_field_getglobaldofid (pField f, 
          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
 void msi_field_getinfo(pField f, 
@@ -45,7 +50,7 @@ void printMemStat();
 class msi_matrix
 {
 public:
-  msi_matrix(int i, pField f);
+  msi_matrix(pField f);
   virtual ~msi_matrix();
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
@@ -77,7 +82,6 @@ protected:
   int setupParaMat();
   int preAllocateSeqMat();
   int preAllocateParaMat();
-  int id;
   int mat_status; 
   pField field; // the field that provide numbering
 };
@@ -85,7 +89,7 @@ protected:
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(int i,pField f): msi_matrix(i,f), localMat(1) { initialize();}
+  matrix_mult(pField f): msi_matrix(f), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
@@ -101,7 +105,7 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(int i, pField f);
+  matrix_solve(pField f);
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(pField f);

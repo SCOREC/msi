@@ -26,35 +26,33 @@ enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
 void msi_start(pMesh m, pOwnership o);
 void msi_finalize(pMesh m);
 
-int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-
 pField msi_field_create (const char* /* in */ field_name, 
                       int /*in*/ num_values, int /*in*/ num_dofs_per_value);
 
 #ifdef MSI_PETSC
+#include "msi_petsc.h"
+class msi_matrix;
+typedef msi_matrix* pMatrix;
 /** matrix and solver functions with PETSc */
-void msi_matrix_create(int matrix_id, int matrix_type, pField f);
-void msi_matrix_freeze(int matrix_id);
-void msi_matrix_delete(int matrix_id);
+pMatrix msi_matrix_create(int matrix_type, pField f);
+void msi_matrix_freeze(pMatrix mat);
+void msi_matrix_delete(pMatrix mat);
 
-void msi_matrix_insert(int matrix_id, int row, int column, double* val);
-void msi_matrix_add(int matrix_id, int row, int column, double* val);
-void msi_matrix_addBlock(int matrix_id, int ielm, int rowVarIdx, int columnVarIdx, double* values);
+void msi_matrix_insert(pMatrix mat, int row, int column, double* val);
+void msi_matrix_add(pMatrix mat, int row, int column, double* val);
+void msi_matrix_addBlock(pMatrix mat, int ielm, int rowVarIdx, int columnVarIdx, double* values);
 
-void msi_matrix_setBC(int matrix_id, int row);
-void msi_matrix_setLaplaceBC (int matrix_id, int row, int numVals, int* columns, double* values);
+void msi_matrix_setBC(pMatrix matd, int row);
+void msi_matrix_setLaplaceBC (pMatrix mat, int row, int numVals, int* columns, double* values);
 
-void msi_matrix_solve(int matrix_id, pField rhs_sol);
-int msi_matrix_getNumIter(int matrix_id);
-void msi_matrix_multiply(int matrix_id, pField inputvec, pField outputvec);
+void msi_matrix_solve(pMatrix mat, pField rhs_sol);
+int msi_matrix_getNumIter(pMatrix mat);
+void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
 
 // auxiliary
-void msi_matrix_flush(int matrix_id);
-void msi_matrix_write(int matrix_id, const char* file_name, int start_index);
-void msi_matrix_print(int matrix_id);
+void msi_matrix_flush(pMatrix mat);
+void msi_matrix_write(pMatrix matd, const char* file_name, int start_index);
+void msi_matrix_print(pMatrix mat);
 #endif // #ifdef MSI_PETSC
 
 #ifdef MSI_TRILINOS

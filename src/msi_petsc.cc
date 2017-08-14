@@ -65,7 +65,7 @@ int matrix_mult::initialize()
 }
 
 
-msi_matrix::msi_matrix(int i, pField f): id(i), field(f)
+msi_matrix::msi_matrix(pField f): field(f)
 {
   mat_status = MSI_NOT_FIXED;
   A=new Mat;
@@ -252,7 +252,7 @@ int matrix_mult::assemble()
 // ***********************************
 // 		matrix_solve
 // ***********************************
-matrix_solve::matrix_solve(int i, pField f): msi_matrix(i,f) 
+matrix_solve::matrix_solve(pField f): msi_matrix(f) 
 {  
   ksp = new KSP;
   kspSet=0;
@@ -920,7 +920,6 @@ int msi_matrix::printInfo()
 {
   MatInfo info;
   MatGetInfo(*A, MAT_LOCAL,&info);
-  std::cout<<"Matrix "<<id<<" info "<<std::endl;
   std::cout<<"\t nz_allocated,nz_used,nz_unneeded "<<info.nz_allocated<<" "<<info.nz_used<<" "<<info.nz_unneeded<<std::endl;
   std::cout<<"\t memory mallocs "<<info.memory<<" "<<info.mallocs<<std::endl; 
   PetscInt nstash, reallocs, bnstash, breallocs;

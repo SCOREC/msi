@@ -105,11 +105,8 @@ int main( int argc, char** argv)
   t1 = MPI_Wtime();
   // fill matrix 
   // the matrix is diagnal dominant; thus should be positive definite
-  int matrix_mult=1, matrix_solve=2;
-  int matrix_mult_type = MSI_MULTIPLY;
-  int matrix_solve_type = MSI_SOLVE;
-  msi_matrix_create(matrix_mult, matrix_mult_type, b_field);
-  msi_matrix_create(matrix_solve, matrix_solve_type, b_field);
+  pMatrix matrix_mult = msi_matrix_create(MSI_MULTIPLY, b_field);
+  pMatrix matrix_solve = msi_matrix_create(MSI_SOLVE, b_field);
 
   double diag_value=2.0, off_diag=1.0;
   vector<double> block(num_dofs_element*num_dofs_element*(1+scalar_type),0);

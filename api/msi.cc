@@ -374,74 +374,47 @@ pField msi_field_create (const char* /* in */ field_name, int /*in*/ num_values,
 
 #ifdef MSI_PETSC
 /** matrix and solver functions */
-std::map<int, int> matHit;
-int getMatHit(int id) { return matHit[id];};
-void addMatHit(int id) { matHit[id]++; }
-
 //*******************************************************
-void msi_matrix_create(int matrix_id, int matrix_type, pField f)
+msi_matrix* msi_matrix_create(int matrix_type, pField f)
 //*******************************************************
 {
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-
-  if (mat)
-  {
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<matrix_id<<" already created\n";
-    return; 
-  }
-
   if (matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(matrix_id, f);
-    msi_solver::instance()->add_matrix(matrix_id, (msi_matrix*)new_mat);
+    matrix_mult* new_mat = new matrix_mult(f);
+    return (msi_matrix*)new_mat;
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(matrix_id, f);
-    msi_solver::instance()->add_matrix(matrix_id, (msi_matrix*)new_mat);
+    matrix_solve* new_mat= new matrix_solve(f);
+    return (msi_matrix*)new_mat;
   }
 
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-    std::cout<<"[MSI INFO] "<<__func__<<": ID "<<matrix_id<<", field "<<getName(f)<<"\n";
+    std::cout<<"[MSI INFO] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
 #endif 
 }
 
 //*******************************************************
-void msi_matrix_freeze(int matrix_id) 
+void msi_matrix_freeze(pMatrix mat) 
 //*******************************************************
 {
-  double t1 = MPI_Wtime();
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
   mat->assemble();
 }
 
 //*******************************************************
-void msi_matrix_delete(int matrix_id)
+void msi_matrix_delete(pMatrix mat)
 //*******************************************************
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
-
-#ifdef DEBUG
-  if (!PCU_Comm_Self())
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": ID "<<matrix_id<<"\n";
-#endif
-
-  typedef std::map<int, msi_matrix*> matrix_container_map;
-  msi_solver::instance()->matrix_container->erase(matrix_container_map::key_type(matrix_id));
   delete mat;
 }
 
 //*******************************************************
-void msi_matrix_insert(int matrix_id, int row, 
+void msi_matrix_insert(pMatrix mat, int row, 
          int col, double* val)
 //*******************************************************
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat && mat->get_status()!=MSI_FIXED);
+  assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
   int num_values, total_num_dof;
@@ -462,12 +435,11 @@ void msi_matrix_insert(int matrix_id, int row,
 }
 
 //*******************************************************
-void msi_matrix_add (int matrix_id, int row, int col, 
+void msi_matrix_add (pMatrix mat, int row, int col, 
                     double* val) 
 //*******************************************************
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat && mat->get_status()!=MSI_FIXED);
+  assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
   int num_values, total_num_dof;
@@ -488,11 +460,10 @@ void msi_matrix_add (int matrix_id, int row, int col,
 }
 
 //*******************************************************
-void msi_matrix_setBC(int matrix_id, int row)
+void msi_matrix_setBC(pMatrix mat, int row)
 //*******************************************************
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat&&mat->get_type()==MSI_SOLVE);
+  assert(mat->get_type()==MSI_SOLVE);
 
   int num_values, total_num_dof;
   char field_name[256];
@@ -515,12 +486,11 @@ void msi_matrix_setBC(int matrix_id, int row)
 }
 
 //*******************************************************
-void msi_matrix_setLaplaceBC(int matrix_id, int row,
+void msi_matrix_setLaplaceBC(pMatrix mat, int row,
          int numVals, int* columns, double* values)
 //*******************************************************
 {
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat && mat->get_type()==MSI_SOLVE);
+  assert(mat->get_type()==MSI_SOLVE);
 
   std::vector <int> columns_g(numVals);
   int num_values, total_num_dof;
@@ -549,57 +519,44 @@ void msi_matrix_setLaplaceBC(int matrix_id, int row,
   (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, numVals, &columns_g[0], values);
 }
 
-void msi_matrix_solve(int matrix_id, pField rhs_sol) 
+void msi_matrix_solve(pMatrix mat, pField rhs_sol) 
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat && mat->get_type()==MSI_SOLVE);
+  assert(mat->get_type()==MSI_SOLVE);
 
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<< matrix_id<<", field "<<getName(rhs_sol)<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(rhs_sol)<<"\n";
 
   (dynamic_cast<matrix_solve*>(mat))->solve(rhs_sol);
-
-  addMatHit(matrix_id);
 }
 
 //*******************************************************
-void msi_matrix_multiply(int matrix_id, pField inputvec, pField outputvec) 
+void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec) 
 //*******************************************************
 {  
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat && mat->get_type()==MSI_MULTIPLY);
+  assert(mat->get_type()==MSI_MULTIPLY);
 
   (dynamic_cast<matrix_mult*>(mat))->multiply(inputvec, outputvec);
-  addMatHit(matrix_id);
 }
 
 //*******************************************************
-void msi_matrix_flush(int matrix_id)
+void msi_matrix_flush(pMatrix mat)
 //*******************************************************
 {
-  double t1 = MPI_Wtime();
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
   mat->flushAssembly();
 }
 
 //*******************************************************
-int msi_matrix_getNumIter(int matrix_id)
+int msi_matrix_getNumIter(pMatrix mat)
 //*******************************************************
 { 
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
   return dynamic_cast<matrix_solve*> (mat)->iterNum;
 }
 
 //*******************************************************
-void msi_matrix_addBlock(int matrix_id, int ielm, 
+void msi_matrix_addBlock(pMatrix mat, int ielm, 
           int rowIdx, int columnIdx, double* values)
 //*******************************************************
 {
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
-
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
   char field_name[256];
@@ -679,14 +636,11 @@ void msi_matrix_addBlock(int matrix_id, int ielm,
 }
 
 //*******************************************************
-void msi_matrix_write(int matrix_id, const char* filename, int start_index)
+void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
 //*******************************************************
 {
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
-
   if (!filename) 
-    return msi_matrix_print(matrix_id);
+    return msi_matrix_print(mat);
 
   char matrix_filename[256];
   sprintf(matrix_filename,"%s-%d",filename, PCU_Comm_Self());
@@ -722,11 +676,9 @@ void msi_matrix_write(int matrix_id, const char* filename, int start_index)
 
 
 //*******************************************************
-void msi_matrix_print(int matrix_id)
+void msi_matrix_print(pMatrix mat)
 //*******************************************************
 {
-  msi_matrix* mat = msi_solver::instance()->get_matrix(matrix_id);
-  assert(mat);
 
   int row, col, csize, sum_csize=0, index=0;
 
@@ -739,9 +691,6 @@ void msi_matrix_print(int matrix_id)
   for (int i=0; i<rows.size(); ++i)
     sum_csize += n_cols[i];
   assert(vals.size()==sum_csize);
-
-  if (!PCU_Comm_Self()) 
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": printing matrix "<<matrix_id<<"\n";
 
   for (int i=0; i<rows.size(); ++i)
   {
