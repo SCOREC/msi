@@ -10,8 +10,6 @@ cmake .. \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR=$PREFIX/include \
   -DSCOREC_LIB_DIR=$PREFIX/lib \
-  -DMSI_INCLUDE_DIR=$PREFIX/include \
-  -DMSI_LIB_DIR=$PREFIX/lib \
   -DZOLTAN_LIBRARY="$PREFIX/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \

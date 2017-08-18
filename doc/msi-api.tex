@@ -1,0 +1,223 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{API Overview}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The MSI API's are provided in the file \texttt{``msi.h"}. Throughout this section, unless specified, DOF, matrix row and column ID's are specified by a global ID.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Naming Convention}
+
+MSI API function name consists of three words connected with `$\_$'.
+
+\begin{itemize}
+\item the first word is ``msi"
+\item the second word is an operation target. If the operation target is system-wide, the operation target is ommited. For instance, the function name which initializes the MSI service consists of two words: \emph{msi}$\_$\emph{start}.
+\item the third word is the operation description starting with a verb. For example, the function \emph{msi}$\_$\emph{matrix}$\_$\emph{getNumIter} returns the number of iterations in the solve operation. 
+\end{itemize}
+
+The following are operation targets used in the second word.
+
+\begin{itemize}
+\item \textit{field}: the api is performed on a field object
+\item \textit{matrix}: the api is performed on a Petsc matrix
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Abbreviation}
+
+Abbreviations may be used in API naming. See \textit{http://scorec.rpi.edu/wiki/Abbriviations} for more information.
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Data Types and Classes}
+
+For a geometry, partition and mesh model, the term \emph{instance} is used to indicate the model data existing on each process. For example, a mesh instance on process \emph{i} means a pointer to a mesh data structure on process \emph{i}, in which all mesh entities on process \emph{i} are contained and from which they are accessible. For all other data such as field and matrix, the term \emph{handle} is used to indicate the pointer to the data. For example, a matrix handle means a pointer to the matrix. The predefined data type has a prefix \emph{p} to indicate the pointer data type.
+
+The following are predefined data types used in the interface function parameters.
+
+\begin{tabular}{lp{14cm}}	
+	pField & 	a field handle (defined in \texttt{``pumi.h"})\\
+	pOwnership & 	a user-defined ownership handle (defined in \texttt{``pumi.h"}) \\
+ 	pMatrix &	a matrix handle \\
+\end{tabular}	
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Enumeration Types}
+
+The enumeration type for matrix type is:
+
+\begin{verbatim}
+    msi_matrix_type {
+        MSI_MULTIPLY = 0 /* matrix for multiplication */,
+        MSI_SOLVE      	 /* 1 - matrix for solve */
+    }
+\end{verbatim}\vspace{-1cm}\hspace{1cm}
+
+The enumeration type for matrix status is:
+
+\begin{verbatim}
+    msi_matrix_status {
+        MSI_NOT_FIXED = 0 /* matrix is modifiable */,
+        MSI_FIXED         /* 1 - matrix is not modifiable */
+    }
+\end{verbatim}\vspace{-1cm}\hspace{1cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{API Functions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Initialization and Finalization}
+
+The functions initialize/finalize the MSI operations.
+
+\begin{verbatim}
+void msi_start(
+    pMesh  /* in */  m, 
+    pOwnership  /* in */  o=NULL)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a mesh and ownership handle, initialize MSI services for solver-PUMI interactions. If the ownership is not provided, the default is set to $NULL$. If the ownership is $NULL$, the PUMI's default ownership rule is used (a part with the minimum process rank is the owning part of duplicate copies). 
+
+Note that the following operations should be performed prior to this function.
+\begin{itemize}
+\item MPI initialization
+\item Solver initialization (e.g. PetscInitialize)
+\item PUMI initialization 
+\item model and mesh loading
+\end{itemize}
+
+\begin{verbatim}
+int msi_scorec_finalize()
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Finalize the MSI services and clears all internal data. Note that the following operations should follow to complete further finalizations.
+\begin{itemize}
+\item mesh deletion
+\item PUMI finalization
+\item Solver finalization (e.g. PetscFinalize)
+\item MPI finalization
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Field}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{verbatim}
+pField msi_field_create (
+    pMesh  /* in */  m,
+    const char*  /* in */  field_name, 
+    int  /* in */  nv, 
+    int  /* in */  nd)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given field name, the number of values ($nv$), and the number of DOF's per value ($nd$), create a field for all nodes (owned, non-owned part boundary and ghost). Note that PUMI allocates contiguous memory for the array of field data. The size of field data is \textit{nv}$*$\textit{st}$*$\textit{nd}$*$\textit{nn}, where \textit{st} is scalar type (1 for real, 2 for complex), and \textit{nn} is the number of local nodes on each process.
+
+In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}. If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{PETSc Matrix and Solver}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{verbatim}
+pMatrix msi_matrix_create (
+        int  /* in */  matrix_type,
+        pField  /* in */  field)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix type and a field handle, create a matrix and return its handle. The matrix type indicates the purpose of the matrix: 0 for matrix-vector multiplication and 1 for solver. The input field handle is used to retrieve the numbering (row/column ID) for matrix manipulation. The status of matrix is \textit{MSI$\_$NOT$\_$FIXED} so the matrix values can be modified.
+
+\begin{verbatim}
+void msi_matrix_delete (pMatrix  /* in */  matrix)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, delete the matrix. 
+	    
+\begin{verbatim}
+void msi_matrix_assemble (pMatrix  /* in */  matrix)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, perform matrix assembly and set the status of matrix  to \textit{MSI$\_$FIXED}. 
+The matrix values cannot be modified any further.
+
+\begin{verbatim}
+void msi_matrix_insert (
+    pMatrix  /* in */  matrix, 
+    int  /* in */  row, 
+    int  /* in */  column, 
+    int  /* in */  scalar_type,
+    double*  /* in */  value)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Insert or overwrite \textit{value} to the matrix at (\textit{row},\textit{column}).
+\textit{row} and \textit{column} are global DOF ID associated with the matrix.
+If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be inserted into a complex matrix but a complex type value cannot be inserted into a real matrix.   
+
+\begin{verbatim}
+void msi_matrix_add (
+    pMatrix  /* in */  matrix, 
+    int  /* in */  row, 
+    int  /* in */  column, 
+    int  /* in */  scalar_type,
+    double*  /* in */  value)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Add \textit{value} to the existing value of matrix at (\textit{row},\textit{column}).
+\textit{row} and \textit{column} are global DOF ID associated with the matrix.
+If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be inserted into a complex matrix but a complex type value cannot be inserted into a real matrix.  
+
+\begin{verbatim}
+void msi_matrix_addBlock (
+    pMatrix  /* in */  matrix, 
+    int  /* in */  elm_id, 
+    int  /* in */  row_index, 
+    int  /* in */  column_index, 
+    double*  /* in */  values)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, a local element ID, row variable index, colume variable index and an array of values, add values to the matrix corresponding to the nodes of the element. 
+ 
+\begin{verbatim}
+void msi_matrix_setBC (
+    pMatrix  /* in */  matrix, 
+    int  /* in */  local_row_index)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle and a local row index, zero out all off-diagonal values in the row of the matrix and set the diagonal value to one. The operation is carried out during finalizing the matrix. It will overwrite other insertion operations to the local row of the matrix. For complex-valued matrix, the real part of the diagonal is set to one and the imaginary part is set to zero.
+This function should be called on all processes that use the DOF numbering associated with the matrix row. 
+
+\begin{verbatim}
+void msi_matrix_setLaplaceBC (
+    pMatrix  /* in */  matrix, 
+    int  /* in */  row, 
+    int  /* in */  size, 
+    int*  /* in */  columns, 
+    double*  /* in */  values)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, a local row index, the  number of values to be inserted (\textit{size}), the columns to set the values (\textit{columns}), and the values to be set in the order of the \textit{columns}, set multiple values for the row of the matrix. If real values are inserted into a complex matrix, the corresponding imaginary parts are set to zero. The operation is carried out during finalizing the matrix. 
+This function will overwrite other insertion operations to the row. This function should be called on all processes that use the DOF numbering associated with the matrix row.
+
+\begin{verbatim}
+void msi_matrix_multiply (
+    pMatrix  /* in */  A, 
+    pField  /* in */   x, 
+    pField  /* out */  b)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle ($A$) and an input field handle ($x$), perform the matrix-vector multiplication \textit{``Ax"} and write the result in the field $b$. If the input matrix or the input field is complex-valued, the output field must be complex-valued.
+
+\begin{verbatim}
+void msi_matrix_solve (
+        pMatrix  /* in */   A, 
+        pField   /* in */   b, 
+        pField   /* out */  x)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle ($A$) and a RHS field handle ($b$), solve the global discrete equation \textit{``Ax=b"} and write the solution into the field $x$. 
+
+\begin{verbatim}
+int msi_matrix_getNumIter (pMatrix  /* in */  matrix)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, return the number of iterations of solver operation.
+
+\begin{verbatim}
+void msi_matrix_print(pMatrix  /* in */  matrix)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, print the $non$-$zero$ matrix value along with global row/colume index. The row/column ID starts with 0. PUMI provides an equivalent API for fields and nodes.
+
+\begin{verbatim}
+void msi_matrix_write (
+    pMatrix  /* in */  matrix, 
+    const char*  /* in */  file_name, 
+    int  /* in */  start_index=0)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, file name and a starting local ID for nodes (default is 0), write the $non$-$zero$ matrix values in file(s). For each process \textit{i}, the matrix information is written in \texttt{``filename-i"}. If \textit{file$\_$name} is \textit{NULL}, \texttt{msi$\_$matrix$\_$print} is performed.
+PUMI provides an equivalent API for fields and nodes. 

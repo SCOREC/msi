@@ -78,9 +78,9 @@ int main( int argc, char** argv)
   if (mesh_dim==3) nd=12;
 
   if(!PCU_Comm_Self()) cout<<"* creating fields - "<<nv*nd<<" DOFs per node\n";
-  pField b_field = msi_field_create ("b_field", nv, nd);
-  pField c_field = msi_field_create ("c_field", nv, nd);
-  pField x_field = msi_field_create ("x_field", nv, nd);
+  pField b_field = msi_field_create (m, "b_field", nv, nd);
+  pField c_field = msi_field_create (m, "c_field", nv, nd);
+  pField x_field = msi_field_create (m, "x_field", nv, nd);
 
   pMeshEnt e = pumi_mesh_findEnt(m, mesh_dim, 0);
   int num_nodes_elem = pumi_ment_getNumAdj(e, 0);
@@ -153,8 +153,8 @@ int main( int argc, char** argv)
   t2 = MPI_Wtime();
 
   if(!PCU_Comm_Self()) cout<<"* assemble matrix ..."<<endl;
-  msi_matrix_freeze(matrix_mult);
-  msi_matrix_freeze(matrix_solve); 
+  msi_matrix_assemble(matrix_mult);
+  msi_matrix_assemble(matrix_solve); 
   t3 = MPI_Wtime();
 
   if(!PCU_Comm_Self()) cout<<"* multiply Ab=c ..."<<endl;

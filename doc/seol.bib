@@ -1,0 +1,1536 @@
+%%% ====================================================================
+%%%  BibTeX-file{
+%%%     author          = "Gerry Murray",
+%%%     version         = "1.2",
+%%%     date            = "2 April 2012",
+%%%     filename        = "acmsmall-sample-bibfile.bib",
+%%%     address         = "ACM, NY",
+%%%     email           = "murray at hq.acm.org",
+%%%     codetable       = "ISO/ASCII",
+%%%     keywords        = "ACM Reference Format, bibliography, citation, references",
+%%%     supported       = "yes",
+%%%     docstring       = "This BibTeX database file contains 'bibdata' entries
+%%%                        that 'match' the examples provided in the Specifications Document
+%%%                        AND, also, 'legacy'-type bibs. It should assist authors in 
+%%%                        choosing the 'correct' at-bibtype and necessary bib-fields
+%%%                        so as to obtain the appropriate ACM Reference Format output. 
+%%%			   It also contains many 'Standard Abbreviations'. "
+%%%  }
+%%% ====================================================================
+
+% Journals
+
+% First the Full Name is given, then the abbreviation used in the AMS Math
+% Reviews, with an indication if it could not be found there.
+% Note the 2nd overwrites the 1st, so swap them if you want the full name.
+
+ @string{CMAME = "Comp. Meth. Appl. Mech. Engng."}
+
+ %{AMS}
+ @String{AMSTrans = "American Mathematical Society Translations" }
+ @String{AMSTrans = "Amer. Math. Soc. Transl." }
+ @String{BullAMS = "Bulletin of the American Mathematical Society" }
+ @String{BullAMS = "Bull. Amer. Math. Soc." }
+ @String{ProcAMS = "Proceedings of the American Mathematical Society" }
+ @String{ProcAMS = "Proc. Amer. Math. Soc." }
+ @String{TransAMS = "Transactions of the American Mathematical Society" }
+ @String{TransAMS = "Trans. Amer. Math. Soc." }
+
+ %ACM
+ @String{CACM = "Communications of the {ACM}" }
+ @String{CACM = "Commun. {ACM}" }
+ @String{CompServ = "Comput. Surveys" }
+ @String{JACM = "J. ACM" }
+ @String{ACMMathSoft = "{ACM} Transactions on Mathematical Software" }
+ @String{ACMMathSoft = "{ACM} Trans. Math. Software" }
+ @String{SIGNUM = "{ACM} {SIGNUM} Newsletter" }
+ @String{SIGNUM = "{ACM} {SIGNUM} Newslett." }
+
+ @String{AmerSocio = "American Journal of Sociology" }
+ @String{AmerStatAssoc = "Journal of the American Statistical Association" }
+ @String{AmerStatAssoc = "J. Amer. Statist. Assoc." }
+ @String{ApplMathComp = "Applied Mathematics and Computation" }
+ @String{ApplMathComp = "Appl. Math. Comput." }
+ @String{AmerMathMonthly = "American Mathematical Monthly" }
+ @String{AmerMathMonthly = "Amer. Math. Monthly" }
+ @String{BIT = "{BIT}" }
+ @String{BritStatPsych = "British Journal of Mathematical and Statistical
+          Psychology" }
+ @String{BritStatPsych = "Brit. J. Math. Statist. Psych." }
+ @String{CanMathBull = "Canadian Mathematical Bulletin" }
+ @String{CanMathBull = "Canad. Math. Bull." }
+ @String{CompApplMath = "Journal of Computational and Applied Mathematics" }
+ @String{CompApplMath = "J. Comput. Appl. Math." }
+ @String{CompPhys = "Journal of Computational Physics" }
+ @String{CompPhys = "J. Comput. Phys." }
+ @String{CompStruct = "Computers and Structures" }
+ @String{CompStruct = "Comput. \& Structures" }
+ @String{CompJour = "The Computer Journal" }
+ @String{CompJour = "Comput. J." }
+ @String{CompSysSci = "Journal of Computer and System Sciences" }
+ @String{CompSysSci = "J. Comput. System Sci." }
+ @String{Computing = "Computing" }
+ @String{ContempMath = "Contemporary Mathematics" }
+ @String{ContempMath = "Contemp. Math." }
+ @String{Crelle = "Crelle's Journal" }
+ @String{GiornaleMath = "Giornale di Mathematiche" }
+ @String{GiornaleMath = "Giorn. Mat." } % didn't find in AMS MR., ibid.
+
+ %IEEE
+ @String{Computer = "{IEEE} Computer" }
+ @String{IEEETransComp = "{IEEE} Transactions on Computers" }
+ @String{IEEETransComp = "{IEEE} Trans. Comput." }
+ @String{IEEETransAC = "{IEEE} Transactions on Automatic Control" }
+ @String{IEEETransAC = "{IEEE} Trans. Automat. Control" }
+ @String{IEEESpec = "{IEEE} Spectrum" } % didn't find in AMS MR
+ @String{ProcIEEE = "Proceedings of the {IEEE}" }
+ @String{ProcIEEE = "Proc. {IEEE}" } % didn't find in AMS MR
+ @String{IEEETransAeroElec = "{IEEE} Transactions on Aerospace and Electronic
+     Systems" }
+ @String{IEEETransAeroElec = "{IEEE} Trans. Aerospace Electron. Systems" }
+
+ @String{IMANumerAna = "{IMA} Journal of Numerical Analysis" }
+ @String{IMANumerAna = "{IMA} J. Numer. Anal." }
+ @String{InfProcLet = "Information Processing Letters" }
+ @String{InfProcLet = "Inform. Process. Lett." }
+ @String{InstMathApp = "Journal of the Institute of Mathematics and
+     its Applications" }
+ @String{InstMathApp = "J. Inst. Math. Appl." }
+ @String{IntControl = "International Journal of Control" }
+ @String{IntControl = "Internat. J. Control" }
+ @String{IntNumerEng = "International Journal for Numerical Methods in
+     Engineering" }
+ @String{IntNumerEng = "Internat. J. Numer. Methods Engrg." }
+ @String{IntSuper = "International Journal of Supercomputing Applications" }
+ @String{IntSuper = "Internat. J. Supercomputing Applic." } % didn't find
+%% in AMS MR
+ @String{Kibernetika = "Kibernetika" }
+ @String{JResNatBurStand = "Journal of Research of the National Bureau
+     of Standards" }
+ @String{JResNatBurStand = "J. Res. Nat. Bur. Standards" }
+ @String{LinAlgApp = "Linear Algebra and its Applications" }
+ @String{LinAlgApp = "Linear Algebra Appl." }
+ @String{MathAnaAppl = "Journal of Mathematical Analysis and Applications" }
+ @String{MathAnaAppl = "J. Math. Anal. Appl." }
+ @String{MathAnnalen = "Mathematische Annalen" }
+ @String{MathAnnalen = "Math. Ann." }
+ @String{MathPhys = "Journal of Mathematical Physics" }
+ @String{MathPhys = "J. Math. Phys." }
+ @String{MathComp = "Mathematics of Computation" }
+ @String{MathComp = "Math. Comp." }
+ @String{MathScand = "Mathematica Scandinavica" }
+ @String{MathScand = "Math. Scand." }
+ @String{TablesAidsComp = "Mathematical Tables and Other Aids to Computation" }
+ @String{TablesAidsComp = "Math. Tables Aids Comput." }
+ @String{NumerMath = "Numerische Mathematik" }
+ @String{NumerMath = "Numer. Math." }
+ @String{PacificMath = "Pacific Journal of Mathematics" }
+ @String{PacificMath = "Pacific J. Math." }
+ @String{ParDistComp = "Journal of Parallel and Distributed Computing" }
+ @String{ParDistComp = "J. Parallel and Distrib. Comput." } % didn't find
+%% in AMS MR
+ @String{ParComputing = "Parallel Computing" }
+ @String{ParComputing = "Parallel Comput." }
+ @String{PhilMag = "Philosophical Magazine" }
+ @String{PhilMag = "Philos. Mag." }
+ @String{ProcNAS = "Proceedings of the National Academy of Sciences
+                    of the USA" }
+ @String{ProcNAS = "Proc. Nat. Acad. Sci. U. S. A." }
+ @String{Psychometrika = "Psychometrika" }
+ @String{QuartMath = "Quarterly Journal of Mathematics, Oxford, Series (2)" }
+ @String{QuartMath = "Quart. J. Math. Oxford Ser. (2)" }
+ @String{QuartApplMath = "Quarterly of Applied Mathematics" }
+ @String{QuartApplMath = "Quart. Appl. Math." }
+ @String{RevueInstStat = "Review of the International Statisical Institute" }
+ @String{RevueInstStat = "Rev. Inst. Internat. Statist." }
+
+ %SIAM
+ @String{JSIAM = "Journal of the Society for Industrial and Applied
+     Mathematics" }
+ @String{JSIAM = "J. Soc. Indust. Appl. Math." }
+ @String{JSIAMB = "Journal of the Society for Industrial and Applied
+     Mathematics, Series B, Numerical Analysis" }
+ @String{JSIAMB = "J. Soc. Indust. Appl. Math. Ser. B Numer. Anal." }
+ @String{SIAMAlgMeth = "{SIAM} Journal on Algebraic and Discrete Methods" }
+ @String{SIAMAlgMeth = "{SIAM} J. Algebraic Discrete Methods" }
+ @String{SIAMAppMath = "{SIAM} Journal on Applied Mathematics" }
+ @String{SIAMAppMath = "{SIAM} J. Appl. Math." }
+ @String{SIAMComp = "{SIAM} Journal on Computing" }
+ @String{SIAMComp = "{SIAM} J. Comput." }
+ @String{SIAMMatrix = "{SIAM} Journal on Matrix Analysis and Applications" }
+ @String{SIAMMatrix = "{SIAM} J. Matrix Anal. Appl." }
+ @String{SIAMNumAnal = "{SIAM} Journal on Numerical Analysis" }
+ @String{SIAMNumAnal = "{SIAM} J. Numer. Anal." }
+ @String{SIAMReview = "{SIAM} Review" }
+ @String{SIAMReview = "{SIAM} Rev." }
+ @String{SIAMSciStat = "{SIAM} Journal on Scientific and Statistical
+     Computing" }
+ @String{SIAMSciStat = "{SIAM} J. Sci. Statist. Comput." }
+
+ @String{SoftPracExp = "Software Practice and Experience" }
+ @String{SoftPracExp = "Software Prac. Experience" } % didn't find in AMS MR
+ @String{StatScience = "Statistical Science" }
+ @String{StatScience = "Statist. Sci." }
+ @String{Techno = "Technometrics" }
+ @String{USSRCompMathPhys = "{USSR} Computational Mathematics and Mathematical
+     Physics" }
+ @String{USSRCompMathPhys = "{U. S. S. R.} Comput. Math. and Math. Phys." }
+ @String{VLSICompSys = "Journal of {VLSI} and Computer Systems" }
+ @String{VLSICompSys = "J. {VLSI} Comput. Syst." }
+ @String{ZAngewMathMech = "Zeitschrift fur Angewandte Mathematik und
+     Mechanik" }
+ @String{ZAngewMathMech = "Z. Angew. Math. Mech." }
+ @String{ZAngewMathPhys = "Zeitschrift fur Angewandte Mathematik und Physik" }
+ @String{ZAngewMathPhys = "Z. Angew. Math. Phys." }
+
+% Publishers % ================================================= |
+
+ @String{Academic = "Academic Press" }
+ @String{ACMPress = "{ACM} Press" }
+ @String{AdamHilger = "Adam Hilger" }
+ @String{AddisonWesley = "Addison-Wesley" }
+ @String{AllynBacon = "Allyn and Bacon" }
+ @String{AMS = "American Mathematical Society" }
+ @String{Birkhauser = "Birkha{\"u}ser" }
+ @String{CambridgePress = "Cambridge University Press" }
+ @String{Chelsea = "Chelsea" }
+ @String{ClaredonPress = "Claredon Press" }
+ @String{DoverPub = "Dover Publications" }
+ @String{Eyolles = "Eyolles" }
+ @String{HoltRinehartWinston = "Holt, Rinehart and Winston" }
+ @String{Interscience = "Interscience" }
+ @String{JohnsHopkinsPress = "The Johns Hopkins University Press" }
+ @String{JohnWileySons = "John Wiley and Sons" }
+ @String{Macmillan = "Macmillan" }
+ @String{MathWorks = "The Math Works Inc." }
+ @String{McGrawHill = "McGraw-Hill" }
+ @String{NatBurStd = "National Bureau of Standards" }
+ @String{NorthHolland = "North-Holland" }
+ @String{OxfordPress = "Oxford University Press" }  %address Oxford or London?
+ @String{PergamonPress = "Pergamon Press" }
+ @String{PlenumPress = "Plenum Press" }
+ @String{PrenticeHall = "Prentice-Hall" }
+ @String{SIAMPub = "{SIAM} Publications" }
+ @String{Springer = "Springer-Verlag" }
+ @String{TexasPress = "University of Texas Press" }
+ @String{VanNostrand = "Van Nostrand" }
+ @String{WHFreeman = "W. H. Freeman and Co." }
+
+%Templates
+@InProceedings{template,
+  author 	= "",
+  title 	= "",
+  booktitle 	= "",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "",
+  publisher 	= "",
+  address 	= "",
+  pages 	= "",
+  doi 		= "",
+  url 		= "",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+%Entries
+
+@Phdthesis{seolthesis,
+  author =       "E. Seegyoung Seol",
+  year =         "2005",
+  title =        "FMDB: flexible distributed mesh database for parallel automated adaptive analysis",
+  school =       "Rensselaer Polytechnic Institute",
+  address =      "Troy, NY",
+  note =         "",
+  type = 	 "",
+  month = 	 "",
+}
+
+@article{pumi16,
+author="D.A. Ibanez and E.S. Seol and C.W. Smith and M.S.Shephard",
+title="PUMI: Parallel Unstructured Mesh Infrastructure",
+journal="ACM Transaction on Mathematical Software",
+year="2016",
+volume="42",
+number="3",
+pages="17:1--17:28",
+}
+
+@article{fmdb06,
+  author 	= "E. Seegyoung Seol and Mark S. Shephard",
+  title 	= "Efficient distributed mesh data structure for parallel automated adaptive analysis",
+  journal 	= "Engineering with Computers",
+  volume 	= "22",
+  number 	= "3",
+  month 	= "dec",
+  year 		= "2006",
+  pages 	= "197--213",
+  doi 		= "10.1007/s00366-006-0048-4",
+  url		= "http://link.springer.com/articledl/10.1007/s00366-006-0048-4",
+  note		= "",
+}
+
+
+@Incollection{fmdb09,
+  author =       "Mark S. Shephard and E. Seegyoung Seol",
+  title =        "Flexible distributed mesh data structure for parallel adaptive analysis",
+  booktitle =    "Advanced Computational Infrastructures for Parallel and Distributed Applications",
+  publisher =    "Wiley",
+  address =      "",
+  year =         "2009",
+  edition =      "",
+  chapter =      "19",
+  editor = 	 "Manish Parashar and Xiaolin Li",
+  pages =        "407--435",
+  isbn = {},
+  doi = 	 "10.1002/9780470558027.ch19",
+  url = 	 "http://onlinelibrary.wiley.com/doi/10.1002/780470558027.ch19/summary",
+  volume =	 "",
+  number = 	 "",
+  series =	 "",
+  type = 	 "",
+  month = 	 "dec",
+  note = 	 "",
+}
+
+@Incollection{autotool,
+author="John Calcote",
+title="Autotools: A Practioner's Guide to GNU Autoconf, Automake, and Libtool",
+year="2010"
+}
+
+@article{Selwood-Berzins99,
+author="P.M. Selwood and M. Berzins", 
+title="Parallel unstructured tetrahedral mesh adaptation: algorithms, implementation and scalability",
+journal="Concurrency: Pract. Exper.",
+volume="11",
+number="14",
+pages="863--884",
+year="1999",
+}
+
+@article{Park-Kwon05,
+author="Y. Park and O. Kwon",
+title="A parallel unstructured dynamic mesh adaptation algorithm for 3-d unsteady flows",
+journal="Int. J. Numer. Meth. Fluids",
+volume="48",
+pages="671--690",
+year="2005",
+}
+
+@article{Ozturan-etal94,
+author="C. Ozturan amd H.L. de Cougny and M.S. Shephard and J.E. Flaherty",
+title="Parallel adaptive mesh refinement and redistribution on distributed memory",
+journal="Comp. Meth. Appl. Mech. Engng.",
+volume="119",
+pages="123--127",
+year="1994",
+}
+
+@article{Oliker-etal00,
+author="L. Oliker and R. Biswas and H.N. Gabow", 
+title="Parallel tetrahedral mesh adaptation with dynamic load balancing",
+journal="Parallel Computing",
+volume="26",
+pages="1583--1608",
+year="2000",
+}
+
+@article{Shep-etal97,
+author="M.S. Shephard and J.E. Flaherty and C.L. Bottasso and H.L. de Cougny",
+title="Parallel automated adaptive analysis",
+journal="Parallel Computing",
+volume="23",
+pages="1327--1347",
+year="1997",
+}
+
+@article{ghosting06,
+  author 	= "Orion S. Lawlor and Sayantan Chakravorty and Terry L. Wilmarth and Nilesh Choudhury and Issac Dooley and Gengbin Zheng and Laxmikant V. Kal\'e",
+  title 	= "Parfum: A parallel framework for unstructured meshes for scalable dynamic physics applications",
+  journal 	= "Engineering with Computers",
+  volume 	= "22",
+  number 	= "3",
+  month 	= "dec",
+  year 		= "2006",
+  pages 	= "215--235",
+  doi 		= "10.1007/s00366-006-0039-5",
+  url		= "http://link.springer.com/article/10.1007/s00366-006-0039-5",
+  note		= "",
+}
+
+@article{ghosting13,
+  author 	= "Misbah Mubarak and E. Seegyoung Seol and Qiukai Lu and Mark S. Shephard",
+  title 	= "A parallel ghosting algorithm for the flexible distributed mesh database",
+  journal 	= "Scientific Programming",
+  volume 	= "21",
+  number 	= "1--2",
+  month 	= "",
+  year 		= "2013",
+  pages 	= "17--42",
+  doi 		= "10.3233/SPR-130361",
+  url		= "http://iospress.metapress.com/content/m00j043u813145h3/",
+  note		= "",
+}
+
+@article{generic14,
+  author 	= "Ting Xie and E. Seegyoung Seol and Mark S. Shephard",
+  title 	= "Generic components for petascale adaptive unstructured mesh-based simulations",
+  journal 	= "Engineering with Computers",
+  volume 	= "30",
+  number 	= "1",
+  month 	= "jan",
+  year 		= "2014",
+  pages 	= "79--95",
+  doi 		= "10.1007/s00366-012-0288-4",
+  url		= "http://link.splinger.com/article/10.1007/s00366-012-0288-4",
+  note		= "",
+}
+
+@article{pumi12,
+  author 	= "E. Seegyoung Seol and Cameron W. Smith and Daniel A. Ibanez and Mark S. Shephard",
+  title 	= "A parallel unstructured mesh infrastructure",
+  journal 	= "High Performance Computing, Networking, Storage and Analysis (SCC), 2012 SC Companion:",
+  volume 	= "",
+  number 	= "",
+  month 	= "nov",
+  year 		= "2012",
+  pages 	= "1124--1132",
+  doi 		= "10.1109/SC.Companion.2012.135",
+  url		= "http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6495917&tag=1",
+  note		= "",
+}
+
+@article{zhou12,
+  author 	= "Min Zhou and Ting Xie and E. Seegyoung Seol and Mark S. Shephard and Onkar Sahni and Kenneth E. Jansen",
+  title 	= "Tools to support mesh adaptation on massively parallel computers",
+  journal 	= "Engineering with Computers",
+  volume 	= "28",
+  number 	= "3",
+  month 	= "jul",
+  year 		= "2012",
+  pages 	= "287--301",
+  doi 		= "10.1007/s00366-011-0218-x",
+  url		= "http://link.splinger.com/article/10.1007/s00366-011-0218-x",
+  note		= "",
+}
+
+@article{adapt05,
+  author 	= "Xiangrong Li and Mark S. Shephard and Mark W. Beall",
+  title 	= "3D anisotropic mesh adaptation by mesh modification",
+  journal 	= "Computer Methods in Applied Mechanics and Engineering",
+  volume 	= "194",
+  number 	= "48--49",
+  month 	= "nov",
+  year 		= "2005",
+  pages 	= "4915--4950",
+  doi 		= "10.1016/j.cma.2004.11.019",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0045782505000733.",
+  note		= "",
+}
+
+@article{adapt06,
+  author 	= "Fr\'ed\'erik Alauzet and Xiangrong Li and E. Seegyoung Seol and Mark S. Shephard",
+  title 	= "Parallel anisotropic 3D mesh adaptation by mesh modification",
+  journal 	= "Engineering with Computers",
+  volume 	= "21",
+  number 	= "3",
+  month 	= "jan",
+  year 		= "2006",
+  pages 	= "247--258",
+  doi 		= "10.1007/s00366-005-0009-3",
+  url		= "http://link.springer.com/article/10.1007/s00366-005-0009-3",
+  note		= "",
+}
+
+@Inproceedings{adapt13,
+  author 	= "Aleksandr Ovcharenko and Kedar C. Chitale and Onkar Sahni and Kenneth E. Jansen and Mark S. Shephard",
+  title 	= "Parallel adaptive boundary layer meshing for CFD analysis",
+  booktitle 	= "Proceedings of the 21st International Meshing Roundtable",
+  series 	= "",
+  editor 	= "Xiangmin Jiao and Jean-Christophe Weill",
+  volume 	= "",
+  year 		= "2013",
+  publisher 	= "Springer Berlin Heidelberg",
+  address 	= "",
+  pages 	= "437--455",
+  doi 		= "10.1007/978-3-642-33573-0_26",
+  url 		= "http://link.springer.com/chapter/10.1007/978-3-642-33573-0_26",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+}
+
+@article{chitale-aiaa14,
+  author 	= "Kedar C. Chitale and Onkar Sahni and Mark S. Shephard and Saurabh Tendulkar and Kenneth E. Jansen",
+  title 	= "Anisotropic adaptation for transonic flows with turbulent boundary layers",
+  journal 	= "AIAA Journal",
+  volume 	= "53",
+  number 	= "2",
+  month 	= "",
+  year 		= "2014",
+  pages 	= "367--378",
+  doi 		= "10.2514/1.J053159",
+  url		= "http://arc.aiaa.org/doi/abs/10.2514/1.J053159",
+  note		= "",
+}
+
+@Inproceedings{lasalle13,
+  author 	= "Dominique Lasalle and George Karypis",
+  title 	= "Multi-threaded graph partitioning",
+  booktitle 	= "Proceedings of the 2013 IEEE 27th International Symposium on Parallel and Distributed Processing",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "2013",
+  publisher 	= "IEEE Computer Society",
+  address 	= "",
+  pages 	= "225--236",
+  doi 		= "10.1109/IPDPS.2013.50",
+  url 		= "http://dl.acm.org/citation.cfm?id=2511454",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+}
+
+@article{imesh10,
+  author 	= "Carl Ollivier-Gooch and Lori F. Diachin and Mark S. Shephard and Tim J. Tautges and Jason A. Kraftcheck and Vitus Leung and Xiaojuan Luo and Mark Miller",
+  title 	= "An interoperable, data-structure-neutral component for mesh query and manipulation",
+  journal 	= "ACM Transactions on Mathematical Software",
+  volume 	= "37",
+  number 	= "3",
+  month 	= "sep",
+  year 		= "2010",
+  pages 	= "",
+  doi 		= "10.1145/1824801.1864430",
+  url		= "http://dl.acm.org/citation.cfm?id=1864430",
+  note		= "",
+}
+
+@article{moab04,
+  author 	= "Tim J. Tautges",
+  title 	= "MOAB-SD: integrated structured and unstructured mesh representation",  
+  journal 	= "Engineering with Computers",
+  volume 	= "20",
+  number 	= "3",
+  month 	= "aug",
+  year 		= "2004",
+  pages 	= "286--293",
+  issn 		= "0177-0667",
+  doi 		= "10.1007/s00366-004-0296-0",
+  url 		= "http://www.springerlink.com/index/10.1007/s00366-004-0296-0",
+}
+
+@misc{grummpweb,
+    key         = {GRUMMP Web},
+    title       = {{Generation and Refinement of Unstructured, Mixed-Element Meshes}},
+    note        = {http://tetra.mech.ubc.ca/GRUMMP},
+    year        = 2016
+}
+
+@misc{stkweb,
+    key         = {STK Web},
+    title       = {{The Sierra Toolkit Mesh}},
+    note        = {http://trilinos.org/packages/stk},
+    year        = 2016
+}
+
+@article{libmesh,
+  author 	= "Benjamin S. Kirk and John W. Peterson and Roy H. Stogner and Graham F. Carey",
+  title 	= "libMesh: a C++ library for parallel adaptive mesh refinement/coarsening simulations",  
+  journal 	= "Engineering with Computers",
+  volume 	= "22",
+  number 	= "3--4",
+  month 	= "dec",
+  year 		= "2006",
+  pages 	= "237--254",
+  issn 		= "",
+  doi 		= "10.1007/s00366-006-0049-3",
+  url 		= "http://www.springerlink.com/article/10.1007/s00366-006-0049-3",
+}
+
+@InProceedings{openvolumemesh,
+  author 	= "Michael Kremer and David Bommes and Leif Kobbelt",
+  title 	= "OpenVolumeMesh - A versatile index-based data structure for 3D polytopal complexes",  
+  booktitle 	= "Proceedings of the 21st International Meshing Roundtable",
+  series 	= "",
+  editor 	= "Xiangmin Jiao and Jean-Christophe Weill",
+  volume 	= "",
+  year 		= "2013",
+  publisher     = "Springer Berlin Heidelberg",
+  address 	= "",
+  pages 	= "531--548",
+  doi 		= "10.1007/978-3-642-33573-0_31",
+  url 		= "http://link.springer.com/chapter/10.1007/978-3-642-33573-0_31",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+@InProceedings{ahf13,
+  author 	= "Vladimir Dyedov and Navamita Ray and Daniel Einstein and Xiangmin Jiao and Tim J. Tautges",
+  title 	= "AHF: array-based half-facet data structure for mixed-dimensional and non-manifold meshes",  
+  booktitle 	= "Proceedings of the 22nd International Meshing Roundtable",
+  series 	= "",
+  editor 	= "Josep Sarrate and Matthew Staten",
+  volume 	= "",
+  year 		= "2014",
+  publisher     = "Springer Berlin Heidelberg",
+  address 	= "",
+  pages 	= "445--464",
+  doi 		= "10.1007/978-3-319-02335-9_25",
+  url 		= "",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+@InProceedings{vgi97,
+  author 	= "Malcolm J. Panthaki and Raikanta Sahu and Walter H. Gerstle",
+  title 	= "An object-oriented virtual geometry interface",
+  booktitle 	= "Proceedings of the 6th International Meshing Roundtable",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "1997",
+  publisher     = "Springer Berlin Heidelberg",
+  address 	= "Park City, Utah, USA",
+  pages 	= "67--82",
+  doi 		= "",
+  url 		= "http://www.imr.sandia.gov/papers/abstracts/Pa54.html",
+  number 	= "",
+  month 	= "oct",
+  organization 	= "",
+  note 		= "",
+  }
+
+@article{cgm01,
+  author 	= "Tim J. Tautges",
+  title 	= "CGM: a geometry interface for mesh generation, analysis and other applications",  
+  journal 	= "Engineering with Computers",
+  volume 	= "17",
+  number 	= "3",
+  month 	= "oct",
+  year 		= "2001",
+  pages 	= "299--314",
+  issn 		= "0177-0667",
+  doi 		= "10.1007/PL00013387",
+  url 		= "http://link.springer.com/article/10.1007/PL00013387",
+}
+
+@article{Diekmann-etal00,
+author 	= "R. Diekmann and R. Preis and F. Schlimbach and C. Walshaw", 
+title = "Shape-optimized mesh partitioning and load balancing for parallel adaptive fem",
+journal="Parallel Computing",
+volume = "26",
+pages="1555--1581",
+year="2000",
+}
+
+@article{Walshaw-Cross00,
+author="C. Walshaw and M. Cross",
+title="Parallel optimization algorithms for multilevel mesh partitioning",
+journal = "Parallel Computing",
+volume="26",
+number="12",
+pages="1635--1660",
+year="2000",
+}
+
+@article{deCougny-etal95,
+author="H. L. de Cougny and K.D. Devine and J.E. Flaherty and R.M. Loy",
+title="Load balancing for the parallel solution of partial differential equations",
+journal="Appl. Numer. Math.",
+volume="16",
+pages="157--182",
+year="1995",
+}
+
+@article{deCougny-Shephard99,
+author="H. L. de Cougny and M.S. Shephard",
+title="Parallel refinement and coarsening of tetrahedral meshes",
+journal="Int. J. Numer. Meth. Engng.",
+volume="46",
+pages="1101--1125",
+year="1999",
+}
+
+@article{Teresco-etal00,
+author="J. D. Teresco and M. W. Beall and J. E. Flaherty and M.S. Shephard",
+title="A hierarchical partition model for adaptive finite element computations",
+journal="Comp. Meth. Appl. Mech. Engng.",
+volume="184",
+pages="269--285",
+year="2000",
+}
+
+@article{celes05,
+  author 	= "Waldemar Celes and Glaucio H. Paulino and Rodrigo Espinha",
+  title 	= "A compact adjacency-based topological data structure for finite element mesh representation",  
+  journal 	= "International Journal for Numerical Methods in Engineering",
+  volume 	= "64",
+  number 	= "11",
+  month 	= "nov",
+  year 		= "2005",
+  pages 	= "1529--1556",
+  issn 		= "",
+  doi 		= "10.1002/nme.1440",
+  url 		= "http://onlinelibrary.wiley.com/doi/10.1002/nme.1440/abstract",
+}
+
+@article{beall97,
+  author 	= "Mark W. Beall and Mark S. Shephard",
+  title 	= "A general topology-based mesh data structure",  
+  journal 	= "International Journal for Numerical Methods in Engineering",
+  volume 	= "40",
+  number 	= "9",
+  month 	= "may",
+  year 		= "1997",
+  pages 	= "1573--1596",
+  issn 		= "",
+  doi 		= "10.1002/(SICI)1097-0207(19970515)40:9<1573::AID-NME128>3.0.CO;2-9",
+  url 		= "",
+  note = "",
+}
+
+@article{beall-geom04,
+  author 	= "Mark W. Beall and Joe Walsh and Mark S. Shephard",
+  title 	= "A comparison of techniques for geometry access related to mesh generation",  
+  journal 	= "Engineering with Computers",
+  volume 	= "20",
+  number 	= "3",
+  month 	= "sep",
+  year 		= "2004",
+  pages 	= "210--221",
+  issn 		= "",
+  doi 		= "10.1007/s00366-004-0289-z",
+  url 		= "http://link.springer.com/article/10.1007/s00366-004-0289-z",
+}
+
+@article{garimella02,
+  author 	= "Rao V. Garimella",
+  title 	= "Mesh data structure selection for mesh generation and FEA applications",  
+  journal 	= "International Journal for Numerical Methods in Engineering",
+  volume 	= "55",
+  number 	= "",
+  month 	= "",
+  year 		= "2002",
+  pages 	= "451--478",
+  issn 		= "",
+  doi 		= "10.1002/nme.509",
+  url 		= "http://onlinelibrary.wiley.com/store/10.1002/nme.509/asset/509_ftp.pdf?v=1&t=hsvx0tan&s=63022159ffba9e8db51bcf907d5f03bdae9937de",
+  note = "",
+}
+
+@article{Remacle-etal02,
+author="Jean-Fran{\c c}ois Remacle and O.~Klaas and J.E. Flaherty and M.S. Shephard",
+title="A parallel algorithm oriented mesh database",
+journal="Engineering with Computers",
+volume="18",
+pages="274--284",
+year="2002",
+}
+
+@article{aomd03,
+  author 	= "Jean-Fran{\c c}ois Remacle and Mark S. Shephard",
+  title 	= "An algorithm oriented mesh database",  
+  journal 	= "International Journal for Numerical Methods in Engineering",
+  volume 	= "58",
+  number 	= "2",
+  month 	= "sep",
+  year 		= "2003",
+  pages 	= "349--374",
+  issn 		= "",
+  doi 		= "10.1002/nme.774",
+  url 		= "http://onlinelibrary.wiley.com/doi/10.1002/nme.774/abstract",
+  note = "",
+
+}
+
+@article{shephard00,
+  author 	= "Mark S. Shephard",
+  title 	= "Meshing environment for geometry-based analysis",  
+  journal 	= "International Journal for Numerical Methods in Engineering",
+  volume 	= "47",
+  number 	= "1--3",
+  month 	= "jan",
+  year 		= "2000",
+  pages 	= "169--190",
+  issn 		= "",
+  url 		= "",
+  note = "",
+}
+
+@article{Hansen2008,
+author = "Glen Hansen and Steve Owen",
+title = "Mesh generation technology for nuclear reactor simulation; Barriers and opportunities",
+journal = "Journal of Nuclear Engineering and Design",
+  volume 	= "238",
+  number 	= "10",
+  month 	= "oct",
+  year 		= "2008",
+  pages 	= "2590--2605",
+  issn 		= "",
+  doi 		= "10.1016/j.nucengdes.2008.05.016",
+  url 		= "http://www.sciendirect.com/science/article/pii/S0029549308002628",
+}
+
+
+@Inproceedings{predictive97,
+  author 	= "Joe E. Flaherty and Raymond M. Loy and Mark S. Shephard and Boleslaw K. Szymanski and James D. Teresco and Louis H. Ziantz",
+  title 	= "Predictive load balancing for parallel adaptive finite element computation",
+  booktitle 	= "Proceedings of International Conference on Parallel and Distributed Processing Techniques and Applications (PDPTA'97)",
+  series 	= "",
+  editor 	= "Xiangmin Jiao and Jean-Christophe Weill",
+  volume 	= "1",
+  year 		= "1997",
+  publisher 	= "",
+  address 	= "",
+  pages 	= "460--469",
+  doi 		= "",
+  url 		= "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.11.4649",
+  number 	= "",
+  month 	= "jul",
+  organization 	= "",
+  note 		= "",
+}
+
+@article{matching07,
+  author 	= "Anil K. Karanam and Kenneth E. Jansen and Christian H. Whiting",
+  title 	= "Geometry based pre-processor for parallel fluid dynamic simulations using a hierarchical basis",  
+  journal 	= "Engineering with Computers",
+  volume 	= "24",
+  number 	= "1",
+  month 	= "jan",
+  year 		= "2008",
+  pages 	= "17--26",
+  issn 		= "",
+  doi 		= "10.1007/s00366-007-0063-0",
+  url 		= "http://link.springer.com/article/10.1007/s00366-007-0063-0",
+}
+
+@article{zhou-contr,
+  author    	= "Min Zhou and Onkar Sahni and Karen D. Devine and Mark S. Shephard and Kenneth E. Jansen",
+  title     	= "Controlling Unstructured Mesh Partitions for Massively Parallel Simulations",
+  journal   	= "SIAM Journal on Scientific Computing",
+  volume    	= "32",
+  number   	= "6",
+  month 	= "nov",
+  year      	= "2010",
+  pages     	= "3201--3227",
+  doi 		= "10.1137/090777323",
+  url		= "http://epubs.siam.org/doi/abs/10.1137/090777323",
+  note		= "",
+}
+
+@article{zhou-extr,
+  author    	= "Min Zhou and Onkar Sahni and Ting Xie and Mark S. Shephard and Kenneth E. Jansen",
+  title     	= "Unstructured mesh partition improvement for implicit finite element at extreme scale",
+  journal   	= "Journal of Supercomputing",
+  volume    	= "59",
+  number   	= "3",
+  month 	= "mar",
+  year      	= "2012",
+  pages     	= "1218--1228",
+  doi 		= "10.1007/s11227-010-0521-0",
+  url		= "http://link.springer.com/article/10.1007/s11227-010-0521-0",
+  note		= "",
+}
+
+@article{Luo2011,
+  author   	= "Xiao-Juan Luo and Mark S. Shephard and Lie-Quan Lee and Lixin Ge and Cho Ng",
+  title    	= "Moving curved mesh adaption for higher-order finite element simulations",
+  journal   	= "Engineering with Computers",
+  volume 	= "27",
+  number 	= "",
+  month 	= "",
+  year 		= "2011",
+  pages 	= "41--50",
+  doi 		= "10.1007/s00366-010-0179-5",
+  url		= "http://link.springer.com/article/10.1007/s00366-010-0179-5",
+  note		= "",
+}
+
+@article{Galimov2010,
+  author    	=     "Azat Yu. Galimov and Onkar Sahni and Richard T. Lahey, Jr. and  Mark S. Shephard and Donald A. Drew and Kenneth E. Jansen",
+  title    	 =     "Parallel adaptive simulation of a plunging liquid jet",
+  journal  	 =     "Acta Mathematica Scientia",
+  volume 	= "30",
+  number 	= "2",
+  month 	= "mar",
+  year 		= "2010",
+  pages 	= "522--538",
+  doi 		= "10.1016/S0252-9602(10)60060-4",
+  url		= "http://www.sciendirect.com/science/article/pii/S0252960210600604",
+  note		= "",
+}
+
+@article{Zhou2010,
+  author 	= "Min Zhou and Onkar Sahni and H. Jin Kim and C. Alberto Figueroa and Charles A. Taylor and Mark S. Shephard and Kenneth E. Jansen",
+  title 	= "Cardiovascular flow simulation at extreme scale",
+  journal 	= "Computational Mechanics",
+  volume 	= "46",
+  number 	= "1",
+  month 	= "",
+  year 		= "2010",
+  pages 	= "71--82",
+  doi 		= "10.1007/s00466-009-0450-z",
+  url		= "http://link.springer.com/article/10.1007/s00466-009-0450-z",
+  note		= "",
+}
+
+
+@misc{albany14,
+    author        = "Andrew G. Salinger and Roscoe A. Bartlett and Qiushi Chen and Xujiao Gao and Glen A. Hansen and Irina Kalashnikova and Alejandro Mota and Richard P. Muller and Erik Nielsen and Jakob T. Ostien and Roger P. Pawlowski and Eric T. Phipps and Waiching Sun",
+    key         = {Albany Web},
+    title       = {{Albany:} a component-based partial differential equation code built on Trilinos},
+    note        = {https://github.com/gahansen/Albany/wiki},
+    year        = 2016
+}
+
+@article{trilinos05,
+  author    	= "Michael A. Heroux and Roscoe A. Bartlett and Vicki E. Howle and Robert J. Hoekstra and Jonathan J. Hu and Tamara G. Kolda and Richard B. Lehoucq and Kevin R. Long and Roger P. Pawlowski and Eric T. Phipps and Andrew G. Salinger and Heidi K. Thornquist and Ray S. Tuminaro and James M. Willenbring and Alan Williams and Kendall S. Stanley",
+  title     	= "An overview of the Trilinos project",
+  journal   	= "ACM Transaction on Mathematical Software (TOMS) - Special issue on the Advanced ComputaTional Software (ACTS) Collection",
+  volume    	= "31",
+  number 	= "3",
+  month 	= "sep",
+  year 		= "2005",
+  pages     	= "397--423",
+  doi 		= "10.1145/1089014.1089021",
+  url		= "http://dl.acm.org/citation.cfm?id=1089021",
+  note		= "",
+}
+
+@article{Glezer:02,
+  author    	= "Ari Glezer and Micheal Amitay",
+  title     	= "Synthetic jets",
+  journal   	= "Annual Review of Fluid Mechanics",
+  volume    	= "34",
+  number 	= "",
+  month 	= "jan",
+  year 		= "2002",
+  pages     	= "503--529",
+  doi 		= "10.1146/annurev.fluid.34.090501.094913",
+  url		= "www.annualreviews.org/doi/abs/10.1146/annurev.fluid.34.090501.094913",
+  note		= "",
+}
+
+
+%%% PHASTA
+@article{JanWhi99,
+  author    	= "Kenneth E. Jansen and Christian H. Whiting and Gregory M. Hulbert",
+  title     	= "A generalized-$\alpha$ method for integrating the filtered {N}avier-{S}tokes equations with a stabilized finite element method",
+  journal   	= "Computer Methods in Applied Mechanics and Engineering",
+  volume    	= "190",
+  number 	= "3--4",
+  month 	= "oct",
+  year 		= "2000",
+  pages     	= "305--319",
+  doi 		= "10.1016/S0045-7825(00)00203-6",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0045782500002036",
+  note		= "",
+}
+
+
+@article{HugLES99,
+  author    	= "Thomas J.R. Hughes and Luca Mazzei and Kenneth E. Jansen",
+  title     	= "Large-eddy simulation and the variational multiscale method",
+  journal   	= "Computing and Visualization in Science",
+  volume    	= "3",
+  number 	= "1--2",
+  month 	= "may",
+  year 		= "2000",
+  pages     	= "47--59",
+  doi 		= "10.1007/s007910050051",
+  url		= "http://link.springer.com/article/10.1007/s007910050051",
+  note		= "",
+}
+
+@article{Sahn06,
+  author    	= "Onkar Sahni and Jens M{\"u}ller and Kenneth E. Jansen and Mark S. Shephard and Charles A. Taylor",
+  title     	= "Efficient anisotropic adaptive discretization of cardiovascular system",
+  journal   	= "Computer Methods in Applied Mechanics and Engineering",
+  volume    	= "195",
+  number 	= "41--43",
+  month 	= "aug",
+  year 		= "2006",
+  pages     	= "5634--5655",
+  doi 		= "10.1016/j.cma.2005.10.018",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0045782505004998\#",
+  note		= "",
+} 
+
+@article{Sahn07,
+  author    	= "Onkar Sahni and Kenneth E. Jansen and Mark S. Shephard  and Charles A. Taylor and Mark W. Beall",
+  title     	= "Adaptive boundary layer meshing for viscous flow simulations",
+  journal   	= "Engineering with Computers",
+  volume    	= "24",
+  number 	= "3",
+  month 	= "sep",
+  year 		= "2008",
+  pages     	= "267--285",
+  doi 		= "10.1007/s00366-008-0095-0",
+  url		= "http://link.springer.com/article/10.1007/s00366-008-0095-0",
+  note		= "",
+}
+
+@article{dan-supcomp14,
+  author    	= "Daniel A. Ibanez and Ian Dunn and Mark S. Shephard",
+  title     	= "Hybrid MPI-thread parallelization of adaptive mesh operations",
+  journal   	= "Parallel Computing",
+  volume    	= "52",
+  number 	= "",
+  month 	= "feb",
+  year 		= "2016",
+  pages     	= "133--143",
+  doi 		= "doi:10.1016/j.parco.2016.01.003",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0167819116000041",
+  note		= "",
+}
+
+@article{Sahn08,
+  author    	= "Onkar Sahni and Kenneth E. Jansen  and Charles A. Taylor and Mark S. Shephard",
+  title     	= "Automated adaptive cardiovascular flow simulations",
+  journal   	= "Engineering with Computers",
+  volume    	= "25",
+  number 	= "1",
+  month 	= "",
+  year 		= "2009",
+  pages     	= "25--36",
+  doi 		= "10.1007/s00366-008-0110-5",
+  url		= "http://link.springer.com/article/10.1007/s00366-008-0110-5",
+  note		= "",
+}
+
+
+@article{rasquin14-scalable,
+  author    	= "Michel Rasquin and Cameron W. Smith and Kedar Chitale and E. Seegyoung Seol and Ben Matthews and J. Martin and Onkar Sahni and Raymond Loy and Mark S. Shephard and Kenneth E. Jansen",
+  title     	= "Scalable fully implicit finite element flow solver with application to high-fidelity flow control simulations on a realistic wind design",
+  journal   	= "Computing in Science and Engineering",
+  volume    	= "",
+  number 	= "",
+  month 	= "",
+  year 		= "2015",
+  pages     	= "",
+  doi 		= "",
+  url		= "",
+  note		= "accepted",
+}
+
+@article{inMem14,
+  author    	= "Cameron W. Smith and Kedar Chitale and Daniel A. Ibanez and Brian Orecchio and E. Seegyoung Seol and Onkar Sahni and Kenneth E. Jansen and Mark S. Shephard",
+  title     	= "Building effective parallel unstructured adaptive simulations by in-memory integration of existing software components",
+  journal   	= "SIAM Journal on Scientific Computing",
+  volume    	= "",
+  number 	= "",
+  month 	= "",
+  year 		= "2015",
+  pages     	= "",
+  doi 		= "",
+  url		= "",
+  note		= "In Preparation",
+} 
+
+@Article{TeJaSUPG,
+  author 	= "Andr\'es  E. Tejada-Mart\'{\i}nez and Kenneth E. Jansen",
+  title 	= "On the interaction between dynamic model dissipation and numerical dissipation due to streamline upwind/{P}etrov-{G}alerkin stabilization",
+  journal	= "Computer Methods in Applied Mechanics and Engineering",
+  volume 	= "194",
+  number	= "9--11",
+  month 	= "mar",
+  year	 	= "2005",
+  pages		= "1225--1248",
+  doi 		= "10.1016/j.cma.2004.06.037",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0045782504003202",
+  note		= "",
+}
+
+@Article{TeJaDFWR2,
+  author 	= "Andr\'es  E. Tejada-Mart\'{\i}nez and Kenneth E. Jansen",
+  title 	= "A parameter-free dynamic subgrid-scale model for large-eddy simulation",
+  journal 	= "Computer Methods in Applied Mechanics and Engineering",
+  volume 	= "195",
+  number	= "23",
+  pages		= "2919--2938",
+  month 	= "apr",
+  year 		= "2006",
+  doi 		= "10.1016/j.cma.2004.09.016",
+  url		= "http://www.sciencedirect.com/science/article/pii/S0045782505002331",
+  note		= "",
+}
+
+@InProceedings{Amitay:98,
+  author = 	"Micheal Amitay and Barton L. Smith and Ari Glezer",
+  title = 	"Aerodynamic flow control using synthetic jet technology",
+  booktitle = 	"36th AIAA Aerospace Sciences Meeting and Exhibit",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "1998",
+  publisher 	= "",
+  address 	= "",
+  pages 	= "",
+  doi 		= "10.2514/6.1998-208",
+  url 		= "http://arc.aiaa.org/doi/pdf/10.2514/6.1998-208",
+  number 	= "",
+  month 	= "jan",
+  organization 	= "American Institute of Aeronautics and Astronautics",
+  note 		= "",
+  }
+
+@InProceedings{Shep13,
+  author = 	"Mark S. Shephard and Cameron Smith and E. Seegyoung Seol and Onkar Sahni",
+  title = 	"Methods and tools for parallel anisotropic mesh adaptation and analysis",
+  booktitle = 	"VI International Conference on Adaptive Modeling and Simulation (ADMOS 2013)",
+  series 	= "",
+  editor 	= "J.P. Moitinho de Almeida and P. D\'iez and C. Tiago and N. Par\'es",
+  volume 	= "",
+  year 		= "2013",
+  publisher 	= "",
+  address 	= "Lisbon, Portugal",
+  pages 	= "",
+  doi 		= "",
+  url 		= "http://www.lacan.upc.edu/admos2013/proceedings/a69.pdf",
+  number 	= "",
+  month 	= "jun",
+  organization 	= "the European Community in Computational Methods in Applied Sciencies (ECCOMAS)",
+  note 		= "",
+  }
+
+@InProceedings{kirby-sc13,
+  author 	= "James King and Robert M. Kirby",
+  title 	= "A scalable, efficient scheme for evaluation of stencil computations over unstructured meshes",
+  booktitle 	= "Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC13)",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "2013",
+  publisher 	= "ACM",
+  address 	= "New York, NY, USA",
+  pages 	= "",
+  doi 		= "10.1145/2503210.2503214",
+  url 		= "http://dl.acm.org/citation.cfm?id=2503214\&CFID=417502132\&CFTOKEN=94556312",
+  number 	= "79",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+@InProceedings{solano11,
+  author 	= "Lizandro Solano-Quinde and Zhi Jian Wang and Brett Bode and Arun K. Somani",
+  title 	= "",
+  booktitle 	= "Proceedings of the Fourth Workshop on General Purpose Processing on Graphics Processing Units (GPGPU-4)",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "2011",
+  publisher 	= "ACM",
+  address 	= "New York, NY, USA",
+  pages 	= "",
+  doi 		= "10.1145/1964179.1964179",
+  url 		= "",
+  number 	= "13",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+@InProceedings{solano12,
+  author 	= "Lizandro Solano-Quinde and Brett Bode and Arun K. Somani",
+  title 	= "Techniques for the parallelization of unstructured grid applications on multi-GPU systems",
+  booktitle 	= "Proceedings of the 2012 International Workshop on Programming Models and Applications for Multicores and Manycores (PMAM '12)",
+  series 	= "",
+  editor 	= "",
+  volume 	= "",
+  year 		= "2012",
+  publisher 	= "ACM",
+  address 	= "New York, NY, USA",
+  pages 	= "140--147",
+  doi 		= "10.1145/2141702.2141718",
+  url 		= "http://dl.acm.org/citation.cfm?id=2141718",
+  number 	= "",
+  month 	= "",
+  organization 	= "",
+  note 		= "",
+  }
+
+
+@InProceedings{Tend11,
+  author = 	"Saurabh Tendulkar and Mark W. Beall and Mark S. Shephard and Kenneth E. Jansen",
+  title = 	"Parallel mesh generation and adaptation for CAD geometries",
+  booktitle = 	"Proc. NAFEMS World Congress",
+  year = 	"2011",
+  volume =  "",
+  pages = "",
+  address = "Boston, MA",
+  organization = ""
+  }
+
+@Phdthesis{beallthesis,
+  author =       "Mark W. Beall",
+  year =         "1999",
+  title =        "An object-oriented framework for the reliable automated solution of problems in mathematical physics",
+  school =       "Rensselaer Polytechnic Institute",
+  address =      "Troy, NY",
+  note =         "",
+  type = 	 "",
+  month = 	 "",
+}
+
+@techreport{moabreport04,
+  author =       "Tim J. Tautges and Ray Meyers and Karl Merkley and Clint Stimpson and Corey Ernst",
+  year =         "2004",
+  title =        "MOAB: a mesh-oriented database",
+  institution =  "Sandia National Laboratories",
+  type =         "",
+  number =       "SAND2004-1592",
+  address =      "Albuquerque, NM 87158 and Livermore, CA 94550",
+  month = 	 "apr",
+  note = 	 "",
+}
+
+@techreport{exodusreport94,
+  author =       "Larry A. Schoof and Victor R. Yarberry",
+  year =         "1994",
+  title =        "EXODUS II: a finite element data model",
+  institution =  "Sandia National Laboratories",
+  type =         "",
+  number =       "SAND92-2137",
+  address =      "Albuquerque, NM 87158 and Livermore, CA 94550",
+  month = 	 "sep",
+  note = 	 "",
+}
+
+@misc{acisweb,
+    key         = {ACIS Web},
+    title       = {{3D ACIS Modeling}},
+    note        = {http://spatial.com/products/3d-acis-modeling},
+    year        = 2016
+}
+
+@misc{parasolidweb,
+    key         = {Parasolid Web},
+    title       = {{Parasolid}: 3D Geometric Modeling Engine},
+    note        = {http://www.plm.automation.siemens.com/en\_us/products/open/parasolid},
+    year        = 2016
+}
+
+
+@misc{ascasweb,
+    key         = {ASCAC Web},
+    title       = {{ASCAC}: Advanced Scientific Commuting Advisory Committee of U.S. Department of Energy},
+    note        = {http://science.energy.gov/ascr/ascac},
+    year        = 2016
+}
+
+@misc{hpctraining,
+    key         = {LLNL HPC Web},
+    title       = {High Performance Computing Training, Lawrence Livermore National Laboratory},
+    note        = {http://computing.llnl.gov/training},
+    year        = 2016
+}
+
+@misc{trilinosweb,
+    key         = {Trilinos Web},
+    title       = {{The Trilinos Project}: Sandia National Laboratories},
+    note        = {http://trilinos.sandia.gov},
+    year        = 2016
+}
+
+@misc{pumiweb,
+    key         = {PUMI Web},
+    title       = {{PUMI}: Parallel Unstructured Mesh Infrastructure},
+    note        = {http://www.scorec.rpi.edu/pumi},
+    year        = 2016
+}
+
+@misc{pumiredmine,
+    key         = {PUMI Redmine},
+    title       = {{PUMI}: Parallel Unstructured Mesh Infrastructure},
+    note        = {http://redmine.scorec.rpi.edu/projects/pumi},
+    year        = 2016
+}
+
+@misc{parmaweb,
+    key         = {ParMA Web},
+    title       = {{ParMA}: Diffusive Partition Improvement Library},
+    note        = {http://www.scorec.rpi.edu/parma},
+    year        = 2016
+}
+
+
+@misc{apfweb,
+    key         = {APF Web},
+    title       = {{APF}: A Parallel Field Library},
+    note        = {http://www.scorec.rpi.edu/apf},
+    year        = 2016
+}
+
+@misc{meshadaptweb,
+    key         = {MeshAdapt Web},
+    title       = {{MeshAdapt}: Parallel Unstructured Mesh Adaptation Library},
+    note        = {http://www.scorec.rpi.edu/meshadapt},
+    year        = 2016
+}
+
+@misc{cciweb,
+    key 	= {CCI Web},
+    title 	= {{CCI}: Center for Computational Innovations, Rensselaer Polytechnic Institute},
+    note 	= {http://cci.rpi.edu},
+    year        = 2016
+}
+
+@misc{simmetrixweb,
+    key 	= {Simmetrix Web},
+    title 	= {{Simmetrix}: Simulation Modeling and Application Suite},
+    note 	= {http://www.simmetrix.com},
+    year        = 2016
+}
+
+@misc{meshsimmatchingweb,
+    key 	= {MeshSim Web},
+    title 	= {{MeshSim}: Mesh Matching},
+    note 	= {http://www.simmetrix.com/products/SimulationMod- elingSuite/MeshSim/MeshMatching/MeshMatching.html},
+    year        = 2016
+}
+
+@misc{geomsimweb,
+    key 	= {GeomSim Web},
+    title 	= {{GeomSim}: Direct Geometry Access},
+    note 	= {http://www.simmetrix.com/products/Simul- ationModelingSuite/geomsim/geomsim.html},
+    year        = 2016
+}
+
+@Article{ZoltanIsorropiaOverview2012,
+   author = {Erik G. Boman and \"Umit V. \c Cataly\"urek and C\'edric Chevalier and Karen D. Devine},
+   title = {The {Z}oltan and {I}sorropia Parallel Toolkits for Combinatorial Scientific Computing: Partitioning, Ordering, and Coloring},
+   journal = {Scientific Programming},
+   year = {2012},
+   volume = {20},
+   number = {2},
+   pages = {129--150}
+}
+
+@Article{ZoltanOverviewArticle2002,
+   author = {Karen D. Devine and Erik G. Boman and Robert Heaphy and Bruce Hendrickson and Courtenay Vaughan},
+   title = {{Zoltan} Data Management Services for Parallel Dynamic Applications},
+   journal = {Computing in Science and Engineering},
+   year = {2002},
+   volume = {4},
+   number = {2},
+   pages = {90--97}
+} 
+
+@Article{ParmetisOverviewArticle2002,
+   author = {Kirk Schloegel and George Karypis and Vipin Kumar},
+   title = {Parallel static and dynamic multi-constraint graph partitioning},
+   journal = {Concurrency and Computation: Practice and Experience},
+   year = {2002},
+   month = {mar},
+   volume = {14},
+   number = {3},
+   pages = {219--240}
+}
+
+@misc{itapsweb,
+    key 	= {ITAPS Web},
+    title 	= {{ITAPS}: Interoperable Technologies for Advanced Petascale Simulations  of Department of Energy's Scientific Discovery through Advanced Computing (SciDAC)},
+    note 	= {http://www.itaps.org},
+    year        = 2016
+}
+
+@misc{imeshpweb,
+    key 	= {iMeshP Web},
+    title 	= {{iMeshP}: SciDAC ITAPS Parallel Mesh Interface},
+    note 	= {http://www.itaps.org/software/iMeshP\_html},
+    year        = 2016
+}
+
+
+@misc{netcdfweb,
+    key 	= {NetCDF Web},
+    title 	= {{NetCDF}: Network Common Data Form},
+    note 	= {http://www.unidata.ucar.edu/software/netcdf},
+    year        = 2016
+}
+
+@misc{fastmathweb,
+    key 	= {FASTMath DOE SciDAC Web},
+    title 	= {{FASTMath}: Applied Mathematics Algorithms, Tools, and Software for HPC Applications},
+    note 	= {http://www.fastmath-scidac.org},
+    year        = 2016
+}
+
+@misc{vtkweb,
+    key 	= {VTK Web},
+    title 	= {{VTK}: Visualization Toolkit},
+    note 	= {http://www.vtk.org},
+    year        = 2016
+}
+
+@misc{sgiweb,
+key={Sgi Inc.},
+note={http://www.sgi.com/tech/stl/stl\_index.html},
+year=2016
+}
+
+@article{obara02,
+  author 	= "Robert M. O'Bara and Mark W. Beall and Mark S. Shephard",
+  title 	= "Attribute management system for engineering analysis",
+  journal 	= "Engineering with Computers",
+  volume 	= "18",
+  number	= "",
+  pages		= "339--351",
+  month 	= "",
+  year 		= "2002",
+  doi 		= "10.1007/s00366020030",
+  url		= "http://link.springer.com/article/10.1007/s00366020030",
+  note		= "",
+}
+
+
+@article{shephard88,
+  author 	= "Mark S. Shephard",
+  title 	= "The specification of physical attribute information for engineering analysis",
+  journal 	= "Engineering with Computers",
+  volume 	= "4",
+  number	= "3",
+  pages		= "145--155",
+  month 	= "",
+  year 		= "1988",
+  doi 		= "",
+  url		= "http://link.springer.com/article/10.1007/BF01199296",
+  note		= "",
+}
+
+@Incollection{Mantyla88,
+author="M. Mantyla", 
+booktitle="An Introduction to Solid Modeling",
+publisher="Computer Science Press",
+address="Rockville Maryland",
+year="1988",
+}
+
+
+
+@Incollection{weiler88,
+  author =       "K.J. Weiler",
+  title =        "The radial-edge structure: a topological representation for
+  non-manifold geometric boundary representations",
+  booktitle =    "Geometric Modeling for CAD Applications: Selected and Expanded Papers from the lfip Wg 5.2 Working Conference",
+  publisher =    "Elsevier Science Ltd.",
+  address =      "",
+  year =         "1988",
+  edition =      "",
+  chapter =      "",
+  editor = 	 "M.J. Wozny and H.W. McLaughlin and Jose L. Encarnacao",
+  pages =        "3--36",
+  isbn = {978-0444704160},
+  doi = 	 "",
+  url = 	 "",
+  volume =	 "",
+  number = 	 "",
+  series =	 "",
+  type = 	 "",
+  month = 	 "may",
+  note = 	 "",
+}
+
+@article{WhiJanDey2003,
+language = {English},
+copyright = {Compilation and indexing terms, Copyright 2013 Elsevier Inc.},
+copyright = {Compendex},
+title = {Hierarchical basis for stabilized finite element methods for compressible flows},
+journal = {Computer Methods in Applied Mechanics and Engineering},
+author = {Christian H. Whiting and Kenneth E. Jansen and Saikat Dey},
+volume = {192},
+number = {47-48},
+year = {2003},
+pages = {5167 - 5185},
+issn = {00457825},
+abstract = {The quest for more accurate numerical simulations of the Navier-Stokes equations has motivated the study of high-order piecewise-polynomial basis functions, also known as k-version finite element methods, as a means to attain this accuracy in the most cost effective manner. Stabilized finite element methods (e.g. streamline upwind Petrov Galerkin) have been proven to attain optimal rates of convergence for any polynomial order basis as well as perform well on a variety of flows including turbulence applications. We present a stabilized finite element formulation for fluid dynamics using mesh-entity based hierarchical basis functions. The implementation is shown to attain theoretical convergence results for the linear model problem as well as the Navier-Stokes equations. &copy; 2003 Elsevier B.V. All rights reserved.},
+key = {Compressible flow},
+keywords = {Finite element method;Fluid dynamics;Navier Stokes equations;Polynomials;Turbulence;},
+note = "",
+URL = "http://dx.doi.org/10.1016/j.cma.2003.07.011",
+} 
+
+@article{Ollivier-etal06,
+author="C. Ollivier-Gooch and K. Chand and T. Dahlgren and L.F. Diachin and B. Fix and J. Kraftcheck and X. Li and E.S. Seol and M.S. Shephard and T. Tautges and H. Trease",
+title="The TSTT Mesh Interface",
+journal="44th AIAA Aerospace Sciences Meeting and Exhibit (AIAA)",
+year="2006",
+}
+
+@article{Sahni:11,
+language = {English},
+copyright = {Compilation and indexing terms, Copyright 2013 Elsevier Inc.},
+copyright = {Compendex},
+title = {Three-dimensional interactions between a finite-span synthetic jet and a crossflow},
+journal = {Journal of Fluid Mechanics},
+author = {Onkar Sahni and Joshua Wood and Kenneth E. Jansen and Michael Amitay},
+volume = {671},
+year = {2011},
+pages = {254 -- 287},
+issn = {00221120},
+address = {40 West 20th Street, New York, NY 10011-4211, United States},
+key = {Experiments},
+keywords = {Flow control;Jets;Reynolds number;Rotation;Three dimensional;Vortex flow;},
+URL = {http://dx.doi.org/10.1017/S0022112010005604},
+} 
+
+@article{hoefler2010scalable,
+  title={Scalable communication protocols for dynamic sparse data exchange},
+  author={Hoefler, Torsten and Siebert, Christian and Lumsdaine, Andrew},
+  journal={ACM Sigplan Notices},
+  volume={45},
+  number={5},
+  pages={159--168},
+  year={2010},
+  publisher={ACM}
+}
+
+@article{edwards2010sierra,
+  title={SIERRA toolkit computational mesh conceptual model},
+  author={Edwards, H Carter and Williams, Alan B and Sjaardema, Gregory D and Baur, David G and Cochran, William K},
+  journal={Sandia National Laboratories SAND Series, SAND2010-1192},
+  year={2010}
+}
+
+@techreport{tautges_moab:_2004,
+  type = {{SAND2004-1592}},
+  title = {{MOAB:} A Mesh-Oriented Database},
+  institution = {Sandia National Laboratories},
+  author = {Tautges, T. J. and Meyers, R. and Merkley, K. and Stimpson, C. and Ernst, C.},
+  month = apr,
+  year = {2004},
+  note = {Report}
+}
+
+@incollection{dyedov2014ahf,
+  title={AHF: Array-Based Half-Facet Data Structure for Mixed-Dimensional and Non-manifold Meshes},
+  author={Dyedov, Vladimir and Ray, Navamita and Einstein, Daniel and Jiao, Xiangmin and Tautges, Timothy J},
+  booktitle={Proceedings of the 22nd International Meshing Roundtable},
+  pages={445--464},
+  year={2014},
+  publisher={Springer}
+}
+
+@article{seol2006efficient,
+  title={Efficient distributed mesh data structure for parallel automated adaptive analysis},
+  author={Seol, E Seegyoung and Shephard, Mark S},
+  journal={Engineering with Computers},
+  volume={22},
+  number={3-4},
+  pages={197--213},
+  year={2006},
+  publisher={Springer}
+}

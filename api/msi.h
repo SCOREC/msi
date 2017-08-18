@@ -19,15 +19,16 @@
 enum msi_matrix_type { /*0*/ MSI_MULTIPLY=0, 
                        /*1*/ MSI_SOLVE}; 
 enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
-                         /*2*/ MSI_FIXED};
+                         /*1*/ MSI_FIXED};
 
 // START OF API
 // remember to delete ownership after use
-void msi_start(pMesh m, pOwnership o);
+void msi_start(pMesh m, pOwnership o=NULL);
 void msi_finalize(pMesh m);
 
-pField msi_field_create (const char* /* in */ field_name, 
-                      int /*in*/ num_values, int /*in*/ num_dofs_per_value);
+// field creation with multiple variables
+pField msi_field_create (pMesh m, const char* /* in */ field_name, 
+                      int /*in*/ nv, int /*in*/ nd);
 
 #ifdef MSI_PETSC
 #include "msi_petsc.h"
@@ -35,23 +36,22 @@ class msi_matrix;
 typedef msi_matrix* pMatrix;
 /** matrix and solver functions with PETSc */
 pMatrix msi_matrix_create(int matrix_type, pField f);
-void msi_matrix_freeze(pMatrix mat);
 void msi_matrix_delete(pMatrix mat);
+void msi_matrix_assemble(pMatrix mat);
 
-void msi_matrix_insert(pMatrix mat, int row, int column, double* val);
-void msi_matrix_add(pMatrix mat, int row, int column, double* val);
+void msi_matrix_insert(pMatrix mat, int row, int column, int scalar_type, double* val);
+void msi_matrix_add(pMatrix mat, int row, int column, int scalar_type, double* val);
 void msi_matrix_addBlock(pMatrix mat, int ielm, int rowVarIdx, int columnVarIdx, double* values);
 
-void msi_matrix_setBC(pMatrix matd, int row);
-void msi_matrix_setLaplaceBC (pMatrix mat, int row, int numVals, int* columns, double* values);
+void msi_matrix_setBC(pMatrix mat, int row);
+void msi_matrix_setLaplaceBC (pMatrix mat, int row, int size, int* columns, double* values);
 
 void msi_matrix_solve(pMatrix mat, pField rhs, pField sol);
 int msi_matrix_getNumIter(pMatrix mat);
 void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
 
 // auxiliary
-void msi_matrix_flush(pMatrix mat);
-void msi_matrix_write(pMatrix matd, const char* file_name, int start_index);
+void msi_matrix_write(pMatrix mat, const char* file_name, int start_index=0);
 void msi_matrix_print(pMatrix mat);
 #endif // #ifdef MSI_PETSC
 

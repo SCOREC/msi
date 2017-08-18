@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}  % include bezier curves
+\renewcommand\baselinestretch{1.0}           % single space
+%\pagestyle{empty}                            % no headers and page numbers
+\author{}
+\title{}
+
+\oddsidemargin -10 true pt      % Left margin on odd-numbered pages.
+\evensidemargin 10 true pt      % Left margin on even-numbered pages.
+\marginparwidth 1.5 true in    % Width of marginal notes.
+\oddsidemargin  0 true in       % Note that \oddsidemargin=\evensidemargin
+\evensidemargin 0 true in
+\topmargin -0.5 true in        % Nominal distance from top of page to top of
+\textheight 9.0 true in         % Height of text (including footnotes and figures)
+\textwidth 6.5 true in        % Width of text line.
+\parindent=0pt                  % Do not indent paragraphs
+\parskip=0.15 true in
+%\usepackage{color}              % Need the color package
+
+\usepackage[pdftex]{color, graphicx}
+%\usepackage{graphicx} %for epsfig
+\usepackage{graphics}
+\usepackage{epsfig}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{eufrak}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage[pdftex]{color, graphicx}
+%\usepackage{graphicx} %for epsfig
+\usepackage{setspace}
+\usepackage{graphics}
+\usepackage{subfig}
+\usepackage{afterpage}
+\usepackage{pdfpages}
+\usepackage{tikz}
+%\usepackage[lined,algonl,boxed]{algorithm2e}
+%\renewcommand{\listalgorithmcfname}{LIST OF ALGORITHMS}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{The MSI User's Guide}
+
+\author{-- VERSION 0.1 --\\
+\\
+Scientific Computation Research Center \\
+Rensselaer Polytechnic Institute}
+
+\begin{document}
+
+\maketitle
+
+
+\newpage
+
+\newpage
+***************     SCOREC 3-CLAUSE BSD LICENSE     ***************
+\\
+\\
+Copyright (c) 2017, Scientific Computation Research Center (SCOREC), Rensselaer Polytechnic Institute (RPI). All rights reserved.
+\newline
+\newline
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+\begin{itemize}
+\item Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+\item Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+\item Neither the name of the SCOREC, RPI nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+\end{itemize}
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+\newline
+\newline
+Questions to seols@rpi.edu\\
+Derived from the OSI 3-clause BSD
+\newpage
+\newpage
+
+\tableofcontents
+\newpage
+\include{msi-api}
+
+%installation
+\section{Installation}
+
+MSI is a free open source software available in \url{https://github.com/SCOREC/msi}. 
+This section discuss the S/W requirements and compilation briefly. 
+
+\subsection{S/W Requirements}
+
+At a minumum, the following softwares are required to install MSI.
+\begin{itemize}
+\item \texttt{cmake} - v3.0 or higher
+\item \texttt{MPI}
+\item \texttt{Zoltan}~\cite{ZoltanOverviewArticle2002}
+\item \texttt{PUMI}~\cite{pumi16, pumiweb}
+\item \texttt{METIS/ParMETIS} ~\cite{ParmetisOverviewArticle2002}
+\end{itemize}
+
+The detailed discussion on how to build PUMI can be found in \emph{https://github.com/SCOREC/core/wiki/General-Build-instructions}.
+
+\subsection{Compilation}
+
+To build MSI, run a cmake configuration file and do \emph{``make install"}. Two example cmake configuration files are available in the top source folder;\emph{``openmpi-gcc4.4.5-real-config.sh"} for real type and \emph{``openmpi-gcc4.4.5-complex-config.sh"} for complex type.
+
+The essential configuration options include: 
+
+\begin{itemize}
+\item \texttt{ZOLTAN$\_$LIBRARY}: path and file name of Zoltan library
+\item \texttt{PARMETIS$\_$LIBRARY}: path and file name of ParMETIS library
+\item \texttt{METIS$\_$LIBRARY}: path and file name of METIS library
+\item \texttt{SCOREC$\_$INCLUDE$\_$DIR}: path to PUMI header files
+\item \texttt{SCOREC$\_$LIB$\_$DIR}: path and file name of PUMI libraries
+\item \texttt{ENABLE$\_$PETSC}: set \texttt{ON} to link MSI with PETSc solver
+\item \texttt{PETSC$\_$INCLUDE$\_$DIR}: path to PETSc header files
+\item \texttt{PETSC$\_$LIB$\_$DIR}: path to PETSc libraries
+\item \texttt{ENABLE$\_$TRILINOS}: set \texttt{ON} to link MSI with Trilinos solver
+\item \texttt{TRILINOS$\_$INCLUDE$\_$DIR}: path to Trilinos header files
+\item \texttt{TRILINOS$\_$LIB$\_$DIR}: path to Trilinos libraries
+\item \texttt{DENABLE$\_$COMPLEX}: set \texttt{ON} to build MSI complex value
+\item \texttt{CMAKE$\_$INSTALL$\_$PREFIX}: path to install MSI header file and library
+\end{itemize}
+
+In the current version, Trilinos is not supported.
+
+For a complete list of configuration options, see \emph{``CMakeLists.txt"} in the top source folder. 
+
+\subsection{Test Program}
+A test program with PETSc is available in \emph{``test/petsc/main.cc"} in the top source folder.
+The test program is a good start to learn how to use MSI API. The input arguments of the test program are the following:
+\begin{itemize}
+\item \texttt{argv[1]} - input model file (.dmg)
+\item \texttt{argv[2]} - input mesh file (.smb)
+\end{itemize}
+
+How to generate PUMI-readable model and mesh files and how to use PUMI are beyond the scope of this document. For such a topic, see PUMI User's Guide available in \url{http://www.scorec.rpi.edu/pumi}.
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{seol}
+\end{document}

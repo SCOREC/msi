@@ -19,6 +19,8 @@ using std::vector;
 
 extern pOwnership msi_ownership=NULL;
 
+void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
+
 // Error if serial mesh is loaded and partitioned as pumi_ment_getID(e) is not sequential
 void msi_ment_getLocalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
 {
@@ -312,18 +314,20 @@ void msi_start(pMesh m, pOwnership o)
   msi_ownership=o;
   pumi_mesh_setCount(m, o);
   pumi_mesh_createGlobalID(m, o);
+
+  PetscMemorySetGetMaximumUsage();
+  msi_solver::instance()->num_global_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_global_adj_node", 1);
+  msi_solver::instance()->num_own_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_own_adj_node", 1);
+  set_adj_node_tag(msi_solver::instance()->num_global_adj_node_tag, msi_solver::instance()->num_own_adj_node_tag);
+
 }
 
 void msi_finalize(pMesh m)
 {  
-  typedef std::map<int, msi_matrix*> matrix_container_map;
-  for (std::map<int, msi_matrix*>::iterator it=msi_solver::instance()->matrix_container->begin();
-      it!=msi_solver::instance()->matrix_container->end(); ++it)
-  {
-    if(!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": matrix "<<it->first<<" deleted\n";
-    delete it->second;
-  }
-  msi_solver::instance()->matrix_container->clear();
+  apf::removeTagFromDimension(m, msi_solver::instance()->num_global_adj_node_tag, 0);
+  m->destroyTag(msi_solver::instance()->num_global_adj_node_tag);
+  apf::removeTagFromDimension(m, msi_solver::instance()->num_own_adj_node_tag, 0);
+  m->destroyTag(msi_solver::instance()->num_own_adj_node_tag);
 
   while(m->countFields())
   {
@@ -358,14 +362,14 @@ void msi_field_assign(pField f, double* fac)
 }
 
 
-pField msi_field_create (const char* /* in */ field_name, int /*in*/ num_values, int /*in*/ num_dofs_per_value)
+pField msi_field_create (pMesh m, const char* /* in */ field_name, int /*in*/ num_values, int /*in*/ num_dofs_per_value)
 {
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1;
 #endif
   int components = num_values*(scalar_type+1)*num_dofs_per_value;
-  apf::Field* f = createPackedField(pumi::instance()->mesh, field_name, components);
+  apf::Field* f = createPackedField(m, field_name, components);
   apf::freeze(f); // switch dof data from tag to array
   double val[2]={0,0};
   msi_field_assign(f, val);
@@ -396,7 +400,7 @@ msi_matrix* msi_matrix_create(int matrix_type, pField f)
 }
 
 //*******************************************************
-void msi_matrix_freeze(pMatrix mat) 
+void msi_matrix_assemble(pMatrix mat) 
 //*******************************************************
 {
   mat->assemble();
@@ -411,7 +415,7 @@ void msi_matrix_delete(pMatrix mat)
 
 //*******************************************************
 void msi_matrix_insert(pMatrix mat, int row, 
-         int col, double* val)
+         int col, int scalar_type, double* val)
 //*******************************************************
 {  
   assert(mat->get_status()!=MSI_FIXED);
@@ -427,16 +431,15 @@ void msi_matrix_insert(pMatrix mat, int row,
   assert(!pumi::instance()->mesh->isGhost(e));
 #endif
 
-#ifdef PETSC_USE_COMPLEX
+  if (scalar_type) // complex
     mat->set_value(row, col, INSERT_VALUES, val[0], val[1]);
-#else
+  else
     mat->set_value(row, col, INSERT_VALUES, *val, 0);
-#endif
 }
 
 //*******************************************************
 void msi_matrix_add (pMatrix mat, int row, int col, 
-                    double* val) 
+                    int scalar_type, double* val) 
 //*******************************************************
 {  
   assert(mat->get_status()!=MSI_FIXED);
@@ -452,11 +455,10 @@ void msi_matrix_add (pMatrix mat, int row, int col,
   assert(!pumi::instance()->mesh->isGhost(e));
 #endif
 
-#ifdef PETSC_USE_COMPLEX
+  if (scalar_type) // complex
     mat->set_value(row, col, ADD_VALUES, val[0], val[1]);
-#else
+  else
     mat->set_value(row, col, ADD_VALUES, *val, 0);
-#endif
 }
 
 //*******************************************************
@@ -1309,5 +1311,135 @@ int m3dc1_epetra_freeze(int* matrix_id)
   mat->epetra_mat->FillComplete();
   assert(mat->epetra_mat->Filled());
   return M3DC1_SUCCESS;
+}
+#endif
+
+#ifdef MSI_PETSC
+struct entMsg
+{
+  int pid;
+  apf::MeshEntity* ent;
+  entMsg( int pid_p=0, apf::MeshEntity* ent_p=NULL)
+  {
+    pid=pid_p;
+    ent=ent_p;
+  }
+};
+
+struct classcomp
+{
+  bool operator() (const entMsg& lhs, const entMsg& rhs) const
+  {
+    if(lhs.ent==rhs.ent) return lhs.pid<rhs.pid;
+    else return lhs.ent<rhs.ent;
+  }
+};
+
+
+// **********************************************
+void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag)
+// **********************************************
+{
+  pMesh mesh = pumi::instance()->mesh;
+
+  int value;
+  int brgType = mesh->getDimension()-1;
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = mesh->begin(0);
+  PCU_Comm_Begin();
+  while ((e = mesh->iterate(it)))
+  {
+    int num_adj_node=0;
+    apf::Adjacent elements;
+    apf::getBridgeAdjacent(mesh, e, brgType, 0, elements);
+    int num_adj = elements.getSize();
+
+    for (int i=0; i<num_adj; ++i)
+    {
+      if (pumi_ment_isOwned(elements[i]))
+        ++num_adj_node;
+    }
+    mesh->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
+
+    if (!mesh->isShared(e)) continue;
+    // first pass msg size to owner
+    int own_partid = pumi_ment_getOwnPID(e);
+    apf::MeshEntity* own_copy = pumi_ment_getOwnEnt(e);
+
+    if (own_partid==PCU_Comm_Self()) continue;
+    PCU_COMM_PACK(own_partid, own_copy);
+    PCU_Comm_Pack(own_partid, &num_adj,sizeof(int));
+  }
+  mesh->end(it);
+
+  PCU_Comm_Send();
+
+  std::map<apf::MeshEntity*, std::map<int, int> > count_map;
+  while (PCU_Comm_Listen())
+  {
+    while ( ! PCU_Comm_Unpacked())
+    {
+      PCU_COMM_UNPACK(e);
+      PCU_Comm_Unpack(&value,sizeof(int));
+      count_map[e][PCU_Comm_Sender()]=value;
+    }
+  }
+  
+  // pass entities to ownner
+  std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
+  it = mesh->begin(0);
+  PCU_Comm_Begin();
+  while ((e = mesh->iterate(it)))
+  {
+    // pass entities to ownner
+
+    std::vector<entMsg> msgs;
+    apf::Adjacent elements;
+    apf::getBridgeAdjacent(mesh, e, brgType, 0, elements);
+
+    apf::MeshEntity* ownerEnt=pumi_ment_getOwnEnt(e);
+    int own_partid = pumi_ment_getOwnPID(e);
+    for(int i=0; i<elements.getSize(); ++i)
+    {
+      apf::MeshEntity* ownerEnt2=pumi_ment_getOwnEnt(elements[i]);
+      int owner=pumi_ment_getOwnPID(elements[i]);
+      msgs.push_back(entMsg(owner, ownerEnt2));
+      if(own_partid==PCU_Comm_Self()) 
+      {
+        count_map2[e].insert(*msgs.rbegin());
+      }
+    }
+
+    if(own_partid!=PCU_Comm_Self())
+    {
+      PCU_COMM_PACK(own_partid, ownerEnt);
+      PCU_Comm_Pack(own_partid, &msgs.at(0),sizeof(entMsg)*msgs.size());
+    }
+  }
+  mesh->end(it);
+  PCU_Comm_Send();
+  while (PCU_Comm_Listen())
+  {
+    while ( ! PCU_Comm_Unpacked())
+    {
+      PCU_COMM_UNPACK(e);
+      int sizeData = count_map[e][PCU_Comm_Sender()];
+      std::vector<entMsg> data(sizeData);
+      PCU_Comm_Unpack(&data.at(0),sizeof(entMsg)*sizeData);
+      for (int i=0; i<data.size(); ++i)
+      {
+        count_map2[e].insert(data.at(i));
+      }
+    }
+  }
+
+  for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); 
+       mit!=count_map2.end(); ++mit)
+  {
+    e = mit->first;
+    int num_global_adj =count_map2[e].size();
+    mesh->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
+  }
 }
 #endif
