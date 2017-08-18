@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{API Overview}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The MSI API's are provided in the file \texttt{``msi.h"}. Throughout this section, unless specified, DOF, matrix row and column ID's are specified by a global ID.
+The MSI API's are provided in the file \texttt{``msi.h"}. Throughout this section, unless specified, DOF, matrix row and column ID's are specified by a local ID. A word ``\emph{global}" in a function name indicates that the function involves global operation or global data.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Naming Convention}
@@ -34,7 +34,9 @@ For a geometry, partition and mesh model, the term \emph{instance} is used to in
 The following are predefined data types used in the interface function parameters.
 
 \begin{tabular}{lp{14cm}}	
-	pField & 	a field handle (defined in \texttt{``pumi.h"})\\
+	pMesh
+        pMeshEnt 
+        pField & 	a field handle (defined in \texttt{``pumi.h"})\\
 	pOwnership & 	a user-defined ownership handle (defined in \texttt{``pumi.h"}) \\
  	pMatrix &	a matrix handle \\
 \end{tabular}	
@@ -95,10 +97,37 @@ Finalize the MSI services and clears all internal data. Note that the following 
 \item MPI finalization
 \end{itemize}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Mesh Entity}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In terms of mesh entity operation, MSI provides the operations only related to field ID of individual mesh entity as those are not supported in PUMI. For the rest of mesh entity operations including setting/getting field data (DOF) over nodes, use the API's in \texttt{PUMI.h}. 
+
+
+\begin{verbatim}
+void msi_ment_getFieldID (
+    pMeshEnt  /* in */  e, 
+    pField  /* in */  f, 
+    int  /* in */  i,
+    int*  /* out */  start_dof_id, 
+    int*  /* out */  end_dof_id_plus_one)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a mesh entity handle, field handle and the index of node $i$, return the starting local ID and the ending local ID plus one for field data (DOF) of $i^{th}$ node of the entity. 
+
+\begin{verbatim}
+void msi_ment_getGlobalFieldID (
+    pMeshEnt  /* in */  e, 
+    pField  /* in */  f, 
+    int  /* in */  i,
+    int*  /* out */  start_dof_id, 
+    int*  /* out */  end_dof_id_plus_one)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a mesh entity handle, field handle and the index of node $i$, return the starting global ID and the ending global ID plus one for field data (DOF) of $i^{th}$ node of the mesh entity. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Field}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}. If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
 
 \begin{verbatim}
 pField msi_field_create (
@@ -108,8 +137,6 @@ pField msi_field_create (
     int  /* in */  nd)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
 Given field name, the number of values ($nv$), and the number of DOF's per value ($nd$), create a field for all nodes (owned, non-owned part boundary and ghost). Note that PUMI allocates contiguous memory for the array of field data. The size of field data is \textit{nv}$*$\textit{st}$*$\textit{nd}$*$\textit{nn}, where \textit{st} is scalar type (1 for real, 2 for complex), and \textit{nn} is the number of local nodes on each process.
-
-In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}. If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,43 +164,44 @@ The matrix values cannot be modified any further.
 \begin{verbatim}
 void msi_matrix_insert (
     pMatrix  /* in */  matrix, 
-    int  /* in */  row, 
-    int  /* in */  column, 
+    int  /* in */  r, 
+    int  /* in */  c, 
     int  /* in */  scalar_type,
     double*  /* in */  value)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Insert or overwrite \textit{value} to the matrix at (\textit{row},\textit{column}).
-\textit{row} and \textit{column} are global DOF ID associated with the matrix.
-If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be inserted into a complex matrix but a complex type value cannot be inserted into a real matrix.   
+Given a matrix handle, local DOF ID $r$ and $c$, scalar type (0 for real, 1 for complex) and an array of double values, insert or overwrite \textit{value} to the matrix at (\textit{r},\textit{c}). If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be inserted into a complex matrix but a complex type value cannot be inserted into a real matrix.   
+
+If the number of DOF's associated with the field is $d$, $r$ or $c$ divided by $d$ is a local ID of corresponding mesh entity. Use \texttt{msi$\_$ment$\_$getFieldID} to get local DOF ID of a mesh entity.
 
 \begin{verbatim}
 void msi_matrix_add (
     pMatrix  /* in */  matrix, 
-    int  /* in */  row, 
-    int  /* in */  column, 
+    int  /* in */  r, 
+    int  /* in */  c, 
     int  /* in */  scalar_type,
     double*  /* in */  value)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Add \textit{value} to the existing value of matrix at (\textit{row},\textit{column}).
-\textit{row} and \textit{column} are global DOF ID associated with the matrix.
-If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be inserted into a complex matrix but a complex type value cannot be inserted into a real matrix.  
+Given a matrix handle, local DOF ID $r$ and $c$, scalar type (0 for real, 1 for complex) and an array of double values, add \textit{value} to the existing value of matrix at (\textit{r},\textit{c}). If \textit{value} is a real number, \textit{scalar$\_$type} is 0. Otherwise, \textit{scalar$\_$type} is 1. A real type value can be added into a complex matrix but a complex type value cannot be added into a real matrix.   
+
+If the number of DOF's associated with the field is $d$, $r$ or $c$ divided by $d$ is a local ID of corresponding mesh entity. Use \texttt{msi$\_$ment$\_$getFieldID} to get local DOF ID of a mesh entity.
 
 \begin{verbatim}
 void msi_matrix_addBlock (
     pMatrix  /* in */  matrix, 
-    int  /* in */  elm_id, 
-    int  /* in */  row_index, 
-    int  /* in */  column_index, 
+    int  /* in */  elem_id, 
+    int  /* in */  r_value_index, 
+    int  /* in */  c_value_index, 
     double*  /* in */  values)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle, a local element ID, row variable index, colume variable index and an array of values, add values to the matrix corresponding to the nodes of the element. 
+Given a matrix handle, a local element ID, row value index, column value index, and a double array containing element matrix values, add values in the element matrix to the global matrix. The the number of the values associated with the field is 1, accepted value for \textit{r$\_$value$\_$index} and \textit{c$\_$value$\_$index} is 0.
+
  
 \begin{verbatim}
 void msi_matrix_setBC (
     pMatrix  /* in */  matrix, 
     int  /* in */  local_row_index)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle and a local row index, zero out all off-diagonal values in the row of the matrix and set the diagonal value to one. The operation is carried out during finalizing the matrix. It will overwrite other insertion operations to the local row of the matrix. For complex-valued matrix, the real part of the diagonal is set to one and the imaginary part is set to zero.
+Given a matrix handle of type 1 (\textit{MSI$\_$SOLVE}) and a local row index, zero out all off-diagonal values in the row of the matrix and set the diagonal value to one. The operation is carried out during finalizing the matrix. It will overwrite other insertion operations to the local row of the matrix. For complex-valued matrix, the real part of the diagonal is set to one and the imaginary part is set to zero.
 This function should be called on all processes that use the DOF numbering associated with the matrix row. 
 
 \begin{verbatim}
@@ -184,7 +212,7 @@ void msi_matrix_setLaplaceBC (
     int*  /* in */  columns, 
     double*  /* in */  values)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle, a local row index, the  number of values to be inserted (\textit{size}), the columns to set the values (\textit{columns}), and the values to be set in the order of the \textit{columns}, set multiple values for the row of the matrix. If real values are inserted into a complex matrix, the corresponding imaginary parts are set to zero. The operation is carried out during finalizing the matrix. 
+Given a matrix handle of type 1 (\textit{MSI$\_$SOLVE}), a local row index, the  number of values to be inserted (\textit{size}), the columns to set the values (\textit{columns}), and the values to be set in the order of the \textit{columns}, set multiple values for the row of the matrix. If real values are inserted into a complex matrix, the corresponding imaginary parts are set to zero. The operation is carried out during finalizing the matrix. 
 This function will overwrite other insertion operations to the row. This function should be called on all processes that use the DOF numbering associated with the matrix row.
 
 \begin{verbatim}
@@ -193,7 +221,7 @@ void msi_matrix_multiply (
     pField  /* in */   x, 
     pField  /* out */  b)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle ($A$) and an input field handle ($x$), perform the matrix-vector multiplication \textit{``Ax"} and write the result in the field $b$. If the input matrix or the input field is complex-valued, the output field must be complex-valued.
+Given a matrix handle ($A$) of type 0 (\textit{MSI$\_$MULTIPLY}) and an input field handle ($x$), perform the matrix-vector multiplication \textit{``Ax"} and write the result in the field $b$. If the input matrix or the input field is complex-valued, the output field must be complex-valued.
 
 \begin{verbatim}
 void msi_matrix_solve (
@@ -201,12 +229,12 @@ void msi_matrix_solve (
         pField   /* in */   b, 
         pField   /* out */  x)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle ($A$) and a RHS field handle ($b$), solve the global discrete equation \textit{``Ax=b"} and write the solution into the field $x$. 
+Given a matrix handle ($A$) of type 1 (\textit{MSI$\_$SOLVE}) and a RHS field handle ($b$), solve the global discrete equation \textit{``Ax=b"} and write the solution into the field $x$. 
 
 \begin{verbatim}
 int msi_matrix_getNumIter (pMatrix  /* in */  matrix)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle, return the number of iterations of solver operation.
+Given a matrix handle of type 1 (\textit{MSI$\_$SOLVE}), return the number of iterations of solve operation.
 
 \begin{verbatim}
 void msi_matrix_print(pMatrix  /* in */  matrix)

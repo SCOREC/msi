@@ -21,16 +21,68 @@ extern pOwnership msi_ownership=NULL;
 
 void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
 
-// Error if serial mesh is loaded and partitioned as pumi_ment_getID(e) is not sequential
-void msi_ment_getLocalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
+//*******************************************************
+void msi_ment_getFieldID (pMeshEnt e, pField f, int inode,
+     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
 {
   int num_dof = apf::countComponents(f);
 #ifdef PETSC_USE_COMPLEX
   num_dof/=2;
 #endif
-  *start_dof_id = pumi_ment_getID(e)*num_dof;
-  *end_dof_id_plus_one = *start_dof_id + num_dof;
+  // FIXME: replace getMdsIndex with numbering
+  int ent_id = getMdsIndex(pumi::instance()->mesh, e);
+  *start_dof_id = ent_id*num_dof;
+  *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
+
+// internal function
+//*******************************************************
+int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
+                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
+{
+  if (*ent_dim!=0)
+    return MSI_FAILURE;
+
+  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
+  assert(e);
+
+  msi_ment_getFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
+  return MSI_SUCCESS;
+}
+
+//*******************************************************
+void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
+     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
+{
+  int num_dof = apf::countComponents(f);
+#ifdef PETSC_USE_COMPLEX
+  num_dof/=2;
+#endif
+  // FIXME: replace getMdsIndex with numbering
+  int ent_id = pumi_ment_getGlobalID(e);
+  *start_dof_id = ent_id*num_dof;
+  *end_dof_id_plus_one = *start_dof_id +num_dof;
+}
+
+// internal function
+//*******************************************************
+int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
+         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
+{
+  if (*ent_dim!=0)
+    return MSI_FAILURE;
+
+  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
+  assert(e);
+
+  msi_ment_getGlobalFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
+  return MSI_SUCCESS;
+}
+
 
 void msi_ment_getGlobalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
 {
@@ -40,30 +92,6 @@ void msi_ment_getGlobalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end
 #endif
   *start_dof_id = pumi_ment_getGlobalID(e)*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
-}
-
-int msi_field_getNumOwnDOF(pField f)
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-  return num_dof*pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
-}
-
-void msi_field_getOwnDOFID(pField f, 
-    int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-  int num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
-  int start_id = num_own_ent;
-  PCU_Exscan_Ints(&start_id,1);
-
-  *start_dof_id=start_id*num_dof;
-  *end_dof_id_plus_one=*start_dof_id+num_own_ent*num_dof;
 }
 
 // helper routines
@@ -156,49 +184,6 @@ int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
   return MSI_SUCCESS;
 }
 
-//*******************************************************
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  if (*ent_dim!=0)
-    return MSI_FAILURE;
-
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-  *start_dof_id = *ent_id*num_dof;
-  *end_dof_id_plus_one = *start_dof_id +num_dof;
-  return MSI_SUCCESS;
-}
-
-
-
-//*******************************************************
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one)
-//*******************************************************
-{
-  if (*ent_dim!=0)
-    return MSI_FAILURE;
-
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-
-  int global_id = pumi_ment_getGlobalID(e);
-  *start_global_dof_id = global_id*num_dof;
-  *end_global_dof_id_plus_one =*start_global_dof_id + num_dof;
-  return MSI_SUCCESS;
-}
 
 //******************************************************* 
 int msi_field_getglobaldofid (pField f, 
@@ -597,8 +582,10 @@ void msi_matrix_addBlock(pMatrix mat, int ielm,
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
     for(int inode=0; inode<nodes_per_element; inode++)
     {
-      if(mmat->is_mat_local()) msi_ent_getlocaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
-      else msi_ent_getglobaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+      if (mmat->is_mat_local()) 
+        msi_ent_getlocaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+      else 
+        msi_ent_getglobaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
       for(int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+rowIdx*dofPerVar+i;

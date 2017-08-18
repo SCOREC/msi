@@ -26,6 +26,13 @@ enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
 void msi_start(pMesh m, pOwnership o=NULL);
 void msi_finalize(pMesh m);
 
+void msi_ment_getFieldID (pMeshEnt e, pField f, int inode,
+     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+
+void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
+     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+
+
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 
                       int /*in*/ nv, int /*in*/ nd);
