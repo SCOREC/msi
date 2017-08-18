@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{API Overview}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The MSI API's are provided in the file \texttt{``msi.h"}. Throughout this section, unless specified, DOF, matrix row and column ID's are specified by a local ID. A word ``\emph{global}" in a function name indicates that the function involves global operation or global data.
+The MSI API's are provided in the file ``\texttt{msi.h}". Throughout this section, unless specified, DOF, matrix row and column ID's are specified by a local ID. A word ``\emph{global}" in a function name indicates that the function involves global operation or global data.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Naming Convention}
@@ -34,10 +34,10 @@ For a geometry, partition and mesh model, the term \emph{instance} is used to in
 The following are predefined data types used in the interface function parameters.
 
 \begin{tabular}{lp{14cm}}	
-	pMesh
-        pMeshEnt 
-        pField & 	a field handle (defined in \texttt{``pumi.h"})\\
-	pOwnership & 	a user-defined ownership handle (defined in \texttt{``pumi.h"}) \\
+	pMesh  & 	a mesh instance (defined in ``\texttt{pumi.h}")\\
+        pMeshEnt & 	a mesh entity handle (defined in ``\texttt{pumi.h}")\\
+        pField & 	a field handle (defined in ``\texttt{pumi.h}")\\
+	pOwnership & 	a user-defined ownership handle (defined in ``\texttt{pumi.h}") \\
  	pMatrix &	a matrix handle \\
 \end{tabular}	
 
@@ -127,7 +127,7 @@ Given a mesh entity handle, field handle and the index of node $i$, return the s
 \subsection{Field}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}. If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
+In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}.
 
 \begin{verbatim}
 pField msi_field_create (
@@ -138,6 +138,7 @@ pField msi_field_create (
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
 Given field name, the number of values ($nv$), and the number of DOF's per value ($nd$), create a field for all nodes (owned, non-owned part boundary and ghost). Note that PUMI allocates contiguous memory for the array of field data. The size of field data is \textit{nv}$*$\textit{st}$*$\textit{nd}$*$\textit{nn}, where \textit{st} is scalar type (1 for real, 2 for complex), and \textit{nn} is the number of local nodes on each process.
 
+ If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{PETSc Matrix and Solver}
@@ -221,7 +222,7 @@ void msi_matrix_multiply (
     pField  /* in */   x, 
     pField  /* out */  b)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle ($A$) of type 0 (\textit{MSI$\_$MULTIPLY}) and an input field handle ($x$), perform the matrix-vector multiplication \textit{``Ax"} and write the result in the field $b$. If the input matrix or the input field is complex-valued, the output field must be complex-valued.
+Given a matrix handle ($A$) of type 0 (\textit{MSI$\_$MULTIPLY}) and an input field handle ($x$), perform the matrix-vector multiplication \textit{``Ax}" and write the result in the field $b$. If the input matrix or the input field is complex-valued, the output field must be complex-valued.
 
 \begin{verbatim}
 void msi_matrix_solve (
@@ -229,7 +230,7 @@ void msi_matrix_solve (
         pField   /* in */   b, 
         pField   /* out */  x)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle ($A$) of type 1 (\textit{MSI$\_$SOLVE}) and a RHS field handle ($b$), solve the global discrete equation \textit{``Ax=b"} and write the solution into the field $x$. 
+Given a matrix handle ($A$) of type 1 (\textit{MSI$\_$SOLVE}) and a RHS field handle ($b$), solve the global discrete equation \textit{``Ax=b}" and write the solution into the field $x$. 
 
 \begin{verbatim}
 int msi_matrix_getNumIter (pMatrix  /* in */  matrix)
@@ -247,5 +248,5 @@ void msi_matrix_write (
     const char*  /* in */  file_name, 
     int  /* in */  start_index=0)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix handle, file name and a starting local ID for nodes (default is 0), write the $non$-$zero$ matrix values in file(s). For each process \textit{i}, the matrix information is written in \texttt{``filename-i"}. If \textit{file$\_$name} is \textit{NULL}, \texttt{msi$\_$matrix$\_$print} is performed.
+Given a matrix handle, file name and a starting local ID for nodes (default is 0), write the $non$-$zero$ matrix values in file(s). For each process \textit{i}, the matrix information is written in ``\texttt{filename-i}". If \textit{file$\_$name} is \textit{NULL}, \texttt{msi$\_$matrix$\_$print} is performed.
 PUMI provides an equivalent API for fields and nodes. 
