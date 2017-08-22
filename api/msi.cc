@@ -8,6 +8,7 @@
  
 *******************************************************************************/
 #include "msi.h"
+#include "msi_solver.h"
 #include "msi_petsc.h"
 #include <iostream>
 #include "PCU.h"
@@ -36,22 +37,6 @@ void msi_ment_getFieldID (pMeshEnt e, pField f, int inode,
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
-// internal function
-//*******************************************************
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  if (*ent_dim!=0)
-    return MSI_FAILURE;
-
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-  msi_ment_getFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
-  return MSI_SUCCESS;
-}
-
 //*******************************************************
 void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
@@ -67,231 +52,9 @@ void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
-// internal function
 //*******************************************************
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  if (*ent_dim!=0)
-    return MSI_FAILURE;
-
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-  msi_ment_getGlobalFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
-  return MSI_SUCCESS;
-}
-
-
-void msi_ment_getGlobalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-  *start_dof_id = pumi_ment_getGlobalID(e)*num_dof;
-  *end_dof_id_plus_one = *start_dof_id +num_dof;
-}
-
-// helper routines
-#define FIELDVALUELIMIT 1e100
-bool value_is_nan(double val)
-{
-  return val!=val ||fabs(val) >FIELDVALUELIMIT;
-}
-
-//*******************************************************
-void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent)
-//*******************************************************
-{
-  *num_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, *ent_dim);
-}
-
-
-// *********************************************************
-pMeshEnt get_ent(apf::Mesh2* mesh, int ent_dim, int ent_id)
-// *********************************************************
-{
-  return apf::getMdsEntity(mesh, ent_dim, ent_id);
-}
-
-
-//*******************************************************
-int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data)
-//*******************************************************
-{
-  assert(*ent_dim==0);
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-#ifdef DEBUG
-  int scalar_type=0;
-#ifdef PETSC_USE_COMPLEX
-  scalar_type=1;
-#endif
-  assert(countComponents(f)==*num_dof*(1+scalar_type));
-  for(int i=0; i<*num_dof*(1+scalar_type); i++)
-    assert(!value_is_nan(dof_data[i]));
-#endif
-  setComponents(f, e, 0, dof_data);
-  return MSI_SUCCESS;
-}
-
-//*******************************************************
-int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data)
-//*******************************************************
-{
-  assert(*ent_dim==0);
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
-  getComponents(f, e, 0, dof_data);
-
-  *num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  *num_dof/=2;
-#endif
-
-#ifdef DEBUG
-  int scalar_type=0;
-#ifdef PETSC_USE_COMPLEX
-  scalar_type=1;
-#endif
-  for(int i=0; i<*num_dof*(1+scalar_type); i++)
-    assert(!value_is_nan(dof_data[i]));
-  int start_dof_id,end_dof_id_plus_one;
-  msi_ent_getlocaldofid(ent_dim, ent_id, f, &start_dof_id, &end_dof_id_plus_one);
-  double* data;
-  msi_field_getdataptr(f, &data);
-  int start=start_dof_id*(1+scalar_type);
-  for( int i=0; i< *num_dof; i++)
-    assert(data[start++]==dof_data[i]);
-#endif
-  return MSI_SUCCESS;
-}
-
-//*******************************************************
-int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                            int* /* out */ owning_partid)
-//*******************************************************
-{
-  apf::MeshEntity* e = getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-  *owning_partid = pumi_ment_getOwnPID(e);
-  return MSI_SUCCESS;
-}
-
-
-//******************************************************* 
-int msi_field_getglobaldofid (pField f, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-
-  *start_dof_id=0;
-  *end_dof_id_plus_one=*start_dof_id+num_dof*pumi_mesh_getNumGlobalEnt(pumi::instance()->mesh, 0);
-  return MSI_SUCCESS;
-}
-
-//*******************************************************
-int msi_field_getnumowndof (pField f, int* /* out */ num_own_dof)
-//*******************************************************
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof /= 2;
-#endif
-  *num_own_dof = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0)*num_dof;
-  return MSI_SUCCESS;
-}
-
-//*******************************************************
-int msi_field_getdataptr (pField f, double** pts)
-//*******************************************************
-{
-  if (!isFrozen(f)) freeze(f);
-  *pts=getArrayData(f);
-  return MSI_SUCCESS;
-}
-
-//*******************************************************
-int msi_field_getowndofid (pField f, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  int num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof /=2;
-#endif
-  
-  int start_id = num_own_ent;
-  PCU_Exscan_Ints(&start_id,1);
-
-  *start_dof_id=start_id*num_dof;
-  *end_dof_id_plus_one=*start_dof_id+num_own_ent*num_dof;
-  return MSI_SUCCESS;
-}
- 
-//*******************************************************
-void msi_field_getinfo(pField f, 
-                        char* /* out*/ field_name, int* num_values, 
-                        int* total_num_dof)
-//*******************************************************
-{
-  strcpy(field_name, getName(f));
-  *num_values = 1;
-  *total_num_dof = countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  *total_num_dof/=2;
-#endif
-}
-
-//*******************************************************
-void msi_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                      int* /* in */ adj_dim, int* /* out */ adj_ent, 
-                      int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
-//*******************************************************
-{
-  apf::MeshEntity* e = apf::getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-
-  if (*adj_dim>*ent_dim) // upward
-  {
-    apf::Adjacent adjacent;
-    pumi::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
-    *num_adj_ent = adjacent.getSize();
-    if (*adj_ent_allocated_size<*num_adj_ent)
-      return;
-    for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, adjacent[i]);
-  }
-  else if (*adj_dim<*ent_dim) 
-  {
-    apf::Downward downward;
-    *num_adj_ent = pumi::instance()->mesh->getDownward(e, *adj_dim, downward);
-    if (*adj_ent_allocated_size<*num_adj_ent)
-      return;
-    for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, downward[i]);
-    //adjust the order to work with msi
-    if (pumi::instance()->mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
-    {
-      int buff[3];
-      memcpy(buff, adj_ent, 3*sizeof(int));
-      memcpy(adj_ent, adj_ent+3, 3*sizeof(int));
-      memcpy(adj_ent+3, buff, 3*sizeof(int));
-    }
-  }
-}
-
 void msi_start(pMesh m, pOwnership o)
+//*******************************************************
 {  
   if (!o && !pumi_rank())
     std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
@@ -318,6 +81,8 @@ void msi_finalize(pMesh m)
   {
     apf::Field* f = m->getField(0);
     if(!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
+    msi_solver::instance()->field_container->erase(std::map<pField, int>::key_type(f));
+
     destroyField(f);
   }
 
@@ -346,19 +111,40 @@ void msi_field_assign(pField f, double* fac)
     msi_ent_setdofdata (&vertex_type, &inode, f, &dofPerEnt, &dofs[0]);
 }
 
-
-pField msi_field_create (pMesh m, const char* /* in */ field_name, int /*in*/ num_values, int /*in*/ num_dofs_per_value)
+//*******************************************************
+pField msi_field_create (pMesh m, const char* /* in */ field_name, int /*in*/ num_values, 
+int /*in*/ num_dofs_per_value, pShape shape)
+//*******************************************************
 {
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1;
 #endif
   int components = num_values*(scalar_type+1)*num_dofs_per_value;
-  apf::Field* f = createPackedField(m, field_name, components);
+  apf::Field* f = createPackedField(m, field_name, components, shape);
+  msi_solver::instance()->add_field(f, num_values);
   apf::freeze(f); // switch dof data from tag to array
   double val[2]={0,0};
   msi_field_assign(f, val);
   return f;
+}
+
+//*******************************************************
+int msi_field_getNumVal(pField f)
+//*******************************************************
+{
+  return (*msi_solver::instance()->field_container)[f];
+}
+
+//*******************************************************
+int msi_field_getSize(pField f)
+//*******************************************************
+{
+#ifdef PETSC_USE_COMPLEX
+  return countComponents(f)/2;
+#else
+  return countComponents(f);
+#endif
 }
 
 #ifdef MSI_PETSC
@@ -406,9 +192,8 @@ void msi_matrix_insert(pMatrix mat, int row,
   assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
-  int num_values, total_num_dof;
-  char field_name[256];
-  msi_field_getinfo(mat->get_field(), field_name, &num_values, &total_num_dof);
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
 
   int ent_id = row/total_num_dof;
   apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
@@ -430,9 +215,8 @@ void msi_matrix_add (pMatrix mat, int row, int col,
   assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
-  int num_values, total_num_dof;
-  char field_name[256];
-  msi_field_getinfo(mat->get_field(), field_name, &num_values, &total_num_dof);
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
 
   int ent_id = row/total_num_dof;
   apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
@@ -452,9 +236,9 @@ void msi_matrix_setBC(pMatrix mat, int row)
 {  
   assert(mat->get_type()==MSI_SOLVE);
 
-  int num_values, total_num_dof;
-  char field_name[256];
-  msi_field_getinfo(mat->get_field(), field_name, &num_values, &total_num_dof);
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
   int inode = row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   msi_ent_getglobaldofid (&ent_dim, &inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -480,9 +264,10 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   assert(mat->get_type()==MSI_SOLVE);
 
   std::vector <int> columns_g(numVals);
-  int num_values, total_num_dof;
-  char field_name[256];
-  msi_field_getinfo(mat->get_field(), field_name, &num_values, &total_num_dof);
+
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
   int inode = row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   msi_ent_getglobaldofid (&ent_dim, &inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -526,17 +311,47 @@ void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
 }
 
 //*******************************************************
-void msi_matrix_flush(pMatrix mat)
-//*******************************************************
-{
-  mat->flushAssembly();
-}
-
-//*******************************************************
 int msi_matrix_getNumIter(pMatrix mat)
 //*******************************************************
 { 
   return dynamic_cast<matrix_solve*> (mat)->iterNum;
+}
+
+//*******************************************************
+void msi_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
+                      int* /* in */ adj_dim, int* /* out */ adj_ent, 
+                      int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
+//*******************************************************
+{
+  apf::MeshEntity* e = apf::getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
+
+  if (*adj_dim>*ent_dim) // upward
+  {
+    apf::Adjacent adjacent;
+    pumi::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
+    *num_adj_ent = adjacent.getSize();
+    if (*adj_ent_allocated_size<*num_adj_ent)
+      return;
+    for (int i=0; i<*num_adj_ent; ++i)
+      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, adjacent[i]);
+  }
+  else if (*adj_dim<*ent_dim) 
+  {
+    apf::Downward downward;
+    *num_adj_ent = pumi::instance()->mesh->getDownward(e, *adj_dim, downward);
+    if (*adj_ent_allocated_size<*num_adj_ent)
+      return;
+    for (int i=0; i<*num_adj_ent; ++i)
+      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, downward[i]);
+    //adjust the order to work with msi
+    if (pumi::instance()->mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
+    {
+      int buff[3];
+      memcpy(buff, adj_ent, 3*sizeof(int));
+      memcpy(adj_ent, adj_ent+3, 3*sizeof(int));
+      memcpy(adj_ent+3, buff, 3*sizeof(int));
+    }
+  }
 }
 
 //*******************************************************
@@ -545,11 +360,10 @@ void msi_matrix_addBlock(pMatrix mat, int ielm,
 //*******************************************************
 {
   // need to change later, should get the value from field calls ...
-  int dofPerVar = 6;
-  char field_name[256];
-  int num_values, total_num_dof; 
-  msi_field_getinfo(mat->get_field(), field_name, &num_values, &total_num_dof);
-  dofPerVar=total_num_dof/num_values;
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
+  int dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
   int ielm_dim = 2;
@@ -615,7 +429,7 @@ void msi_matrix_addBlock(pMatrix mat, int ielm,
     int offset=0;
     for(int inode=0; inode<nodes_per_element; inode++)
     {
-      if(nodeOwner[inode]!=PCU_Comm_Self()&&!msi_solver::instance()->assembleOption)
+      if (nodeOwner[inode]!=PCU_Comm_Self())
         smat->add_blockvalues(1, rows_bloc+inode, nodes_per_element, columns_bloc, values+offset);
       else 
         smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
@@ -830,11 +644,10 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
 
   int field = mat->get_field_id();
   // need to change later, should get the value from field calls ...
-  int dofPerVar = 6;
-  char field_name[256];
-  int num_values, total_num_dof; 
-  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
-  dofPerVar=total_num_dof/num_values;
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
+  int dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
   int ielm_dim = 2;
@@ -915,9 +728,9 @@ int m3dc1_epetra_setbc(int* matrix_id, int* row)
   }
 
   int field = mat->get_field_id();
-  int num_values, total_num_dof;
-  char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -951,9 +764,10 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
 
   std::vector <global_ordinal_type> columns_g(*numVals);
   int field = mat->get_field_id();
-  int num_values, total_num_dof;
-  char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &total_num_dof);
+
+  int num_values = msi_field_getNumVal(mat->get_field());
+  int total_num_dof = msi_field_getSize(mat->get_field());
+
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);

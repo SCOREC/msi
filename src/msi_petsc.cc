@@ -41,7 +41,7 @@ int matrix_solve::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-  if(!msi_solver::instance()->assembleOption) setUpRemoteAStruct();
+  setUpRemoteAStruct();
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
   //check later
@@ -264,7 +264,7 @@ matrix_solve::~matrix_solve()
   if(kspSet)
     KSPDestroy(ksp);
   delete ksp;
-  if(mat_status==MSI_NOT_FIXED && msi_solver::instance()->assembleOption==0) MatDestroy(&remoteA);
+  if(mat_status==MSI_NOT_FIXED) MatDestroy(&remoteA);
 }
 
 int matrix_solve::assemble()
@@ -272,21 +272,19 @@ int matrix_solve::assemble()
   PetscErrorCode ierr;
   double t1 = MPI_Wtime(), t2=t1;
 
-  if(!msi_solver::instance()->assembleOption)
-  {
     ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
     t2 = MPI_Wtime();
     //pass remoteA to ownnering process
-    int brgType = 2;
+    int vertex_type=0, brgType = 2;
     if (pumi::instance()->mesh->getDimension()==3) brgType =3;
 
-    int dofPerVar = 6;
     char field_name[256];
-    int num_values, total_num_dof, vertex_type=0;
-    msi_field_getinfo(field, field_name, &num_values, &total_num_dof);
-    dofPerVar=total_num_dof/num_values;
+    int num_values = msi_field_getNumVal(field);
+    int total_num_dof = msi_field_getSize(field);
+
+    int dofPerVar=total_num_dof/num_values;
  
     int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
     PetscInt firstRow, lastRowPlusOne;
@@ -426,7 +424,7 @@ int matrix_solve::assemble()
     }
     valuesRecvBuff.clear();
     idxRecvBuff.clear();
-  }
+
   ierr = MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY); 
   CHKERRQ(ierr);
   ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -538,11 +536,11 @@ int  msi_matrix::preAllocateParaMat()
 
 int matrix_solve::setUpRemoteAStruct()
 {
-  int dofPerVar = 6, vertex_type=0;
-  char field_name[256];
-  int num_values, total_num_dof;
-  msi_field_getinfo(field, field_name, &num_values, &total_num_dof);
-  dofPerVar=total_num_dof/num_values;
+  int vertex_type=0;
+  int num_values = msi_field_getNumVal(field);
+  int total_num_dof = msi_field_getSize(field);
+
+  int dofPerVar=total_num_dof/num_values;
 
   int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
@@ -838,9 +836,11 @@ int matrix_solve:: setKspType()
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001,
                           PETSC_DEFAULT, 1000);CHKERRQ(ierr);
-  int num_values, total_num_dof;
+  int num_values = msi_field_getNumVal(field);
+  int total_num_dof = msi_field_getSize(field);
   char field_name[FIXSIZEBUFF];
-  msi_field_getinfo(field, field_name, &num_values, &total_num_dof);
+  strcpy(field_name, apf::getName(field));
+
   assert(total_num_dof/num_values==C1TRIDOFNODE*(pumi::instance()->mesh->getDimension()-1));
   // if 2D problem use superlu
   if (pumi::instance()->mesh->getDimension()==2)

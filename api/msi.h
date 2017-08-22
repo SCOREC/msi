@@ -35,12 +35,15 @@ void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
 
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 
-                      int /*in*/ nv, int /*in*/ nd);
+                      int /*in*/ nv, int /*in*/ nd, pShape shape=NULL);
+int msi_field_getNumVal(pField f);
+int msi_field_getSize(pField f);
 
 #ifdef MSI_PETSC
 #include "msi_petsc.h"
 class msi_matrix;
 typedef msi_matrix* pMatrix;
+
 /** matrix and solver functions with PETSc */
 pMatrix msi_matrix_create(int matrix_type, pField f);
 void msi_matrix_delete(pMatrix mat);

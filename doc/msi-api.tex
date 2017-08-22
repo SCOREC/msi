@@ -127,18 +127,42 @@ Given a mesh entity handle, field handle and the index of node $i$, return the s
 \subsection{Field}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-In terms of field operation, MSI provides the field creation only as PUMI field creation routine, \texttt{pumi$\_$field$\_$create}, does not support \textit{multiple values}. For the rest of field operations including field deletion, use the API's in \texttt{PUMI.h}.
+In terms of PUMI field, the attributes include:
+\begin{itemize}
+\item field name: unique string 
+\item field size: the number of field data per node
+\item field type: \texttt{PUMI$\_$SCALAR} for a real number, \texttt{PUMI$\_$VECTOR} for real numbers of size 3, \texttt{PUMI$\_$MATRIX} for real numbers of size 9, and \texttt{PUMI$\_$PACKED} for real numbers of arbitrary size
+\item shape function to specify node distribution. The default shape is \textit{Linear} where nodes are associated only with vertices.
+\end{itemize}
+
+To support solver with advanced features, MSI supports the field API's with multiple field variables per node and complex number. If not specified here, use the field API's \texttt{PUMI.h} for the rest of field operations.
 
 \begin{verbatim}
 pField msi_field_create (
     pMesh  /* in */  m,
     const char*  /* in */  field_name, 
     int  /* in */  nv, 
-    int  /* in */  nd)
+    int  /* in */  nd, 
+    pShape  /* in */  s=NULL)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given field name, the number of values ($nv$), and the number of DOF's per value ($nd$), create a field for all nodes (owned, non-owned part boundary and ghost). Note that PUMI allocates contiguous memory for the array of field data. The size of field data is \textit{nv}$*$\textit{st}$*$\textit{nd}$*$\textit{nn}, where \textit{st} is scalar type (1 for real, 2 for complex), and \textit{nn} is the number of local nodes on each process.
+Given field name, the number of values per node ($nv$), the number of field data per value of node ($nd$), and a shape function, \emph{(i)} create a field for all nodes (owned, non-owned part boundary and ghost), \emph{(ii)} switch the memory space for field data to a contiguous array, and \emph{(iii)} initialize the field data. The \emph{size}, the number of field data per node is \textit{nv}$*$\textit{nd}. The size of contiguous array for each process is \textit{size}$*$\textit{nn} for real number and \textit{size}$*$\textit{nn}$*$2 for complex number, where \textit{nn} is the number of local nodes on each process. The field data type (real or complex) is determined at time of configuration. See Section~\ref{install} for how to configure MSI with complex number.
 
- If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd)}.
+The field shape is optional and the default is \textit{NULL}. If it is \textit{NULL}, the field shape of the mesh is used (a field shape returned by \texttt{pumi$\_$mesh$\_$getShape}).
+
+ If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd, s)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd, PUMI$\_$PACKED, s)} followed by \texttt{pumi$\_$field$\_$freeze} and \texttt{pumi$\_$ment$\_$setField} with value $0$ for all nodes.
+
+\begin{verbatim}
+int msi_field_getNumVal (pField  /* in*/  f)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, return the number of value per node, \textit{nv}. If the field was created with \texttt{pumi$\_$field$\_$create}, return 1.
+
+\begin{verbatim}
+int msi_field_getSize (pField  /* in*/  f)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, return the field size, \textit{nv}$*$\textit{nd}.
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{PETSc Matrix and Solver}

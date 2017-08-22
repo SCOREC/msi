@@ -8,40 +8,14 @@
  
 *******************************************************************************/
 #ifdef MSI_PETSC
-#ifndef MSI_SOLVER_H
-#define MSI_SOLVER_H
-//#include "superlu_ddefs.h" // gridinfo_t
-#include "apf.h"
+#ifndef MSI_PETSC_H
+#define MSI_PETSC_H
+#include "pumi.h"
 #include "petscksp.h"
-#include "apfNumbering.h"
 #include "msi.h"
+#include "msi_solver.h"
 #include <vector>
-
-// helper routines
-// helper routines
-pMeshEnt get_ent(pMesh mesh, int ent_dim, int ent_id);
-void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent);
-
-int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                            int* /* out */ owning_partid);
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
-
-int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-
-int msi_field_getglobaldofid (pField f, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void msi_field_getinfo(pField f, 
-     char* /* out*/ field_name, int* num_values, int* total_num_dof);
-int msi_field_getnumowndof (pField f, int* /* out */ num_own_dof);
-int msi_field_getdataptr (pField f, double** pts);
-int msi_field_getowndofid (pField f, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+#include <map>
 int copyField2PetscVec(pField f, Vec& petscVec);
 int copyPetscVec2Field(Vec& petscVec, pField f);
 void printMemStat();
@@ -128,24 +102,5 @@ private:
   std::map<int, int> remoteNodeRowSize;
 };
 
-class msi_solver
-{
-public:
-// functions
-  msi_solver();
-  ~msi_solver();
-  static msi_solver* instance();
-  msi_matrix* get_matrix(int matrix_id);
-  void add_matrix(int matrix_id, msi_matrix*);
-// data
-  std::map<int, msi_matrix*>* matrix_container;
-  int assembleOption; // 0 use scorec; 1 use petsc
-  void set_node_adj_tag();
-  pMeshTag num_global_adj_node_tag;
-  pMeshTag num_own_adj_node_tag;
-private:
-  static msi_solver* _instance;
-};
-
 #endif
-#endif //#ifndef MSI_MESHGEN
+#endif //#ifdef MSI_PETSC

@@ -67,6 +67,7 @@ set(SOURCES
 
 set(HEADERS
   api/msi.h 
+  include/msi_solver.h
   include/msi_petsc.h
   include/msi_trilinos.h
 )
