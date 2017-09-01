@@ -302,7 +302,7 @@ int matrix_solve::assemble()
       for(std::map<int, int> ::iterator it2 =it->second.begin(); it2!=it->second.end();it2++)
       {
         idxSendBuff[it->first].at(idxOffset++)=it2->second;
-        apf::MeshEntity* ent = get_ent(pumi::instance()->mesh, 0, it2->first);
+        apf::MeshEntity* ent = msi_solver::instance()->vertices[it2->first];
 
         std::vector<apf::MeshEntity*> vecAdj;
         apf::Adjacent elements;
@@ -319,10 +319,10 @@ int matrix_solve::assemble()
         std::vector<int> columns(total_num_dof*numAdj);
         for(int i=0; i<numAdj; i++)
         {
-          int local_id = pumi_ment_getID(vecAdj.at(i));
+          int local_id = msi_node_getID(vecAdj.at(i), 0);
           localNodeId.at(i)=local_id;
           int start_global_dof_id, end_global_dof_id_plus_one;
-          msi_ent_getglobaldofid (&vertex_type, &local_id, field, &start_global_dof_id, &end_global_dof_id_plus_one);
+          msi_node_getGlobalFieldID(field, vecAdj.at(i), 0, &start_global_dof_id, &end_global_dof_id_plus_one);
           idxSendBuff[it->first].at(idxOffset++)=start_global_dof_id;
         }
         int offset=0;
@@ -431,6 +431,7 @@ int matrix_solve::assemble()
 
   mat_status=MSI_FIXED;
 }
+
 int msi_matrix::flushAssembly()
 {
   PetscErrorCode ierr;
@@ -490,15 +491,14 @@ int  msi_matrix::preAllocateParaMat()
   int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
   int nnzStash=0;
-  int brgType = 2;
-  if (pumi::instance()->mesh->getDimension()==3) brgType =3;
+  int brgType = pumi::instance()->mesh->getDimension();
+  int start_global_dof_id, end_global_dof_id_plus_one;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    ent = get_ent(pumi::instance()->mesh, vertex_type, inode);
-    int start_global_dof_id, end_global_dof_id_plus_one;
-    msi_ent_getglobaldofid (&vertex_type, &inode, field, &start_global_dof_id, &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
@@ -528,6 +528,7 @@ int  msi_matrix::preAllocateParaMat()
       onnz.at(startIdx+i)=(adjNodeGlb-adjNodeOwned)*numBlockNode;
     }
   }
+  pumi::instance()->mesh->end(it);
   if (bs==1) 
     MatMPIAIJSetPreallocation(*A, 0, &dnnz[0], 0, &onnz[0]);
   else  
@@ -549,9 +550,10 @@ int matrix_solve::setUpRemoteAStruct()
   if (pumi::instance()->mesh->getDimension()==3) brgType =3;
   
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  int inode=0;
+  while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    ent = get_ent(pumi::instance()->mesh, vertex_type, inode);
     int owner=pumi_ment_getOwnPID(ent);
     if (owner!=PCU_Comm_Self())
     {
@@ -576,7 +578,10 @@ int matrix_solve::setUpRemoteAStruct()
       APF_ITERATE(apf::Copies, remotes, it)
         remotePidOwned.insert(it->first);
     }
+    ++inode;
   }
+  pumi::instance()->mesh->end(it);
+
   PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
   CHKERRQ(ierr);
   ierr = MatSetType(remoteA, MATSEQBAIJ);CHKERRQ(ierr);
@@ -612,11 +617,11 @@ int  msi_matrix::preAllocateSeqMat()
   if (pumi::instance()->mesh->getDimension()==3) brgType = 3;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  int inode=0, start_dof, end_dof_plus_one;
+  while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    ent = get_ent(pumi::instance()->mesh, vertex_type, inode);
-    int start_dof, end_dof_plus_one;
-    msi_ent_getlocaldofid (&vertex_type, &inode, field, &start_dof, &end_dof_plus_one);
+    msi_node_getFieldID(field, ent, 0, &start_dof, &end_dof_plus_one);
     int startIdx = start_dof;
     assert(startIdx<num_dof);
 
@@ -634,7 +639,10 @@ int  msi_matrix::preAllocateSeqMat()
     {
       nnz.at(startIdx+i)=(1+numAdj)*numBlockNode;
     }
+    ++inode;
   }
+  pumi::instance()->mesh->end(it);
+
   if (bs==1) 
     MatSeqAIJSetPreallocation(*A, 0, &nnz[0]);
   else  
@@ -725,19 +733,16 @@ int copyField2PetscVec(pField f, Vec& petscVec)
 
   double dof_data[FIXSIZEBUFF];
   assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
-  int nodeCounter=0;
+  int nodeCounter=0, start_global_dof_id, end_global_dof_id_plus_one;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    ent = get_ent(pumi::instance()->mesh,vertex_type,inode);
     if (!pumi_ment_isOwned(ent)) continue;
-      nodeCounter++;
-    int num_dof;
-    msi_ent_getdofdata (&vertex_type, &inode, f, &num_dof, dof_data);
-    assert(num_dof*(1+scalar_type)<=sizeof(dof_data)/sizeof(double));
-    int start_global_dof_id, end_global_dof_id_plus_one;
-    msi_ent_getglobaldofid (&vertex_type, &inode, f, &start_global_dof_id, &end_global_dof_id_plus_one);
+    ++nodeCounter;
+    int num_dof = msi_node_getField(f, ent, 0, dof_data);
+    msi_node_getGlobalFieldID (f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx=0;
     for(int i=0; i<dofPerEnt; i++)
     { 
@@ -752,6 +757,8 @@ int copyField2PetscVec(pField f, Vec& petscVec)
       CHKERRQ(ierr);
     }
   }
+  pumi::instance()->mesh->end(it);
+
   assert(nodeCounter==num_own_ent);
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
@@ -778,12 +785,12 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   int ierr;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    ent = get_ent(pumi::instance()->mesh,vertex_type,inode);
     if (!pumi_ment_isOwned(ent)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
-    msi_ent_getglobaldofid (&vertex_type, &inode, f, &start_global_dof_id, &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     
     for(int i=0; i<dofPerEnt; i++)
@@ -800,8 +807,9 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
         startIdx++;
 #endif
     }
-    msi_ent_setdofdata (&vertex_type, &inode, f, &dofPerEnt, &dof_data[0]);
+    msi_node_setField(f, ent, 0, dofPerEnt, &dof_data[0]);
   }
+  pumi::instance()->mesh->end(it);
   pumi_field_synchronize(f);
   return 0;
 }

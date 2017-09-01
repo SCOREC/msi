@@ -14,27 +14,8 @@
 #include <map>
 
 // helper routines
-// helper routines
-pMeshEnt get_ent(pMesh mesh, int ent_dim, int ent_id);
-void msi_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent);
-
-int msi_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                            int* /* out */ owning_partid);
-int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one);
-
-int msi_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-int msi_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, pField f, 
-                          int* /* out */ num_dof, double* dof_data);
-
 int msi_field_getglobaldofid (pField f, 
          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-
-int msi_field_getNumVal(pField f);
-int msi_field_getNumDOF(pField f);
 int msi_field_getnumowndof (pField f, int* /* out */ num_own_dof);
 int msi_field_getdataptr (pField f, double** pts);
 int msi_field_getowndofid (pField f, 
@@ -52,6 +33,7 @@ public:
   int get_num_value(pField);
   void add_field(pField f, int i);
   std::map<pField, int>* field_container;
+  pMeshEnt* vertices;
 
   // adjacency tag
   void set_node_adj_tag();

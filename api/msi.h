@@ -34,11 +34,14 @@ int msi_field_getSize(pField f);
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
-int msi_node_getID (pField f, pMeshEnt e, int i);
+int msi_node_getID (pMeshEnt e, int i);
 
 // returns global numbering of entity's ith node 
 // global numbering is based on ownership set in msi_start
-int msi_node_getGlobalID (pField f, pMeshEnt e, int i);
+int msi_node_getGlobalID (pMeshEnt e, int i);
+
+void msi_node_setField (pField f, pMeshEnt e, int i, int size_dof, double* dof_data);
+int msi_node_getField(pField f, pMeshEnt e, int i, double* dof_data);
 
 // returns local DOF id range based on local numbering
 void msi_node_getFieldID (pField f, pMeshEnt e, int inode,

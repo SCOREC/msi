@@ -25,16 +25,62 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
-int msi_node_getID (pField f, pMeshEnt e, int i)
+int msi_node_getID (pMeshEnt e, int i)
 {
   return pumi_ment_getNumber(e, msi_solver::instance()->local_n, i);
 }
 
 // returns global numbering of entity's ith node 
 // global numbering is based on ownership set in msi_start
-int msi_node_getGlobalID (pField f, pMeshEnt e, int i)
+int msi_node_getGlobalID (pMeshEnt e, int i)
 {
   return pumi_ment_getNumber(e, msi_solver::instance()->global_n, i);
+}
+
+#define FIELDVALUELIMIT 1e100
+bool value_is_nan(double val)
+{
+  return val!=val ||fabs(val) >FIELDVALUELIMIT;
+}
+
+void msi_node_setField (pField f, pMeshEnt e, int n, int num_dof, double* dof_data)
+{
+#ifdef DEBUG
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+  assert(countComponents(f)==num_dof*(1+scalar_type));
+  for(int i=0; i<num_dof*(1+scalar_type); ++i)
+    assert(!value_is_nan(dof_data[i]));
+#endif
+  setComponents(f, e, n, dof_data);
+}
+
+int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data)
+{
+  getComponents(f, e, n, dof_data);
+  int num_dof=apf::countComponents(f);
+#ifdef PETSC_USE_COMPLEX
+  num_dof /=2;
+#endif
+
+#ifdef DEBUG
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+  for(int i=0; i<num_dof*(1+scalar_type); i++)
+    assert(!value_is_nan(dof_data[i]));
+  int start_dof_id,end_dof_id_plus_one;
+  msi_node_getFieldID(f, e, n, &start_dof_id, &end_dof_id_plus_one);
+  double* data;
+  msi_field_getdataptr(f, &data);
+  int start=start_dof_id*(1+scalar_type);
+  for(int i=0; i<num_dof; i++)
+    assert(data[start++]==dof_data[i]);
+#endif
+  return num_dof;
 }
 
 //*******************************************************
@@ -46,9 +92,7 @@ void msi_node_getFieldID (pField f, pMeshEnt e, int inode,
 #ifdef PETSC_USE_COMPLEX
   num_dof/=2;
 #endif
-  // FIXME: replace getMdsIndex with numbering
-  int ent_id = getMdsIndex(pumi::instance()->mesh, e);
-  assert(ent_id==msi_node_getID(f, e, 0));
+  int ent_id =msi_node_getID(e, 0);
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
@@ -62,8 +106,7 @@ void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int inode,
 #ifdef PETSC_USE_COMPLEX
   num_dof/=2;
 #endif
-  // FIXME: replace getMdsIndex with numbering
-  int ent_id = msi_node_getGlobalID(f, e, 0);
+  int ent_id = msi_node_getGlobalID(e, 0);
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
@@ -99,17 +142,19 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   // generate global ID's per ownership
   msi_solver::instance()->global_n = pumi_numbering_createGlobalNode(m, "msi_global", NULL, o);
 
-#ifdef DEBUG
-// check all nodes are numbered globally and locally
-  pMeshIter eit = m->begin(0);  
+  msi_solver::instance()->vertices = new pMeshEnt[m->count(0)];
+
   pMeshEnt e;
-  while ((e = m->iterate(eit)))
+  pMeshIter it =m->begin(0);  
+  while ((e = m->iterate(it)))
   {
+#ifdef DEBUG
     assert(apf::isNumbered(msi_solver::instance()->local_n,e,0,0));
     assert(apf::isNumbered(msi_solver::instance()->global_n,e,0,0));
-  }
-  m->end(eit);
 #endif
+    msi_solver::instance()->vertices[msi_node_getID(e, 0)] = e;
+  }
+  m->end(it);
 }
 
 void msi_finalize(pMesh m)
@@ -127,12 +172,10 @@ void msi_finalize(pMesh m)
 
     destroyField(f);
   }
-
+  delete [] msi_solver::instance()->vertices;
   pumi_numbering_delete(msi_solver::instance()->local_n);
   pumi_numbering_delete(msi_solver::instance()->global_n);
 }
-
-
 
 //*******************************************************
 void msi_field_assign(pField f, double* fac)
@@ -143,15 +186,16 @@ void msi_field_assign(pField f, double* fac)
   dofPerEnt /= 2;
   scalar_type=1;
 #endif
-
-  int vertex_type=0, num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
-
   std::vector<double> dofs(dofPerEnt*(1+scalar_type), fac[0]);
   if(scalar_type)
     for(int i=0; i<dofPerEnt; i++)
       dofs.at(2*i+1)=fac[1];
-  for(int inode=0; inode<num_vtx; inode++)
-    msi_ent_setdofdata (&vertex_type, &inode, f, &dofPerEnt, &dofs[0]);
+
+  pMeshEnt e;
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  while ((e = pumi::instance()->mesh->iterate(it)))
+    msi_node_setField (f, e, 0, dofPerEnt, &dofs[0]);
+  pumi::instance()->mesh->end(it);
 }
 
 //*******************************************************
@@ -239,9 +283,8 @@ void msi_matrix_insert(pMatrix mat, int row,
   int total_num_dof = msi_field_getSize(mat->get_field());
 
   int ent_id = row/total_num_dof;
-  apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
-  assert(e);
-  assert(!pumi::instance()->mesh->isGhost(e));
+  apf::MeshEntity* e =msi_solver::instance()->vertices[ent_id];
+  assert(e && !pumi::instance()->mesh->isGhost(e));
 #endif
 
   if (scalar_type) // complex
@@ -262,9 +305,8 @@ void msi_matrix_add (pMatrix mat, int row, int col,
   int total_num_dof = msi_field_getSize(mat->get_field());
 
   int ent_id = row/total_num_dof;
-  apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, ent_id);
-  assert(e);
-  assert(!pumi::instance()->mesh->isGhost(e));
+  apf::MeshEntity* e =msi_solver::instance()->vertices[ent_id];
+  assert(e&&!pumi::instance()->mesh->isGhost(e));
 #endif
 
   if (scalar_type) // complex
@@ -283,16 +325,15 @@ void msi_matrix_setBC(pMatrix mat, int row)
   int total_num_dof = msi_field_getSize(mat->get_field());
 
   int inode = row/total_num_dof;
-  int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
-  msi_ent_getglobaldofid (&ent_dim, &inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+  pMeshEnt e = msi_solver::instance()->vertices[inode];
+  int start_global_dof_id, end_global_dof_id_plus_one;
+  msi_node_getGlobalFieldID(mat->get_field(), e, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, inode);
-  assert(e);
   assert(!pumi::instance()->mesh->isGhost(e));
 
   int start_dof_id, end_dof_id_plus_one;
-  msi_ent_getlocaldofid (&ent_dim, &inode, mat->get_field(), &start_dof_id, &end_dof_id_plus_one);
+  msi_node_getFieldID(mat->get_field(), e, 0, &start_dof_id, &end_dof_id_plus_one);
   assert(row>=start_dof_id&&row<end_dof_id_plus_one);
 #endif
   int row_g = start_global_dof_id+row%total_num_dof;
@@ -312,15 +353,16 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   int total_num_dof = msi_field_getSize(mat->get_field());
 
   int inode = row/total_num_dof;
-  int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
-  msi_ent_getglobaldofid (&ent_dim, &inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+  pMeshEnt e = msi_solver::instance()->vertices[inode];
+
+  int start_global_dof_id, end_global_dof_id_plus_one;
+  msi_node_getGlobalFieldID(mat->get_field(), e, 0, 
+                            &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =apf::getMdsEntity(pumi::instance()->mesh, 0, inode);
-  assert(e);
   assert(!pumi::instance()->mesh->isGhost(e));
   int start_dof_id, end_dof_id_plus_one;
-  msi_ent_getlocaldofid (&ent_dim, &inode, mat->get_field(), &start_dof_id, &end_dof_id_plus_one);
+  msi_node_getFieldID(mat->get_field(), e, 0, &start_dof_id, &end_dof_id_plus_one);
   assert(row>=start_dof_id&&row<end_dof_id_plus_one);
   for (int i=0; i<numVals; i++)
     assert(columns[i]>=start_dof_id&&columns[i]<end_dof_id_plus_one);
@@ -361,41 +403,6 @@ int msi_matrix_getNumIter(pMatrix mat)
 }
 
 //*******************************************************
-void msi_ent_getadj (pMeshEnt e, int* ent_dim,
-                      int* /* in */ adj_dim, int* /* out */ adj_ent, 
-                      int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
-//*******************************************************
-{
-  if (*adj_dim>*ent_dim) // upward
-  {
-    apf::Adjacent adjacent;
-    pumi::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
-    *num_adj_ent = adjacent.getSize();
-    if (*adj_ent_allocated_size<*num_adj_ent)
-      return;
-    for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, adjacent[i]);
-  }
-  else if (*adj_dim<*ent_dim) 
-  {
-    apf::Downward downward;
-    *num_adj_ent = pumi::instance()->mesh->getDownward(e, *adj_dim, downward);
-    if (*adj_ent_allocated_size<*num_adj_ent)
-      return;
-    for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(pumi::instance()->mesh, downward[i]);
-    //adjust the order to work with msi
-    if (pumi::instance()->mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
-    {
-      int buff[3];
-      memcpy(buff, adj_ent, 3*sizeof(int));
-      memcpy(adj_ent, adj_ent+3, 3*sizeof(int));
-      memcpy(adj_ent+3, buff, 3*sizeof(int));
-    }
-  }
-}
-
-//*******************************************************
 void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, 
           int rowIdx, int columnIdx, double* values)
 //*******************************************************
@@ -405,16 +412,20 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
   int total_num_dof = msi_field_getSize(mat->get_field());
 
   int dofPerVar=total_num_dof/num_values;
-  int nodes[6];
+
   int ent_dim=0;
   int ielm_dim = pumi::instance()->mesh->getDimension();
 
-  int nodes_per_element=sizeof(nodes)/sizeof(int), nodes_per_element_get;
-
   if (pumi::instance()->mesh->isGhost(e)) return;
-  
-  msi_ent_getadj (e, &ielm_dim, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
-  nodes_per_element=nodes_per_element_get;
+  std::vector<pMeshEnt> vertices;
+  pumi_ment_getAdj(e, 0, vertices);
+//  msi_ent_getadj (e, &ielm_dim, &ent_dim, nodes, &num_node, &num_node_get);
+
+  int num_node=(int)vertices.size();
+  int* nodes=new int[num_node];
+  for (int i=0; i<num_node; ++i)
+    nodes[i] = msi_node_getID(vertices[i], 0);
+
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
@@ -427,34 +438,34 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
   int numVar = numDofs/dofPerVar;
   assert(rowIdx<numVar && columnIdx<numVar);
   int rows[1024], columns[1024];
-  assert(sizeof(rows)/sizeof(int)>=dofPerVar*nodes_per_element);
+  assert(sizeof(rows)/sizeof(int)>=dofPerVar*num_node);
   if(mat->get_type()==0)
   {
     int localFlag=0;
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
       if (mmat->is_mat_local()) 
-        msi_ent_getlocaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+        msi_node_getFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       else 
-        msi_ent_getglobaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+        msi_node_getGlobalFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       for(int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+rowIdx*dofPerVar+i;
         columns[inode*dofPerVar+i]=start_global_dof_id+columnIdx*dofPerVar+i;
       }
     }
-    mmat->add_values(dofPerVar*nodes_per_element, rows,dofPerVar*nodes_per_element, columns, values);
+    mmat->add_values(dofPerVar*num_node, rows,dofPerVar*num_node, columns, values);
   }
   else
   {
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
     int nodeOwner[6];
     int columns_bloc[6], rows_bloc[6];
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
-      msi_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
-      msi_ent_getglobaldofid (&ent_dim, nodes+inode, mat->get_field(), &start_global_dof_id, &end_global_dof_id_plus_one);
+      nodeOwner[inode] = pumi_ment_getOwnPID(vertices[inode]);
+      msi_node_getGlobalFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+columnIdx;
       for(int i=0; i<dofPerVar; i++)
@@ -463,14 +474,14 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
         columns[inode*dofPerVar+i]=start_global_dof_id+columnIdx*dofPerVar+i;
       }
     }
-    int numValuesNode = dofPerVar*dofPerVar*nodes_per_element*(1+scalar_type);
+    int numValuesNode = dofPerVar*dofPerVar*num_node*(1+scalar_type);
     int offset=0;
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
       if (nodeOwner[inode]!=PCU_Comm_Self())
-        smat->add_blockvalues(1, rows_bloc+inode, nodes_per_element, columns_bloc, values+offset);
+        smat->add_blockvalues(1, rows_bloc+inode, num_node, columns_bloc, values+offset);
       else 
-        smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
+        smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*num_node, columns, values+offset);
       offset+=numValuesNode;
     }
   }
@@ -689,11 +700,11 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   int nodes[6];
   int ent_dim=0;
   int ielm_dim = 2;
-  int nodes_per_element=sizeof(nodes)/sizeof(int), nodes_per_element_get;
+  int num_node=sizeof(nodes)/sizeof(int), num_node_get;
 
   if (m3dc1_mesh::instance()->mesh->getDimension()==3) ielm_dim =3;
-  m3dc1_ent_getadj (&ielm_dim, ielm, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
-  nodes_per_element=nodes_per_element_get;
+  m3dc1_ent_getadj (&ielm_dim, ielm, &ent_dim, nodes, &num_node, &num_node_get);
+  num_node=num_node_get;
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
@@ -705,12 +716,12 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowVarIdx<numVar && *columnVarIdx<numVar);
-  int* rows = new int[dofPerVar*nodes_per_element];
-  int* columns = new int[dofPerVar*nodes_per_element];
+  int* rows = new int[dofPerVar*num_node];
+  int* columns = new int[dofPerVar*num_node];
 
   if (mat->matrix_type==M3DC1_MULTIPLY)
   {
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       for(int i=0; i<dofPerVar; i++)
@@ -719,15 +730,15 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnVarIdx)*dofPerVar+i;
       }
     }
-    //FIXME: mmat->add_values(dofPerVar*nodes_per_element, rows,dofPerVar*nodes_per_element, columns, values);
-    epetra_add_values(mat->epetra_mat, dofPerVar*nodes_per_element, 
-                      rows,dofPerVar*nodes_per_element, columns, values);     
+    //FIXME: mmat->add_values(dofPerVar*num_node, rows,dofPerVar*num_node, columns, values);
+    epetra_add_values(mat->epetra_mat, dofPerVar*num_node, 
+                      rows,dofPerVar*num_node, columns, values);     
   }
   else //M3DC1_SOLVE
   {
     int nodeOwner[6];
     int columns_bloc[6], rows_bloc[6];
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -739,13 +750,13 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnVarIdx)*dofPerVar+i;
       }
     }
-    int numValuesNode = dofPerVar*dofPerVar*nodes_per_element*(1+scalar_type);
+    int numValuesNode = dofPerVar*dofPerVar*num_node*(1+scalar_type);
     int offset=0;
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for(int inode=0; inode<num_node; inode++)
     {
-      // FIXME: smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
+      // FIXME: smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*num_node, columns, values+offset);
       epetra_add_values(mat->epetra_mat, dofPerVar, rows+dofPerVar*inode, 
-                       dofPerVar*nodes_per_element, columns, values+offset);
+                       dofPerVar*num_node, columns, values+offset);
       offset += numValuesNode;
     }
   }
