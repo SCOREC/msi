@@ -15,15 +15,30 @@
 #include "apfMDS.h"
 #include <vector>
 #include <assert.h>
-
+#include "apfShape.h"
+#include "apfNumbering.h"
 using std::vector;
 
 extern pOwnership msi_ownership=NULL;
 
 void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
 
+// returns sequential local numbering of entity's ith node
+// local numbering is based on mesh shape 
+int msi_node_getID (pField f, pMeshEnt e, int i)
+{
+  return pumi_ment_getNumber(e, msi_solver::instance()->local_n, i);
+}
+
+// returns global numbering of entity's ith node 
+// global numbering is based on ownership set in msi_start
+int msi_node_getGlobalID (pField f, pMeshEnt e, int i)
+{
+  return pumi_ment_getNumber(e, msi_solver::instance()->global_n, i);
+}
+
 //*******************************************************
-void msi_ment_getFieldID (pMeshEnt e, pField f, int inode,
+void msi_node_getFieldID (pField f, pMeshEnt e, int inode,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
@@ -33,12 +48,13 @@ void msi_ment_getFieldID (pMeshEnt e, pField f, int inode,
 #endif
   // FIXME: replace getMdsIndex with numbering
   int ent_id = getMdsIndex(pumi::instance()->mesh, e);
+  assert(ent_id==msi_node_getID(f, e, 0));
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
 //*******************************************************
-void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
+void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int inode,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
@@ -47,27 +63,53 @@ void msi_ment_getGlobalFieldID (pMeshEnt e, pField f, int inode,
   num_dof/=2;
 #endif
   // FIXME: replace getMdsIndex with numbering
-  int ent_id = pumi_ment_getGlobalID(e);
+  int ent_id = msi_node_getGlobalID(f, e, 0);
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
-//*******************************************************
-void msi_start(pMesh m, pOwnership o)
-//*******************************************************
+//********************************************************
+void msi_start(pMesh m, pOwnership o, pShape s)
+//********************************************************
 {  
   if (!o && !pumi_rank())
     std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
 
   msi_ownership=o;
   pumi_mesh_setCount(m, o);
-  pumi_mesh_createGlobalID(m, o);
+
+  if (s) 
+    pumi_mesh_setShape(m, s);
+  else
+    s = pumi_mesh_getShape(m);
 
   PetscMemorySetGetMaximumUsage();
-  msi_solver::instance()->num_global_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_global_adj_node", 1);
-  msi_solver::instance()->num_own_adj_node_tag = pumi::instance()->mesh->createIntTag("msi_num_own_adj_node", 1);
-  set_adj_node_tag(msi_solver::instance()->num_global_adj_node_tag, msi_solver::instance()->num_own_adj_node_tag);
+  msi_solver::instance()->num_global_adj_node_tag = m->createIntTag("msi_num_global_adj_node", 1);
+  msi_solver::instance()->num_own_adj_node_tag = m->createIntTag("msi_num_own_adj_node", 1);
+  set_adj_node_tag(msi_solver::instance()->num_global_adj_node_tag, 
+                   msi_solver::instance()->num_own_adj_node_tag);
 
+  // set local numbering
+  const char* name = s->getName();
+  pNumbering ln = m->findNumbering(name);
+  if (!ln) 
+    ln = apf::numberOverlapNodes(m,name,s); 
+  msi_solver::instance()->local_n = ln;
+
+  // generate global ID's per ownership
+  msi_solver::instance()->global_n = pumi_numbering_createGlobalNode(m, "msi_global", NULL, o);
+
+#ifdef DEBUG
+// check all nodes are numbered globally and locally
+  pMeshIter eit = m->begin(0);  
+  pMeshEnt e;
+  while ((e = m->iterate(eit)))
+  {
+    assert(apf::isNumbered(msi_solver::instance()->local_n,e,0,0));
+    assert(apf::isNumbered(msi_solver::instance()->global_n,e,0,0));
+  }
+  m->end(eit);
+#endif
 }
 
 void msi_finalize(pMesh m)
@@ -86,7 +128,8 @@ void msi_finalize(pMesh m)
     destroyField(f);
   }
 
-  pumi_mesh_deleteGlobalID(m);  // delete global id
+  pumi_numbering_delete(msi_solver::instance()->local_n);
+  pumi_numbering_delete(msi_solver::instance()->global_n);
 }
 
 
@@ -318,13 +361,11 @@ int msi_matrix_getNumIter(pMatrix mat)
 }
 
 //*******************************************************
-void msi_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void msi_ent_getadj (pMeshEnt e, int* ent_dim,
                       int* /* in */ adj_dim, int* /* out */ adj_ent, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = apf::getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
-
   if (*adj_dim>*ent_dim) // upward
   {
     apf::Adjacent adjacent;
@@ -355,7 +396,7 @@ void msi_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
 }
 
 //*******************************************************
-void msi_matrix_addBlock(pMatrix mat, int ielm, 
+void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, 
           int rowIdx, int columnIdx, double* values)
 //*******************************************************
 {
@@ -366,16 +407,13 @@ void msi_matrix_addBlock(pMatrix mat, int ielm,
   int dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
-  int ielm_dim = 2;
+  int ielm_dim = pumi::instance()->mesh->getDimension();
+
   int nodes_per_element=sizeof(nodes)/sizeof(int), nodes_per_element_get;
 
-  if (pumi::instance()->mesh->getDimension()==3) ielm_dim =3;
-
-  apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, ielm_dim, ielm);
-  assert(e);
   if (pumi::instance()->mesh->isGhost(e)) return;
   
-  msi_ent_getadj (&ielm_dim, &ielm, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
+  msi_ent_getadj (e, &ielm_dim, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
   nodes_per_element=nodes_per_element_get;
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;

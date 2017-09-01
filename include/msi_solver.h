@@ -57,6 +57,9 @@ public:
   void set_node_adj_tag();
   pMeshTag num_global_adj_node_tag;
   pMeshTag num_own_adj_node_tag;
+
+  pNumbering local_n;
+  pNumbering global_n;
 private:
   static msi_solver* _instance;
 };

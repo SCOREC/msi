@@ -46,7 +46,7 @@ int main( int argc, char** argv)
   MPI_Init(&argc,&argv);
   pumi_start();
   
-  PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
+  PetscInitialize(&argc,&argv,0,help);
   PetscLogDouble mem;
   double t1, t2, t3, t4, t5, t6;
 
@@ -134,22 +134,25 @@ int main( int argc, char** argv)
   }
 
   t1 = MPI_Wtime();
-  for(int ielm=0; ielm<num_elem; ielm++)
+  pMeshIter eit = m->begin(mesh_dim);  
+  while ((e = m->iterate(eit)))
   {
-    for(int rowVar=0; rowVar<nv; rowVar++)
+    for(int rowVar=0; rowVar<nv; ++rowVar)
     {
-      for(int colVar=0; colVar<nv; colVar++)
+      for(int colVar=0; colVar<nv; ++colVar)
       {
          vector<double> block_tmp = block;
          if (rowVar!=colVar)
          {
-           for(int i=0; i<block_tmp.size(); i++) block_tmp.at(i)*=0.5/nv;
+           for(int i=0; i<block_tmp.size(); i++) 
+             block_tmp.at(i)*=0.5/nv;
          }
-         msi_matrix_addBlock(matrix_solve, ielm, rowVar, colVar, &block_tmp[0]);
-         msi_matrix_addBlock(matrix_mult, ielm, rowVar, colVar, &block_tmp[0]);
+         msi_matrix_addBlock(matrix_solve, e, rowVar, colVar, &block_tmp[0]);
+         msi_matrix_addBlock(matrix_mult, e, rowVar, colVar, &block_tmp[0]);
       }
     }
   }
+  m->end(eit);
   t2 = MPI_Wtime();
 
   if(!PCU_Comm_Self()) cout<<"* assemble matrix ..."<<endl;

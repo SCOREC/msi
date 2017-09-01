@@ -80,7 +80,7 @@ int msi_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, pField f,
   apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
-  msi_ment_getFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
+  msi_node_getFieldID(f, e, 0, start_dof_id, end_dof_id_plus_one);
   return MSI_SUCCESS;
 }
 
@@ -96,19 +96,8 @@ int msi_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, pField 
   apf::MeshEntity* e =getMdsEntity(pumi::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
-  msi_ment_getGlobalFieldID(e, f, 0, start_dof_id, end_dof_id_plus_one);
+  msi_node_getGlobalFieldID(f, e, 0, start_dof_id, end_dof_id_plus_one);
   return MSI_SUCCESS;
-}
-
-
-void msi_ment_getGlobalFieldID(pMeshEnt e, pField f, int* start_dof_id, int* end_dof_id_plus_one)
-{
-  int num_dof = apf::countComponents(f);
-#ifdef PETSC_USE_COMPLEX
-  num_dof/=2;
-#endif
-  *start_dof_id = pumi_ment_getGlobalID(e)*num_dof;
-  *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
 // helper routines
