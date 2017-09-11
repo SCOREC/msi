@@ -99,7 +99,7 @@ int main( int argc, char** argv)
     vector<double> dofs(num_dofs_node*(1+scalar_type));
     for(int i=0; i<num_dofs_node*(1+scalar_type); i++)
       dofs.at(i)=xyz[i%3];
-    pumi_ment_setField(e, b_field, 0, &dofs.at(0));
+    pumi_node_setField(b_field, e, 0, &dofs.at(0));
   }
 
 
@@ -175,8 +175,8 @@ int main( int argc, char** argv)
   while ((e = m->iterate(it)))
   {
     vector<double> dofs1(num_dofs_node*(1+scalar_type)), dofs2(num_dofs_node*(1+scalar_type));
-    pumi_ment_getField(e, c_field, 0, &dofs1.at(0));
-    pumi_ment_getField(e, x_field, 0, &dofs2.at(0));
+    pumi_node_getField(c_field, e, 0, &dofs1.at(0));
+    pumi_node_getField(x_field, e, 0, &dofs2.at(0));
     for(int i=0; i<num_dofs_node*((1+scalar_type)); ++i)
       assert(AlmostEqualDoubles(dofs2.at(i), (val[0]+1)*dofs1.at(i), 1e-6, 1e-6));
   }
@@ -200,8 +200,8 @@ int main( int argc, char** argv)
   while ((e = m->iterate(it)))
   {
     vector<double> dofs_x(num_dofs_node*(1+scalar_type)), dofs_b(num_dofs_node*(1+scalar_type));
-    pumi_ment_getField(e, b_field, 0, &dofs_b.at(0));
-    pumi_ment_getField(e, x_field, 0, &dofs_x.at(0));
+    pumi_node_getField(b_field, e, 0, &dofs_b.at(0));
+    pumi_node_getField(x_field, e, 0, &dofs_x.at(0));
     for(int idof=0; idof<num_dofs_node*(1+scalar_type); ++idof)
       assert(AlmostEqualDoubles(dofs_b.at(idof),dofs_x.at(idof), 1e-3, 1e-3));
   }

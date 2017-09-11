@@ -34,21 +34,21 @@ int msi_field_getSize(pField f);
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
-int msi_node_getID (pMeshEnt e, int i);
+int msi_node_getID (pMeshEnt e, int n);
 
 // returns global numbering of entity's ith node 
 // global numbering is based on ownership set in msi_start
-int msi_node_getGlobalID (pMeshEnt e, int i);
+int msi_node_getGlobalID (pMeshEnt e, int n);
 
-void msi_node_setField (pField f, pMeshEnt e, int i, int size_dof, double* dof_data);
-int msi_node_getField(pField f, pMeshEnt e, int i, double* dof_data);
+void msi_node_setField (pField f, pMeshEnt e, int n, int size_dof, double* dof_data);
+int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data);
 
 // returns local DOF id range based on local numbering
-void msi_node_getFieldID (pField f, pMeshEnt e, int inode,
+void msi_node_getFieldID (pField f, pMeshEnt e, int n,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
 
 // returns global DOF id range based on ownership
-void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int inode,
+void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
 
 #ifdef MSI_PETSC

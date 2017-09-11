@@ -25,16 +25,16 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
-int msi_node_getID (pMeshEnt e, int i)
+int msi_node_getID (pMeshEnt e, int n)
 {
-  return pumi_ment_getNumber(e, msi_solver::instance()->local_n, i);
+  return pumi_node_getNumber(msi_solver::instance()->local_n, e, n);
 }
 
 // returns global numbering of entity's ith node 
 // global numbering is based on ownership set in msi_start
-int msi_node_getGlobalID (pMeshEnt e, int i)
+int msi_node_getGlobalID (pMeshEnt e, int n)
 {
-  return pumi_ment_getNumber(e, msi_solver::instance()->global_n, i);
+  return pumi_node_getNumber(msi_solver::instance()->global_n, e, n);
 }
 
 #define FIELDVALUELIMIT 1e100
@@ -84,7 +84,7 @@ int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data)
 }
 
 //*******************************************************
-void msi_node_getFieldID (pField f, pMeshEnt e, int inode,
+void msi_node_getFieldID (pField f, pMeshEnt e, int n,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
@@ -92,13 +92,13 @@ void msi_node_getFieldID (pField f, pMeshEnt e, int inode,
 #ifdef PETSC_USE_COMPLEX
   num_dof/=2;
 #endif
-  int ent_id =msi_node_getID(e, 0);
+  int ent_id = msi_node_getID(e, n);
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
 
 //*******************************************************
-void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int inode,
+void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
      int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
@@ -106,7 +106,7 @@ void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int inode,
 #ifdef PETSC_USE_COMPLEX
   num_dof/=2;
 #endif
-  int ent_id = msi_node_getGlobalID(e, 0);
+  int ent_id = msi_node_getGlobalID(e, n);
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
@@ -140,7 +140,7 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   msi_solver::instance()->local_n = ln;
 
   // generate global ID's per ownership
-  msi_solver::instance()->global_n = pumi_numbering_createGlobalNode(m, "msi_global", NULL, o);
+  msi_solver::instance()->global_n = pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
 
   msi_solver::instance()->vertices = new pMeshEnt[m->count(0)];
 
