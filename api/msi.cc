@@ -257,6 +257,12 @@ msi_matrix* msi_matrix_create(int matrix_type, pField f)
 #endif 
 }
 
+pField msi_matrix_getField(pMatrix mat)
+{
+  return mat->get_field();
+}
+
+
 //*******************************************************
 void msi_matrix_assemble(pMatrix mat) 
 //*******************************************************

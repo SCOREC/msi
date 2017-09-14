@@ -28,7 +28,7 @@ void msi_finalize(pMesh m);
 
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 
-                      int /*in*/ nv, int /*in*/ nd, pShape shape=NULL);
+                      int /*in*/ nv, int /*in*/ nd);
 int msi_field_getNumVal(pField f);
 int msi_field_getSize(pField f);
 
@@ -59,6 +59,8 @@ typedef msi_matrix* pMatrix;
 /** matrix and solver functions with PETSc */
 pMatrix msi_matrix_create(int matrix_type, pField f);
 void msi_matrix_delete(pMatrix mat);
+pField msi_matrix_getField(pMatrix mat);
+
 void msi_matrix_assemble(pMatrix mat);
 
 void msi_matrix_insert(pMatrix mat, int row, int column, int scalar_type, double* val);
@@ -68,9 +70,10 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt elem, int rowVarIdx, int columnVa
 void msi_matrix_setBC(pMatrix mat, int row);
 void msi_matrix_setLaplaceBC (pMatrix mat, int row, int size, int* columns, double* values);
 
+void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
+
 void msi_matrix_solve(pMatrix mat, pField rhs, pField sol);
 int msi_matrix_getNumIter(pMatrix mat);
-void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
 
 // auxiliary
 void msi_matrix_write(pMatrix mat, const char* file_name, int start_index=0);

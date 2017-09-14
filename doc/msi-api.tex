@@ -74,9 +74,13 @@ The functions initialize/finalize the MSI operations.
 \begin{verbatim}
 void msi_start(
     pMesh  /* in */  m, 
-    pOwnership  /* in */  o=NULL)
+    pOwnership  /* in */  o=NULL, 
+    pShape  /* in */  s=NULL)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a mesh and ownership handle, initialize MSI services for solver-PUMI interactions. If the ownership is not provided, the default is set to $NULL$. If the ownership is $NULL$, the PUMI's default ownership rule is used (a part with the minimum process rank is the owning part of duplicate copies). 
+Given a mesh, an ownership handle, and a field shape handle, initialize MSI services for solver-PUMI interactions. The ownership and field shape are optional (default: $NULL$). Ownership rule determines the owner copy among duplicated mesh entity copies by partitioning or ghosting. If the ownership handle is $NULL$, the PUMI's default rule is used (a part with the minimum process rank is the owning part of duplicate copies). Field shape defines the node distribution where the coordinates and field values (DOF's) are stored. If the shape is \emph{NULL}, the field shape saved in mesh (returned by \texttt{pumi$\_$mesh$\_$getShape}) is used. If it is not \textit{NULL}, the field shape of the mesh is set to $s$.
+
+Combining ownership rule and field shape, local/global node numbering are generated.
+See PUMI User's Guide for more information on ownership rule, field shape and numberings.
 
 Note that the following operations should be performed prior to this function.
 \begin{itemize}
@@ -87,7 +91,7 @@ Note that the following operations should be performed prior to this function.
 \end{itemize}
 
 \begin{verbatim}
-int msi_scorec_finalize()
+int msi_finalize()
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
 Finalize the MSI services and clears all internal data. Note that the following operations should follow to complete further finalizations.
 \begin{itemize}
@@ -96,32 +100,6 @@ Finalize the MSI services and clears all internal data. Note that the following 
 \item Solver finalization (e.g. PetscFinalize)
 \item MPI finalization
 \end{itemize}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Mesh Entity}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-In terms of mesh entity operation, MSI provides the operations only related to field ID of individual mesh entity as those are not supported in PUMI. For the rest of mesh entity operations including setting/getting field data (DOF) over nodes, use the API's in \texttt{PUMI.h}. 
-
-
-\begin{verbatim}
-void msi_ment_getFieldID (
-    pMeshEnt  /* in */  e, 
-    pField  /* in */  f, 
-    int  /* in */  i,
-    int*  /* out */  start_dof_id, 
-    int*  /* out */  end_dof_id_plus_one)
-\end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a mesh entity handle, field handle and the index of node $i$, return the starting local ID and the ending local ID plus one for field data (DOF) of $i^{th}$ node of the entity. 
-
-\begin{verbatim}
-void msi_ment_getGlobalFieldID (
-    pMeshEnt  /* in */  e, 
-    pField  /* in */  f, 
-    int  /* in */  i,
-    int*  /* out */  start_dof_id, 
-    int*  /* out */  end_dof_id_plus_one)
-\end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a mesh entity handle, field handle and the index of node $i$, return the starting global ID and the ending global ID plus one for field data (DOF) of $i^{th}$ node of the mesh entity. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Field}
@@ -145,9 +123,9 @@ pField msi_field_create (
     int  /* in */  nd, 
     pShape  /* in */  s=NULL)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given field name, the number of values per node ($nv$), the number of field data per value of node ($nd$), and a shape function, \emph{(i)} create a field for all nodes (owned, non-owned part boundary and ghost), \emph{(ii)} switch the memory space for field data to a contiguous array, and \emph{(iii)} initialize the field data. The \emph{size}, the number of field data per node is \textit{nv}$*$\textit{nd}. The size of contiguous array for each process is \textit{size}$*$\textit{nn} for real number and \textit{size}$*$\textit{nn}$*$2 for complex number, where \textit{nn} is the number of local nodes on each process. The field data type (real or complex) is determined at time of configuration. See Section~\ref{install} for how to configure MSI with complex number.
+Given a mesh instance, field name, the number of values per node ($nv$), the number of field data per value of node ($nd$), and a shape function, \emph{(i)} create a field for all nodes (owned, non-owned part boundary and ghost), \emph{(ii)} switch the memory space for field data to a contiguous array, and \emph{(iii)} initialize the field data. The \emph{size}, the number of field data per node is \textit{nv}$*$\textit{nd}. The size of contiguous array for each process is \textit{size}$*$\textit{nn} for real number and \textit{size}$*$\textit{nn}$*$2 for complex number, where \textit{nn} is the number of local nodes on each process. The field data type (real or complex) is determined at time of configuration. See Section~\ref{install} for how to configure MSI with complex number.
 
-The field shape is optional and the default is \textit{NULL}. If it is \textit{NULL}, the field shape of the mesh is used (a field shape returned by \texttt{pumi$\_$mesh$\_$getShape}).
+The field shape is optional (default: \textit{NULL}). If it is \textit{NULL}, the field shape of the mesh is used (a field shape returned by \texttt{pumi$\_$mesh$\_$getShape}).
 
  If $nv$ is 1, \texttt{msi$\_$field$\_$create (m, field$\_$name, nv, nd, s)} is equivalent to \texttt{pumi$\_$field$\_$create (m, field$\_$name, nd, PUMI$\_$PACKED, s)} followed by \texttt{pumi$\_$field$\_$freeze} and \texttt{pumi$\_$ment$\_$setField} with value $0$ for all nodes.
 
@@ -162,24 +140,83 @@ int msi_field_getSize (pField  /* in*/  f)
 Given a field handle, return the field size, \textit{nv}$*$\textit{nd}.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Node}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{verbatim} 
+int msi_node_getID (
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a mesh entity handle and the index of node $n$, return local number of $n^{th}$ node of the mesh entity.
 
+\begin{verbatim}
+int msi_node_getGlobalID (
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a mesh entity handle and the index of node $n$, return global number of $n^{th}$ node of the mesh entity.
+The global numbering is based on the ownership handle provided in \texttt{msi$\_$start}.
+
+\begin{verbatim}
+void msi_node_setField (
+    pField  /* in */  f, 
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n,
+    int  /* in */  size_dof, 
+    double*  /* in */  dof_data
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, a mesh entity handle, the index of node $n$, size of DOF data and a double array containing DOF data, set the field data (DOF) of $n^{th}$ node of the entity. 
+
+\begin{verbatim}
+int msi_node_getField(
+    pField  /* in */  f, 
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n,
+    double*  /* out */  dof_data)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, a mesh entity handle, the index of node $n$, fill the array \textit{dof$\_$data} with field data (DOF) of $n^{th}$ node of the entity. 
+
+\begin{verbatim}
+void msi_node_getFieldID (
+    pField  /* in */  f, 
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n,
+    int*  /* out */  start_dof_id, 
+    int*  /* out */  end_dof_id_plus_one)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, a mesh entity handle, and the index of node $n$, return the starting local ID and the ending local ID plus one for field data (DOF) of $n^{th}$ node of the entity. 
+
+\begin{verbatim}
+void msi_ment_getGlobalFieldID (
+    pField  /* in */  f, 
+    pMeshEnt  /* in */  e, 
+    int  /* in */  n,
+    int*  /* out */  start_dof_id, 
+    int*  /* out */  end_dof_id_plus_one)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a field handle, a mesh entity handle, and the index of node $n$, return the starting global ID and the ending global ID plus one for field data (DOF) of $n^{th}$ node of the mesh entity. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{PETSc Matrix and Solver}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \begin{verbatim}
 pMatrix msi_matrix_create (
         int  /* in */  matrix_type,
         pField  /* in */  field)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
-Given a matrix type and a field handle, create a matrix and return its handle. The matrix type indicates the purpose of the matrix: 0 for matrix-vector multiplication and 1 for solver. The input field handle is used to retrieve the numbering (row/column ID) for matrix manipulation. The status of matrix is \textit{MSI$\_$NOT$\_$FIXED} so the matrix values can be modified.
+Given matrix type (0 for matrix-vector multiplication, 1 for solver) and a field handle, create a matrix and return its handle. The input field handle is used to set up the matrix size  and row/column ID's.The initial status of matrix is \textit{MSI$\_$NOT$\_$FIXED} so the matrix values can be modified.
 
 \begin{verbatim}
 void msi_matrix_delete (pMatrix  /* in */  matrix)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
 Given a matrix handle, delete the matrix. 
 	    
+\begin{verbatim}
+pField msi_matrix_getField (pMatrix  /* in */  matrix)
+\end{verbatim}\vspace{-.5cm}\hspace{1cm}
+Given a matrix handle, return the field handle associated with the matrix. 
+
 \begin{verbatim}
 void msi_matrix_assemble (pMatrix  /* in */  matrix)
 \end{verbatim}\vspace{-.5cm}\hspace{1cm}
