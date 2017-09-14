@@ -28,7 +28,7 @@ void msi_finalize(pMesh m);
 
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 
-                      int /*in*/ nv, int /*in*/ nd);
+                      int /*in*/ nv, int /*in*/ nd, pShape shape=NULL);
 int msi_field_getNumVal(pField f);
 int msi_field_getSize(pField f);
 
