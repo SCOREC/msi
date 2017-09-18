@@ -712,7 +712,7 @@ int matrix_mult::preAllocate ()
 }
 
 #define FIXSIZEBUFF 1024
-#define C1TRIDOFNODE 6
+
 int copyField2PetscVec(pField f, Vec& petscVec)
 {
   int scalar_type=0;
@@ -848,8 +848,8 @@ int matrix_solve:: setKspType()
   int total_num_dof = msi_field_getSize(field);
   char field_name[FIXSIZEBUFF];
   strcpy(field_name, apf::getName(field));
-
-  assert(total_num_dof/num_values==C1TRIDOFNODE*(pumi::instance()->mesh->getDimension()-1));
+  
+  //assert(total_num_dof/num_values==C1TRIDOFNODE*(pumi::instance()->mesh->getDimension()-1));
   // if 2D problem use superlu
   if (pumi::instance()->mesh->getDimension()==2)
   {
