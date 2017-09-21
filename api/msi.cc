@@ -132,7 +132,7 @@ void msi_start(pMesh m, pOwnership o, pShape s)
 
 #ifdef DEBUG
   if (!o && !pumi_rank())
-    std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
+    std::cout<<"[msi] "<<__func__<<": the default mesh ownership is in use\n";
   else
     pumi_ownership_verify(m, o);
 #endif
@@ -183,7 +183,7 @@ void msi_finalize(pMesh m)
   while(m->countFields())
   {
     apf::Field* f = m->getField(0);
-    if(!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
+    if(!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<": field "<<getName(f)<<" deleted\n";
     msi_solver::instance()->field_container->erase(std::map<pField, int>::key_type(f));
 
     destroyField(f);
@@ -253,22 +253,22 @@ int msi_field_getSize(pField f)
 #ifdef MSI_PETSC
 /** matrix and solver functions */
 //*******************************************************
-msi_matrix* msi_matrix_create(int matrix_type, pField f, pOwnership o)
+msi_matrix* msi_matrix_create(int matrix_type, pField f)
 //*******************************************************
 {
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-    std::cout<<"[MSI INFO] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
+    std::cout<<"[msi] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
 #endif
 
   if (matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(f, o);
+    matrix_mult* new_mat = new matrix_mult(f, msi_ownership);
     return (msi_matrix*)new_mat;
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(f, o);
+    matrix_solve* new_mat= new matrix_solve(f, msi_ownership);
     return (msi_matrix*)new_mat;
   }
 }

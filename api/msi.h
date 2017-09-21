@@ -57,7 +57,7 @@ class msi_matrix;
 typedef msi_matrix* pMatrix;
 
 /** matrix and solver functions with PETSc */
-pMatrix msi_matrix_create(int matrix_type, pField f, pOwnership o);
+pMatrix msi_matrix_create(int matrix_type, pField f);
 void msi_matrix_delete(pMatrix mat);
 pField msi_matrix_getField(pMatrix mat);
 

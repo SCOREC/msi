@@ -38,10 +38,8 @@ set(PETSC_LIB_NAMES
   mumps_common
   pord 
   scalapack 
-  superlu_dist_3.3
-  superlu_4.3 
-  flapack 
-  fblas 
+  superlu_dist
+  superlu
   parmetis 
   metis 
   ssl 
@@ -55,7 +53,7 @@ set(PETSC_LIB_NAMES
 else()
 set(PETSC_LIB_NAMES
   petsc
-  superlu_dist_3.3
+  superlu_dist
   cmumps
   dmumps
   smumps
@@ -63,10 +61,8 @@ set(PETSC_LIB_NAMES
   mumps_common
   pord
   scalapack
-  superlu_4.3
+  superlu
   HYPRE
-  flapack
-  fblas
   parmetis
   metis
   ssl 

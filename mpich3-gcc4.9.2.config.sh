@@ -13,8 +13,8 @@ cmake .. \
   -DSCOREC_INCLUDE_DIR=$PREFIX/include \
   -DSCOREC_LIB_DIR=$PREFIX/lib \
   -DZOLTAN_LIBRARY="$PREFIX/lib/libzoltan.a" \
-  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
-  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
+  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.so" \
+  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.so" \
   -DENABLE_PETSC=ON \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
