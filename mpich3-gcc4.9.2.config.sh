@@ -7,8 +7,8 @@ cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/mpich3/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/mpich3/latest/bin/mpicxx" \
   -DCMAKE_Fortran_COMPILER="/usr/local/mpich3/latest/bin/mpif90" \
-  -DCMAKE_C_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O0 -DDEBUG -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O0 -DDEBUG -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic -ffree-line-length-0"\
   -DSCOREC_INCLUDE_DIR=$PREFIX/include \
   -DSCOREC_LIB_DIR=$PREFIX/lib \
@@ -28,7 +28,7 @@ cmake .. \
   -DSTDCPP_LIBRARY="/usr/lib/gcc/x86_64-linux-gnu/4.4.5/libstdc++.a" \
   -DNETCDF_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libnetcdf.a" \
   -DENABLE_COMPLEX=OFF \
-  -DENABLE_TESTING=OFF \
+  -DENABLE_TESTING=ON \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_INSTALL_PREFIX=$PREFIX
 

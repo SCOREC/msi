@@ -16,15 +16,15 @@
 #include "msi_solver.h"
 #include <vector>
 #include <map>
-int copyField2PetscVec(pField f, Vec& petscVec);
-int copyPetscVec2Field(Vec& petscVec, pField f);
+int copyField2PetscVec(pField f, Vec& petscVec, pOwnership o);
+int copyPetscVec2Field(Vec& petscVec, pField f, pOwnership o);
 void printMemStat();
 
 // NOTE: all field realted interaction is done through msi api rather than apf
 class msi_matrix
 {
 public:
-  msi_matrix(pField f);
+  msi_matrix(pField f, pOwnership o);
   virtual ~msi_matrix();
   virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
@@ -58,12 +58,13 @@ protected:
   int preAllocateParaMat();
   int mat_status; 
   pField field; // the field that provide numbering
+  pOwnership ownership;
 };
 
 class matrix_mult: public msi_matrix
 {
 public:
-  matrix_mult(pField f): msi_matrix(f), localMat(1) { initialize();}
+  matrix_mult(pField f, pOwnership o): msi_matrix(f,o), localMat(1) { initialize();}
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
@@ -79,7 +80,7 @@ private:
 class matrix_solve: public msi_matrix
 {
 public:
-  matrix_solve(pField f);
+  matrix_solve(pField f, pOwnership o);
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(pField rhs, pField sol);

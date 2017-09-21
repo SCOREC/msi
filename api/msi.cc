@@ -21,7 +21,7 @@ using std::vector;
 
 extern pOwnership msi_ownership=NULL;
 
-void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
+void set_adj_node_tag(pMesh m, pOwnership, pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
@@ -110,16 +110,32 @@ void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
   *start_dof_id = ent_id*num_dof;
   *end_dof_id_plus_one = *start_dof_id +num_dof;
 }
-
+#include <unistd.h>
 //********************************************************
 void msi_start(pMesh m, pOwnership o, pShape s)
 //********************************************************
 {  
-  if (!o && !pumi_rank())
-    std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
+#if 0 // turn on to debug with gdb
+  int i, processid = getpid();
+  if (!PCU_Comm_Self())
+  {
+    std::cout<<"Proc "<<PCU_Comm_Self()<<">> pid "<<processid<<" Enter any digit...\n";
+    std::cin>>i;
+  }
+  else
+    std::cout<<"Proc "<<PCU_Comm_Self()<<">> pid "<<processid<<" Waiting...\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
   msi_ownership=o;
   pumi_mesh_setCount(m, o);
+
+#ifdef DEBUG
+  if (!o && !pumi_rank())
+    std::cout<<"[MSI INFO] "<<__func__<<": the default mesh ownership is in use\n";
+  else
+    pumi_ownership_verify(m, o);
+#endif
 
   if (s) 
     pumi_mesh_setShape(m, s);
@@ -129,7 +145,7 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   PetscMemorySetGetMaximumUsage();
   msi_solver::instance()->num_global_adj_node_tag = m->createIntTag("msi_num_global_adj_node", 1);
   msi_solver::instance()->num_own_adj_node_tag = m->createIntTag("msi_num_own_adj_node", 1);
-  set_adj_node_tag(msi_solver::instance()->num_global_adj_node_tag, 
+  set_adj_node_tag(m, o, msi_solver::instance()->num_global_adj_node_tag, 
                    msi_solver::instance()->num_own_adj_node_tag);
 
   // set local numbering
@@ -237,24 +253,24 @@ int msi_field_getSize(pField f)
 #ifdef MSI_PETSC
 /** matrix and solver functions */
 //*******************************************************
-msi_matrix* msi_matrix_create(int matrix_type, pField f)
+msi_matrix* msi_matrix_create(int matrix_type, pField f, pOwnership o)
 //*******************************************************
 {
+#ifdef DEBUG
+  if (!PCU_Comm_Self())
+    std::cout<<"[MSI INFO] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
+#endif
+
   if (matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(f);
+    matrix_mult* new_mat = new matrix_mult(f, o);
     return (msi_matrix*)new_mat;
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(f);
+    matrix_solve* new_mat= new matrix_solve(f, o);
     return (msi_matrix*)new_mat;
   }
-
-#ifdef DEBUG
-  if (!PCU_Comm_Self())
-    std::cout<<"[MSI INFO] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
-#endif 
 }
 
 pField msi_matrix_getField(pMatrix mat)
@@ -382,15 +398,6 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, numVals, &columns_g[0], values);
 }
 
-void msi_matrix_solve(pMatrix mat, pField rhs, pField sol) 
-{  
-  assert(mat->get_type()==MSI_SOLVE);
-
-  if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": RHS "<<getName(rhs)<<", solution: "<<getName(sol)<<"\n";
-
-  (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
-}
 
 //*******************************************************
 void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec) 
@@ -400,6 +407,19 @@ void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
 
   (dynamic_cast<matrix_mult*>(mat))->multiply(inputvec, outputvec);
 }
+
+//*******************************************************
+void msi_matrix_solve(pMatrix mat, pField rhs, pField sol) 
+//*******************************************************
+{  
+  assert(mat->get_type()==MSI_SOLVE);
+
+  if (!PCU_Comm_Self())
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": RHS "<<getName(rhs)<<", solution: "<<getName(sol)<<"\n";
+
+  (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
+}
+
 
 //*******************************************************
 int msi_matrix_getNumIter(pMatrix mat)
@@ -470,7 +490,7 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
     int columns_bloc[6], rows_bloc[6];
     for(int inode=0; inode<num_node; inode++)
     {
-      nodeOwner[inode] = pumi_ment_getOwnPID(vertices[inode]);
+      nodeOwner[inode] = pumi_ment_getOwnPID(vertices[inode], msi_ownership);
       msi_node_getGlobalFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+columnIdx;
@@ -1193,43 +1213,43 @@ struct classcomp
 
 
 // **********************************************
-void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag)
+void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag)
 // **********************************************
 {
-  pMesh mesh = pumi::instance()->mesh;
-
   int value;
-  int brgType = mesh->getDimension()-1;
+  int brgType = m->getDimension()-1;
 
   apf::MeshEntity* e;
-  apf::MeshIterator* it = mesh->begin(0);
+  apf::MeshIterator* it = m->begin(0);
   PCU_Comm_Begin();
-  while ((e = mesh->iterate(it)))
+  while ((e = m->iterate(it)))
   {
     int num_adj_node=0;
     apf::Adjacent elements;
-    apf::getBridgeAdjacent(mesh, e, brgType, 0, elements);
+    apf::getBridgeAdjacent(m, e, brgType, 0, elements);
     int num_adj = elements.getSize();
 
     for (int i=0; i<num_adj; ++i)
     {
-      if (pumi_ment_isOwned(elements[i]))
+      if (pumi_ment_isOwned(elements[i], o))
         ++num_adj_node;
     }
-    mesh->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
+    m->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
 
-    if (!mesh->isShared(e)) continue;
+    if (!m->isShared(e)) continue;
     // first pass msg size to owner
-    int own_partid = pumi_ment_getOwnPID(e);
-    apf::MeshEntity* own_copy = pumi_ment_getOwnEnt(e);
-
+    int own_partid = pumi_ment_getOwnPID(e,o);
+    apf::MeshEntity* own_copy = pumi_ment_getOwnEnt(e,o);
+    assert(own_copy);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_copy);
     PCU_Comm_Pack(own_partid, &num_adj,sizeof(int));
   }
-  mesh->end(it);
+  m->end(it);
 
   PCU_Comm_Send();
+
+  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
 
   std::map<apf::MeshEntity*, std::map<int, int> > count_map;
   while (PCU_Comm_Listen())
@@ -1242,24 +1262,26 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
     }
   }
   
-  // pass entities to ownner
+  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
+
+  // pass entities to owner
   std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
-  it = mesh->begin(0);
+  it = m->begin(0);
   PCU_Comm_Begin();
-  while ((e = mesh->iterate(it)))
+  while ((e = m->iterate(it)))
   {
     // pass entities to ownner
 
     std::vector<entMsg> msgs;
     apf::Adjacent elements;
-    apf::getBridgeAdjacent(mesh, e, brgType, 0, elements);
+    apf::getBridgeAdjacent(m, e, brgType, 0, elements);
 
-    apf::MeshEntity* ownerEnt=pumi_ment_getOwnEnt(e);
-    int own_partid = pumi_ment_getOwnPID(e);
+    apf::MeshEntity* ownerEnt=pumi_ment_getOwnEnt(e,o);
+    int own_partid = pumi_ment_getOwnPID(e, o);
     for(int i=0; i<elements.getSize(); ++i)
     {
-      apf::MeshEntity* ownerEnt2=pumi_ment_getOwnEnt(elements[i]);
-      int owner=pumi_ment_getOwnPID(elements[i]);
+      apf::MeshEntity* ownerEnt2=pumi_ment_getOwnEnt(elements[i],o);
+      int owner=pumi_ment_getOwnPID(elements[i], o);
       msgs.push_back(entMsg(owner, ownerEnt2));
       if(own_partid==PCU_Comm_Self()) 
       {
@@ -1273,7 +1295,10 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
       PCU_Comm_Pack(own_partid, &msgs.at(0),sizeof(entMsg)*msgs.size());
     }
   }
-  mesh->end(it);
+  m->end(it);
+
+  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
+
   PCU_Comm_Send();
   while (PCU_Comm_Listen())
   {
@@ -1290,12 +1315,14 @@ void set_adj_node_tag(pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_nod
     }
   }
 
+  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
+
   for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); 
        mit!=count_map2.end(); ++mit)
   {
     e = mit->first;
     int num_global_adj =count_map2[e].size();
-    mesh->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
+    m->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
   }
 }
 #endif
