@@ -19,14 +19,13 @@
 #include "apfNumbering.h"
 using std::vector;
 
-extern pOwnership msi_ownership=NULL;
-
 void set_adj_node_tag(pMesh m, pOwnership, pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
 int msi_node_getID (pMeshEnt e, int n)
 {
+  assert(apf::isNumbered(msi_solver::instance()->local_n,e,n,0));
   return pumi_node_getNumber(msi_solver::instance()->local_n, e, n);
 }
 
@@ -34,6 +33,7 @@ int msi_node_getID (pMeshEnt e, int n)
 // global numbering is based on ownership set in msi_start
 int msi_node_getGlobalID (pMeshEnt e, int n)
 {
+  assert(apf::isNumbered(msi_solver::instance()->global_n,e,n,0));
   return pumi_node_getNumber(msi_solver::instance()->global_n, e, n);
 }
 
@@ -127,7 +127,7 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-  msi_ownership=o;
+  msi_solver::instance()->ownership=o;
   pumi_mesh_setCount(m, o);
 
 #ifdef DEBUG
@@ -260,15 +260,14 @@ msi_matrix* msi_matrix_create(int matrix_type, pField f)
   if (!PCU_Comm_Self())
     std::cout<<"[msi] "<<__func__<<": type "<<matrix_type<<", field "<<getName(f)<<"\n";
 #endif
-
   if (matrix_type==MSI_MULTIPLY) // matrix for multiplication
   {
-    matrix_mult* new_mat = new matrix_mult(f, msi_ownership);
+    matrix_mult* new_mat = new matrix_mult(f);
     return (msi_matrix*)new_mat;
   }
   else 
   {
-    matrix_solve* new_mat= new matrix_solve(f, msi_ownership);
+    matrix_solve* new_mat= new matrix_solve(f);
     return (msi_matrix*)new_mat;
   }
 }
@@ -283,6 +282,9 @@ pField msi_matrix_getField(pMatrix mat)
 void msi_matrix_assemble(pMatrix mat) 
 //*******************************************************
 {
+#ifdef DEBUG
+  if (!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<"\n";
+#endif
   mat->assemble();
 }
 
@@ -290,6 +292,9 @@ void msi_matrix_assemble(pMatrix mat)
 void msi_matrix_delete(pMatrix mat)
 //*******************************************************
 {  
+#ifdef DEBUG
+  if (!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<"\n";
+#endif
   delete mat;
 }
 
@@ -398,11 +403,13 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, numVals, &columns_g[0], values);
 }
 
-
 //*******************************************************
 void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec) 
 //*******************************************************
 {  
+#ifdef DEBUG
+  if (!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<": input \""<<getName(inputvec)<<"\", output \""<<getName(outputvec)<<"\"\n";
+#endif
   assert(mat->get_type()==MSI_MULTIPLY);
 
   (dynamic_cast<matrix_mult*>(mat))->multiply(inputvec, outputvec);
@@ -413,13 +420,12 @@ void msi_matrix_solve(pMatrix mat, pField rhs, pField sol)
 //*******************************************************
 {  
   assert(mat->get_type()==MSI_SOLVE);
-
+#ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": RHS "<<getName(rhs)<<", solution: "<<getName(sol)<<"\n";
-
+     std::cout <<"[msi] "<<__func__<<": RHS \""<<getName(rhs)<<"\", sol \""<<getName(sol)<<"\"\n";
+#endif
   (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
 }
-
 
 //*******************************************************
 int msi_matrix_getNumIter(pMatrix mat)
@@ -445,7 +451,6 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
   if (pumi::instance()->mesh->isGhost(e)) return;
   std::vector<pMeshEnt> vertices;
   pumi_ment_getAdj(e, 0, vertices);
-//  msi_ent_getadj (e, &ielm_dim, &ent_dim, nodes, &num_node, &num_node_get);
 
   int num_node=(int)vertices.size();
   int* nodes=new int[num_node];
@@ -465,7 +470,8 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
   assert(rowIdx<numVar && columnIdx<numVar);
   int rows[1024], columns[1024];
   assert(sizeof(rows)/sizeof(int)>=dofPerVar*num_node);
-  if(mat->get_type()==0)
+
+  if (mat->get_type()==0) // multiply
   {
     int localFlag=0;
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
@@ -483,14 +489,15 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
     }
     mmat->add_values(dofPerVar*num_node, rows,dofPerVar*num_node, columns, values);
   }
-  else
+  else // solve
   {
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
-    int nodeOwner[6];
-    int columns_bloc[6], rows_bloc[6];
+    int* nodeOwner = new int[num_node];
+    int* columns_bloc = new int[num_node];
+    int* rows_bloc = new int[num_node];
     for(int inode=0; inode<num_node; inode++)
     {
-      nodeOwner[inode] = pumi_ment_getOwnPID(vertices[inode], msi_ownership);
+      nodeOwner[inode] = msi_solver::instance()->ownership->getOwner(vertices[inode]);
       msi_node_getGlobalFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+columnIdx;
@@ -510,7 +517,11 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
         smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*num_node, columns, values+offset);
       offset+=numValuesNode;
     }
+    delete [] nodeOwner;
+    delete [] columns_bloc;
+    delete [] rows_bloc;
   }
+  delete [] nodes;
 }
 
 //*******************************************************
@@ -557,7 +568,6 @@ void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
 void msi_matrix_print(pMatrix mat)
 //*******************************************************
 {
-
   int row, col, csize, sum_csize=0, index=0;
 
   vector<int> rows;
@@ -616,14 +626,14 @@ int m3dc1_epetra_create(int* matrix_id, int* matrix_type, pField f)
   if (mat)
   {
     if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
+      std::cout <<"[msi] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
     return M3DC1_FAILURE; 
   }
   // check field exists
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
   {
     if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
+      std::cout <<"[msi] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
     return M3DC1_FAILURE; 
   }
   m3dc1_ls::instance()->add_matrix(*matrix_id, new m3dc1_epetra(*matrix_id, *matrix_type, *field_id));
@@ -798,7 +808,7 @@ int m3dc1_epetra_setbc(int* matrix_id, int* row)
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
-    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
+    std::cout <<"[msi] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
 
@@ -833,7 +843,7 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
-    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
+    std::cout <<"[msi] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
 
@@ -957,12 +967,12 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
-    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
+    std::cout <<"[msi] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
   else
     if (!PCU_Comm_Self())
-	std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*
+	std::cout <<"[msi] "<<__func__<<": matrix "<<*
 	matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
 
   // assemble matrix
@@ -1106,13 +1116,13 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
 
 int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, const char* solver_name)
 {
-  if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: check if amesos2 is available\n";
+  if (!PCU_Comm_Self()) std::cout <<"[msi ERROR] "<<__func__<<" not supported: check if amesos2 is available\n";
   return M3DC1_FAILURE;
 
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
-    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
+    std::cout <<"[msi ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
 
@@ -1155,7 +1165,7 @@ int m3dc1_epetra_multiply(int* matrix_id, FieldID* in_fieldid, FieldID* out_fiel
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_MULTIPLY)
   {
-    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
+    std::cout <<"[msi] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
 
@@ -1240,7 +1250,10 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
     // first pass msg size to owner
     int own_partid = pumi_ment_getOwnPID(e,o);
     apf::MeshEntity* own_copy = pumi_ment_getOwnEnt(e,o);
-    assert(own_copy);
+    if (!own_copy) // own_copy does not exist so let;'s
+    {
+
+    }
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_copy);
     PCU_Comm_Pack(own_partid, &num_adj,sizeof(int));
@@ -1248,8 +1261,6 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
   m->end(it);
 
   PCU_Comm_Send();
-
-  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
 
   std::map<apf::MeshEntity*, std::map<int, int> > count_map;
   while (PCU_Comm_Listen())
@@ -1261,8 +1272,6 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
       count_map[e][PCU_Comm_Sender()]=value;
     }
   }
-  
-  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
 
   // pass entities to owner
   std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
@@ -1297,8 +1306,6 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
   }
   m->end(it);
 
-  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
-
   PCU_Comm_Send();
   while (PCU_Comm_Listen())
   {
@@ -1314,8 +1321,6 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
       }
     }
   }
-
-  std::cout<<"("<<pumi_rank()<<") "<<__func__<<": "<<__LINE__<<"\n";
 
   for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); 
        mit!=count_map2.end(); ++mit)

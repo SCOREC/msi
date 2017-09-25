@@ -40,6 +40,7 @@ public:
   pMeshTag num_global_adj_node_tag;
   pMeshTag num_own_adj_node_tag;
 
+  pOwnership ownership;
   pNumbering local_n;
   pNumbering global_n;
 private:

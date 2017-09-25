@@ -39,17 +39,12 @@ void printMemStat()
 int matrix_solve::initialize()
 {
   // initialize matrix
-  if (!pumi_rank()) std::cout<<"[msi] "<<__func__<<" "<<__LINE__<<"\n";
   setupMat();
-  if (!pumi_rank()) std::cout<<"[msi] "<<__func__<<" "<<__LINE__<<"\n";
   preAllocate();
-  if (!pumi_rank()) std::cout<<"[msi] "<<__func__<<" "<<__LINE__<<"\n";
   setUpRemoteAStruct();
-  if (!pumi_rank()) std::cout<<"[msi] "<<__func__<<" "<<__LINE__<<"\n";
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
   //check later
-  if (!pumi_rank()) std::cout<<"[msi] "<<__func__<<" "<<__LINE__<<"\n";
   ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
   //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
   ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
@@ -59,24 +54,18 @@ int matrix_solve::initialize()
 int matrix_mult::initialize()
 {
   // initialize matrix
-  if (!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": "<<__LINE__<<"\n";
-
   setupMat();
-
-  if (!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": "<<__LINE__<<"\n";
   preAllocate();
-  if (!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": "<<__LINE__<<"\n";
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
   //check later
-  if (!PCU_Comm_Self()) std::cout<<"[MSI INFO] "<<__func__<<": "<<__LINE__<<"\n";
   ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
   ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   CHKERRQ(ierr);
 }
 
 
-msi_matrix::msi_matrix(pField f, pOwnership o): field(f), ownership(o)
+msi_matrix::msi_matrix(pField f): field(f)
 {
   mat_status = MSI_NOT_FIXED;
   A=new Mat;
@@ -205,10 +194,10 @@ int matrix_mult::multiply(pField in_field, pField out_field)
   if(!localMat)
   {
     Vec b, c;
-    copyField2PetscVec(in_field, b, ownership);
+    copyField2PetscVec(in_field, b);
     int ierr = VecDuplicate(b, &c);CHKERRQ(ierr);
     MatMult(*A, b, c);
-    copyPetscVec2Field(c, out_field, ownership);
+    copyPetscVec2Field(c, out_field);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
     return 0;
@@ -263,7 +252,7 @@ int matrix_mult::assemble()
 // ***********************************
 // 		matrix_solve
 // ***********************************
-matrix_solve::matrix_solve(pField f, pOwnership o): msi_matrix(f, o) 
+matrix_solve::matrix_solve(pField f): msi_matrix(f) 
 {  
   ksp = new KSP;
   kspSet=0;
@@ -565,7 +554,7 @@ int matrix_solve::setUpRemoteAStruct()
   int inode=0;
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    int owner=pumi_ment_getOwnPID(ent);
+    int owner=pumi_ment_getOwnPID(ent, msi_solver::instance()->ownership);
     if (owner!=PCU_Comm_Self())
     {
       apf::Adjacent elements;
@@ -724,7 +713,7 @@ int matrix_mult::preAllocate ()
 
 #define FIXSIZEBUFF 1024
 
-int copyField2PetscVec(pField f, Vec& petscVec, pOwnership o)
+int copyField2PetscVec(pField f, Vec& petscVec)
 {
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
@@ -750,7 +739,7 @@ int copyField2PetscVec(pField f, Vec& petscVec, pOwnership o)
   pMeshIter it = pumi::instance()->mesh->begin(0);  
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    if (!pumi_ment_isOwned(ent, o)) continue;
+    if (!pumi_ment_isOwned(ent, msi_solver::instance()->ownership)) continue;
     ++nodeCounter;
     int num_dof = msi_node_getField(f, ent, 0, dof_data);
     msi_node_getGlobalFieldID (f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -776,7 +765,7 @@ int copyField2PetscVec(pField f, Vec& petscVec, pOwnership o)
   return 0;
 }
 
-int copyPetscVec2Field(Vec& petscVec, pField f, pOwnership o)
+int copyPetscVec2Field(Vec& petscVec, pField f)
 {
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
@@ -799,7 +788,7 @@ int copyPetscVec2Field(Vec& petscVec, pField f, pOwnership o)
   pMeshIter it = pumi::instance()->mesh->begin(0);  
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    if (!pumi_ment_isOwned(ent, o)) continue;
+    if (!pumi_ment_isOwned(ent, msi_solver::instance()->ownership)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
     msi_node_getGlobalFieldID(f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
@@ -828,7 +817,7 @@ int copyPetscVec2Field(Vec& petscVec, pField f, pOwnership o)
 int matrix_solve::solve(pField rhs, pField sol)
 {
   Vec x, b;
-  copyField2PetscVec(rhs, b, ownership);
+  copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   //std::cout<<" before solve "<<std::endl;
   //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
@@ -843,7 +832,7 @@ int matrix_solve::solve(pField rhs, pField sol)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   iterNum = its;
   //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
-  copyPetscVec2Field(x, sol, ownership);
+  copyPetscVec2Field(x, sol);
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
 }
