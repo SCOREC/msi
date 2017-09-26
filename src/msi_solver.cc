@@ -47,6 +47,8 @@ msi_solver::~msi_solver()
   if (field_container!=NULL)
     field_container->clear();
   field_container=NULL;
+  delete [] vertices;
+  delete ownership;
   delete _instance;
 }
 

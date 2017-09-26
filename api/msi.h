@@ -25,6 +25,7 @@ enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
 // remember to delete ownership after use
 void msi_start(pMesh m, pOwnership o=NULL, pShape s=NULL);
 void msi_finalize(pMesh m);
+pOwnership msi_getOwnership();
 
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 

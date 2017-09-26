@@ -127,15 +127,19 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-  msi_solver::instance()->ownership=o;
-  pumi_mesh_setCount(m, o);
-
-#ifdef DEBUG
-  if (!o && !pumi_rank())
-    std::cout<<"[msi] "<<__func__<<": the default mesh ownership is in use\n";
-  else
+  if (o) 
+  {
+    msi_solver::instance()->ownership=o;
+    if (!pumi_rank()) std::cout<<"[msi] ("<<pumi_rank()<<") "<<__func__<<": user-defined ownership is in use\n";
     pumi_ownership_verify(m, o);
-#endif
+  }
+  else
+  {
+    msi_solver::instance()->ownership=new apf::NormalSharing(m);
+    if (!pumi_rank()) std::cout<<"[msi] ("<<pumi_rank()<<") "<<__func__<<": the default mesh ownership is in use\n";
+  }
+
+  pumi_mesh_setCount(m, o);
 
   if (s) 
     pumi_mesh_setShape(m, s);
@@ -188,9 +192,13 @@ void msi_finalize(pMesh m)
 
     destroyField(f);
   }
-  delete [] msi_solver::instance()->vertices;
   pumi_numbering_delete(msi_solver::instance()->local_n);
-  pumi_numbering_delete(msi_solver::instance()->global_n);
+  pumi_numbering_delete(msi_solver::instance()->global_n);  
+}
+
+pOwnership msi_getOwnership()
+{
+  return msi_solver::instance()->ownership;
 }
 
 //*******************************************************
