@@ -184,14 +184,6 @@ void msi_finalize(pMesh m)
   apf::removeTagFromDimension(m, msi_solver::instance()->num_own_adj_node_tag, 0);
   m->destroyTag(msi_solver::instance()->num_own_adj_node_tag);
 
-  while(m->countFields())
-  {
-    apf::Field* f = m->getField(0);
-    if(!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<": field "<<getName(f)<<" deleted\n";
-    msi_solver::instance()->field_container->erase(std::map<pField, int>::key_type(f));
-
-    destroyField(f);
-  }
   pumi_numbering_delete(msi_solver::instance()->local_n);
   pumi_numbering_delete(msi_solver::instance()->global_n);  
 }
