@@ -61,7 +61,7 @@ typedef msi_matrix* pMatrix;
  * Set the communicator on which the linear system will operate.
  * Must be set after MPI_Init() but before PetscInitialize();
  */
-void msi_matrix_set_comm(MPI_Comm);
+void msi_matrix_setComm(MPI_Comm);
 
 /** matrix and solver functions with PETSc */
 pMatrix msi_matrix_create(int matrix_type, pField f);
