@@ -251,7 +251,7 @@ int msi_field_getSize(pField f)
 }
 
 #ifdef MSI_PETSC
-void msi_matrix_set_comm(MPI_Comm cm)
+void msi_matrix_setComm(MPI_Comm cm)
 {
   PETSC_COMM_WORLD = cm;
 }
