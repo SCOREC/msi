@@ -251,6 +251,11 @@ int msi_field_getSize(pField f)
 }
 
 #ifdef MSI_PETSC
+void msi_matrix_setComm(MPI_Comm cm)
+{
+  PETSC_COMM_WORLD = cm;
+}
+
 /** matrix and solver functions */
 //*******************************************************
 msi_matrix* msi_matrix_create(int matrix_type, pField f)
