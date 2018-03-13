@@ -112,7 +112,7 @@ void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
 }
 #include <unistd.h>
 //********************************************************
-void msi_start(pMesh m, pOwnership o, pShape s)
+void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
 //********************************************************
 {  
 #if 0 // turn on to debug with gdb
@@ -160,7 +160,10 @@ void msi_start(pMesh m, pOwnership o, pShape s)
   msi_solver::instance()->local_n = ln;
 
   // generate global ID's per ownership
-  msi_solver::instance()->global_n = pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
+  if(cm == MPI_Comm_NULL)
+    msi_solver::instance()->global_n = pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
+  else
+    msi_solver::instance()->global_n = msi_numbering_createGlobal_degenerated(m, "pumi_global", NULL, o, cm);
 
   msi_solver::instance()->vertices = new pMeshEnt[m->count(0)];
 
@@ -175,6 +178,27 @@ void msi_start(pMesh m, pOwnership o, pShape s)
     msi_solver::instance()->vertices[msi_node_getID(e, 0)] = e;
   }
   m->end(it);
+}
+
+pNumbering msi_numbering_createGlobal_degenerated(pMesh m, const char* name, pShape s, pOwnership o, MPI_Comm cm)
+{
+  pNumbering n = m->findNumbering(name);
+  if (n)
+  {
+    if (!pumi_rank())
+      std::cout<<"[PUMI INFO] "<<__func__<<" failed: numbering \""<<name<<"\" already exists\n";
+    return n;
+  }
+
+  if (!s) s= m->getShape();
+  n = numberOwnedNodes(m, name, s, o);
+
+  PCU_Switch_Comm(cm);
+  apf::globalize(n);
+  PCU_Switch_Comm(MPI_COMM_WORLD);
+
+  //apf::synchronizeFieldData<int>(n->getData(), o, false); //synchronize(n, o);
+  return n;
 }
 
 void msi_finalize(pMesh m)
@@ -492,7 +516,7 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
         columns[inode*dofPerVar+i]=start_global_dof_id+columnIdx*dofPerVar+i;
       }
     }
-    mmat->add_values(dofPerVar*num_node, rows,dofPerVar*num_node, columns, values);
+    mmat->add_values(dofPerVar*num_node, rows ,dofPerVar*num_node, columns, values);
   }
   else // solve
   {

@@ -659,7 +659,7 @@ int msi_matrix::setupParaMat()
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_WORLD, A); // [PARASOL]
   CHKERRQ(ierr);
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
