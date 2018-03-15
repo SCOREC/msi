@@ -160,10 +160,10 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   msi_solver::instance()->local_n = ln;
 
   // generate global ID's per ownership
-  if(cm == MPI_Comm_NULL)
+  if(cm == MPI_COMM_NULL)
     msi_solver::instance()->global_n = pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
   else
-    msi_solver::instance()->global_n = msi_numbering_createGlobal_degenerated(m, "pumi_global", NULL, o, cm);
+    msi_solver::instance()->global_n = msi_numbering_createGlobal_multiOwner(m, "pumi_global", NULL, o, cm);
 
   msi_solver::instance()->vertices = new pMeshEnt[m->count(0)];
 
@@ -180,7 +180,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   m->end(it);
 }
 
-pNumbering msi_numbering_createGlobal_degenerated(pMesh m, const char* name, pShape s, pOwnership o, MPI_Comm cm)
+pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name, pShape s, pOwnership o, MPI_Comm cm)
 {
   pNumbering n = m->findNumbering(name);
   if (n)
@@ -193,9 +193,27 @@ pNumbering msi_numbering_createGlobal_degenerated(pMesh m, const char* name, pSh
   if (!s) s= m->getShape();
   n = numberOwnedNodes(m, name, s, o);
 
+  MPI_Comm prevComm = PCU_Get_Comm();
   PCU_Switch_Comm(cm);
   apf::globalize(n);
-  PCU_Switch_Comm(MPI_COMM_WORLD);
+  PCU_Switch_Comm(prevComm);
+
+#ifdef DEBUG
+  pMeshEnt v;
+  pField f = pumi_field_create(m, "globalize", 1);
+  pMeshIter it = m->begin(0);
+  while ((v = m->iterate(it))) {
+    double inum = -1;
+    if( apf::isNumbered(n,v,0,0) ) {
+      inum = pumi_node_getNumber(n, v, 0);
+    }
+    pumi_node_setField(f, v, 0, &inum);
+  }
+  m->end(it);
+  pumi_mesh_write(m,"check_globalize","vtk");
+  MPI_Barrier(MPI_COMM_WORLD);
+  pumi_field_delete(f);
+#endif
 
   //apf::synchronizeFieldData<int>(n->getData(), o, false); //synchronize(n, o);
   return n;
