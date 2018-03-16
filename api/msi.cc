@@ -15,11 +15,114 @@
 #include "apfMDS.h"
 #include <vector>
 #include <assert.h>
-#include "apfShape.h"
+// Added for the synchronization function
+#include "apfFieldData.h"
+#include "apfNew.h"
 #include "apfNumbering.h"
+//#include "/lore/trusza/scorec/apf/apfNumberingClass.h"
+#include "apfNumberingClass.h"
+#include "apfShape.h"
+
 using std::vector;
 
 void set_adj_node_tag(pMesh m, pOwnership, pMeshTag num_global_adj_node_tag, pMeshTag num_own_adj_node_tag);
+
+// Synchronization alternative to apf::synchronizeFieldData for multiple ownership in parasol
+template <class T>
+void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, MPI_Comm comm, bool delete_shr)
+{
+  apf::FieldBase* f = data->getField();
+  apf::Mesh* m = f->getMesh();
+  apf::FieldShape* s = f->getShape();
+  if (!shr)
+  {
+    shr = getSharing(m);
+    delete_shr=true;
+  }
+  for (int d=0; d < 4; ++d)
+  {
+    if ( ! s->hasNodesIn(d))
+      continue;
+    apf::MeshEntity* e;
+    apf::MeshIterator* it = m->begin(d);
+    
+	// Can we move the MPI grouping outside the for loop?
+	PCU_Comm_Begin();
+	
+	// Rank membership checking
+	MPI_Group comm_group, world_group;
+	int wrank[1], crank[1];
+	// Group made out of this communicator and world
+	MPI_Comm_group(comm, &comm_group);
+	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+    while ((e = m->iterate(it)))
+    {
+      if (( ! data->hasEntity(e))||
+          ( ! shr->isOwned(e)))
+        continue;
+      int n = f->countValuesOn(e);
+      apf::NewArray<T> values(n);
+      data->get(e,&(values[0]));
+      CopyArray copies;
+      shr->getCopies(e, copies);
+      for (size_t i = 0; i < copies.getSize(); ++i)
+      {
+		// Local rank in part of this comm, MPI_UNDEFINED 
+		// otherwise (need to check if guaranteed)
+		wrank[0] = copies[i].peer;
+		// Check just this one rank - can possibly be made more efficient 
+		// if we have all peers ranks at a time instead
+		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+		// If in comm, process			
+		if (crank[0] != MPI_UNDEFINED)
+		{
+        	PCU_COMM_PACK(copies[i].peer, copies[i].entity);
+        	PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(T));
+			//std::cout << "Got in!" << std::endl;
+		}else{
+			//std::cout << "Didn't get in!" << std::endl;
+		}
+      }
+      apf::Copies ghosts;  
+      if (m->getGhosts(e, ghosts))
+      APF_ITERATE(Copies, ghosts, it)
+      {
+		// Same as above
+		wrank[0] = it->first;
+		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+		if (crank[0] != MPI_UNDEFINED)
+		{	
+        	PCU_COMM_PACK(it->first, it->second);
+        	PCU_Comm_Pack(it->first, &(values[0]), n*sizeof(T));
+		}
+      }
+    }
+    m->end(it);
+    PCU_Comm_Send();
+    while (PCU_Comm_Receive())
+    {
+      apf::MeshEntity* e;
+      PCU_COMM_UNPACK(e);
+      int n = f->countValuesOn(e);
+      apf::NewArray<T> values(n);
+      PCU_Comm_Unpack(&(values[0]),n*sizeof(T));
+      data->set(e,&(values[0]));
+    }
+	// Free the temporary groups
+ 	MPI_Group_free(&comm_group);
+  	MPI_Group_free(&world_group);
+  }
+
+  if (delete_shr) delete shr;
+
+}
+
+/* instantiate here */
+template void synchronizeFieldData_parasol<int>(apf::FieldDataOf<int>*, apf::Sharing*, MPI_Comm, bool);
+template void synchronizeFieldData_parasol<double>(apf::FieldDataOf<double>*, apf::Sharing*, MPI_Comm, bool);
+template void synchronizeFieldData_parasol<long>(apf::FieldDataOf<long>*, apf::Sharing*, MPI_Comm, bool);
+
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
@@ -198,6 +301,8 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name, pSha
   apf::globalize(n);
   PCU_Switch_Comm(prevComm);
 
+  synchronizeFieldData_parasol<int>(n->getData(), o, cm, false); //synchronize(n, o);
+
 #ifdef DEBUG
   pMeshEnt v;
   pField f = pumi_field_create(m, "globalize", 1);
@@ -210,12 +315,11 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name, pSha
     pumi_node_setField(f, v, 0, &inum);
   }
   m->end(it);
-  pumi_mesh_write(m,"check_globalize","vtk");
+  pumi_mesh_write(m,"new_check_globalize","vtk");
   MPI_Barrier(MPI_COMM_WORLD);
   pumi_field_delete(f);
 #endif
 
-  //apf::synchronizeFieldData<int>(n->getData(), o, false); //synchronize(n, o);
   return n;
 }
 
