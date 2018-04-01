@@ -25,6 +25,10 @@
 using std::complex;
 #endif
 
+#include <numeric>
+#include <algorithm>
+#include <cmath>
+
 using std::vector;
 using std::set;
 
@@ -271,7 +275,6 @@ int matrix_solve::assemble()
 {
   PetscErrorCode ierr;
   double t1 = MPI_Wtime(), t2=t1;
-
     ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
@@ -471,7 +474,7 @@ int  msi_matrix::preAllocateParaMat()
   int bs=1;
   MatType type;
   MatGetType(*A, &type);
-
+  
   int num_own_ent,num_own_dof=0, vertex_type=0;
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
   msi_field_getnumowndof(field, &num_own_dof);
@@ -486,7 +489,27 @@ int  msi_matrix::preAllocateParaMat()
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> dnnz(numBlocks), onnz(numBlocks);
   int startDof, endDofPlusOne;
-  msi_field_getowndofid (field, &startDof, &endDofPlusOne);
+  
+  // Removed and replaced with per plane (subcom) count 	
+  //msi_field_getowndofid (field, &startDof, &endDofPlusOne);
+
+  int rank, psize;
+  MPI_Comm_size(PETSC_COMM_WORLD, &psize);
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  // Array with dofs per rank in this subcom 
+  // Can initialize but will add a small loop. 
+  // Or just some error check later.
+  int all_dofs[psize];
+  // Gather DOF number from all ranks on all ranks 
+  MPI_Allgather(&num_own_dof, 1, MPI_INT, all_dofs, 1, MPI_INT, PETSC_COMM_WORLD);
+
+  // Indices for current rank  
+  // Can also use a simple loop - this requires additional header 
+	// (<numeric>)
+	// Accumulate under gcc (4.7, 4.9) gives a 0 sum for .begin() - .begin() range but
+	// not sure if this is quaranteed by the standard, hence ternary 
+  startDof = rank == 0 ? 0 : std::accumulate(&all_dofs[0], &all_dofs[rank], 0);
+  endDofPlusOne = startDof + num_own_dof;
 
   int num_vtx=pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
@@ -494,15 +517,53 @@ int  msi_matrix::preAllocateParaMat()
   int brgType = pumi::instance()->mesh->getDimension();
   int start_global_dof_id, end_global_dof_id_plus_one;
 
+  // Total number of DOFs (nodes) per plane
+  int tot_dof = std::accumulate(&all_dofs[0], &all_dofs[psize], 0); 
+	
+  // Rank membership checking
+	MPI_Group comm_group, world_group;
+	int wrank[1], crank[1];
+	// Group made out of this communicator and world
+	MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
+	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance()->mesh->begin(0);  
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-    msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
-    int startIdx = start_global_dof_id;
-    if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
+		// Check if node in the subcom
+		wrank[0] = pumi_ment_getOwnPID(ent);
+		// Local rank in part of this comm, MPI_UNDEFINED 
+		// otherwise (need to check if guaranteed)
+	 	MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+		// Skip this node if not in the subcom
+		if (crank[0] == MPI_UNDEFINED){
+			continue;
+		}
+
+		msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
+
+		// This is not comparable - replace with global per plane
+		// Figure out if plane number can be obtained directly
+		// Need a std::min(Np, Ptot) because of floats issues,
+		// so that the last plane is always Ptot and not Ptot+1 
+  	// Can be replaced by ternary
+		int Np = std::max<int>(1, int(std::ceil(float(start_global_dof_id)/float(tot_dof))));
+		// Temporary - need plane number and a min above
+		assert(Np<=8);
+
+		// Correct the dof_id
+		start_global_dof_id -= (Np-1)*tot_dof;
+
+		// Check if correct
+		assert(start_global_dof_id != 0); 
+		assert(start_global_dof_id <= tot_dof);
+	
+  	int startIdx = start_global_dof_id;
+		// Unclear if this is ok
+		if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
-      apf::Adjacent elements;
+	    apf::Adjacent elements;
       getBridgeAdjacent(pumi::instance()->mesh, ent, brgType, 0, elements);
       int num_elem=0;
       for (int i=0; i<elements.getSize(); ++i)
@@ -517,10 +578,12 @@ int  msi_matrix::preAllocateParaMat()
     startIdx -= startDof;
     startIdx /=bs; 
 
-    int adjNodeOwned, adjNodeGlb;
+   	int adjNodeOwned, adjNodeGlb;
+		// Fails here - for some; for others it fails later becaue of global/local numbering issues
     pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
     pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_own_adj_node_tag, &adjNodeOwned);
-    assert(adjNodeGlb>=adjNodeOwned);
+
+		assert(adjNodeGlb>=adjNodeOwned);
 
     for(int i=0; i<numBlockNode; i++)
     {
@@ -653,7 +716,9 @@ int msi_matrix::setupParaMat()
 {
   int num_own_ent, vertex_type=0, num_own_dof;
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
+	
   msi_field_getnumowndof(field, &num_own_dof);
+
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
   PetscInt mat_dim = num_own_dof;
@@ -819,7 +884,6 @@ int matrix_solve::solve(pField rhs, pField sol)
   Vec x, b;
   copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
-  //std::cout<<" before solve "<<std::endl;
   //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
   if(!kspSet) setKspType();
   ierr = KSPSolve(*ksp, b, x);
