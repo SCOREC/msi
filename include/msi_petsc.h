@@ -93,6 +93,7 @@ public:
   int iterNum;
 private:  
   int setUpRemoteAStruct();
+  int setUpRemoteAStructParaMat();
   int setKspType();
   int kspSet;
   KSP* ksp; 
