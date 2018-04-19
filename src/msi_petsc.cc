@@ -45,7 +45,10 @@ int matrix_solve::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-  setUpRemoteAStruct();
+	// This is now hardcoded for the parallel solver, 
+	// we may want to introduce a flag in the matrix_solve class 
+	// that will decided which function to use - like in matrix_mult
+  setUpRemoteAStructParaMat();
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
   //check later
@@ -349,6 +352,7 @@ int matrix_solve::assemble()
     int requestOffset=0;
     std::map<int, std::pair<int, int> > msgSendSize;
     std::map<int, std::pair<int, int> > msgRecvSize;
+
     for(std::map<int, int >::iterator it = remoteNodeRowSize.begin(); it!=remoteNodeRowSize.end(); it++)
     {
       int destPid=it->first;
@@ -370,6 +374,7 @@ int matrix_solve::assemble()
       idxRecvBuff[it->first].resize(it->second.first);
       valuesRecvBuff[it->first].resize(it->second.second); 
     }
+
     // now get data
     sendTag=9999;
     requestOffset=0;
@@ -468,6 +473,7 @@ int matrix_solve:: set_row( int row, int numVals, int* columns, double * vals)
 #endif
   }
 }
+
 int  msi_matrix::preAllocateParaMat()
 {
   int bs=1;
@@ -516,50 +522,22 @@ int  msi_matrix::preAllocateParaMat()
   int brgType = pumi::instance()->mesh->getDimension();
   int start_global_dof_id, end_global_dof_id_plus_one;
 
-  // Total number of DOFs (nodes) per plane
+  // Total number of DOFs (nodes) per plane - can remove, both this
+	// and related assertions
   int tot_dof = std::accumulate(&all_dofs[0], &all_dofs[psize], 0); 
 	
-  // Rank membership checking
-	MPI_Group comm_group, world_group;
-	int wrank[1], crank[1];
-	// Group made out of this communicator and world
-	MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
-	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance()->mesh->begin(0);  
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-		// Check if node in the subcom
-		wrank[0] = pumi_ment_getOwnPID(ent);
-		// Local rank in part of this comm, MPI_UNDEFINED 
-		// otherwise (need to check if guaranteed)
-	 	MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-		// Skip this node if not in the subcom
-		if (crank[0] == MPI_UNDEFINED){
-			continue;
-		}
-
 		msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
 
-		// This is not comparable - replace with global per plane
-		// Figure out if plane number can be obtained directly
-		// Need a std::min(Np, Ptot) because of floats issues,
-		// so that the last plane is always Ptot and not Ptot+1 
-  	// Can be replaced by ternary
-		int Np = std::max<int>(1, int(std::ceil(float(start_global_dof_id)/float(tot_dof))));
-		// Temporary - need plane number and a min above
-		assert(Np<=8);
-
-		// Correct the dof_id
-		start_global_dof_id -= (Np-1)*tot_dof;
-
 		// Check if correct
-		assert(start_global_dof_id != 0); 
-		assert(start_global_dof_id <= tot_dof);
-	
-  	int startIdx = start_global_dof_id;
-		// Unclear if this is ok
+		assert(start_global_dof_id >= 0); 
+		assert(start_global_dof_id < tot_dof);
+
+		int startIdx = start_global_dof_id;
+
 		if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
 	    apf::Adjacent elements;
@@ -574,12 +552,12 @@ int  msi_matrix::preAllocateParaMat()
       nnzStash+=dofPerEnt*dofPerEnt*(num_elem+1);
       continue;
     }
+
     startIdx -= startDof;
     startIdx /=bs; 
 
    	int adjNodeOwned, adjNodeGlb;
-		// Fails here - for some; for others it fails later becaue of global/local numbering issues
-    pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
+	  pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
     pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_own_adj_node_tag, &adjNodeOwned);
 
 		assert(adjNodeGlb>=adjNodeOwned);
@@ -590,11 +568,13 @@ int  msi_matrix::preAllocateParaMat()
       onnz.at(startIdx+i)=(adjNodeGlb-adjNodeOwned)*numBlockNode;
     }
   }
+
   pumi::instance()->mesh->end(it);
   if (bs==1) 
     MatMPIAIJSetPreallocation(*A, 0, &dnnz[0], 0, &onnz[0]);
   else  
     MatMPIBAIJSetPreallocation(*A, bs, 0, &dnnz[0], 0, &onnz[0]);
+
 } 
 
 int matrix_solve::setUpRemoteAStruct()
@@ -637,8 +617,9 @@ int matrix_solve::setUpRemoteAStruct()
     {
       apf::Copies remotes;
       pumi::instance()->mesh->getRemotes(ent,remotes);
-      APF_ITERATE(apf::Copies, remotes, it)
-        remotePidOwned.insert(it->first);
+      APF_ITERATE(apf::Copies, remotes, it){
+       	remotePidOwned.insert(it->first);
+			}
     }
     ++inode;
   }
@@ -651,8 +632,75 @@ int matrix_solve::setUpRemoteAStruct()
   ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp (remoteA);CHKERRQ(ierr);
-
 }
+
+int matrix_solve::setUpRemoteAStructParaMat()
+{
+  int vertex_type=0;
+  int num_values = msi_field_getNumVal(field);
+  int total_num_dof = msi_field_getSize(field);
+
+  int dofPerVar=total_num_dof/num_values;
+
+  int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
+
+	// For subcom check
+	MPI_Group comm_group, world_group;
+	int wrank[1], crank[1];
+	MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
+	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+  std::vector<int> nnz_remote(num_values*num_vtx);
+  int brgType = 2;
+  if (pumi::instance()->mesh->getDimension()==3) brgType =3;
+  
+  apf::MeshEntity* ent;
+  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  int inode=0;
+  while ((ent = pumi::instance()->mesh->iterate(it)))
+  {
+    int owner=pumi_ment_getOwnPID(ent, msi_solver::instance()->ownership);
+    if (owner!=PCU_Comm_Self())
+    {
+      apf::Adjacent elements;
+      getBridgeAdjacent(pumi::instance()->mesh, ent, brgType, 0, elements);
+      int num_elem=0;
+      for (int i=0; i<elements.getSize(); ++i)
+      {
+        if (!pumi::instance()->mesh->isGhost(elements[i]))
+          ++num_elem;
+      }
+
+      remoteNodeRow[owner][inode]=num_elem+1;
+      remoteNodeRowSize[owner]+=num_elem+1;
+      for(int i=0; i<num_values; i++)
+        nnz_remote[inode*num_values+i]=(num_elem+1)*num_values;
+    }
+    else 
+    {
+      apf::Copies remotes;
+      pumi::instance()->mesh->getRemotes(ent,remotes);
+      APF_ITERATE(apf::Copies, remotes, it){
+				wrank[0] = it->first;
+				// Check if in this subcomm
+				MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+				if (crank[0] != MPI_UNDEFINED)
+        	remotePidOwned.insert(it->first);
+			}
+    }
+    ++inode;
+  }
+  pumi::instance()->mesh->end(it);
+
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
+  CHKERRQ(ierr);
+  ierr = MatSetType(remoteA, MATSEQBAIJ);CHKERRQ(ierr);
+  ierr = MatSetBlockSize(remoteA, dofPerVar); CHKERRQ(ierr);
+  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
+  ierr = MatSetUp (remoteA);CHKERRQ(ierr);
+}
+
 int  msi_matrix::preAllocateSeqMat()
 {
   int bs=1, vertex_type=0;
@@ -789,7 +837,7 @@ int copyField2PetscVec(pField f, Vec& petscVec)
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
-  int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
+  int ierr = VecCreateMPI(PETSC_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
   CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
 
@@ -902,7 +950,7 @@ int matrix_solve::solve(pField rhs, pField sol)
 int matrix_solve:: setKspType()
 {
   PetscErrorCode ierr;
-  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
+  ierr = KSPCreate(PETSC_COMM_WORLD, ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001,
                           PETSC_DEFAULT, 1000);CHKERRQ(ierr);
@@ -980,7 +1028,7 @@ int msi_matrix::write (const char* file_name)
   }
   else
   {
-    ierr = PetscViewerASCIIOpen(MPI_COMM_WORLD, file_name, &lab); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD, file_name, &lab); CHKERRQ(ierr);
   }
   ierr = PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB); CHKERRQ(ierr);
   ierr = MatView(*A, lab); CHKERRQ(ierr);
