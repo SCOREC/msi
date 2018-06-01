@@ -10,16 +10,12 @@
 #         include/*.h
 #         lib/*.a
 
-macro(petscLibCheck libs isRequired)
+macro(petscLibCheck libs)
   foreach(lib ${libs}) 
     unset(petsclib CACHE)
     find_library(petsclib "${lib}" PATHS ${PETSC_LIB_DIR})
     if(petsclib MATCHES "^petsclib-NOTFOUND$")
-      if(${isRequired})
-        message(FATAL_ERROR "PETSC library ${lib} not found in ${PETSC_LIB_DIR}")
-      else()
-        message("PETSC library ${lib} not found in ${PETSC_LIB_DIR}")
-      endif()
+      message("PETSC library ${lib} not found in ${PETSC_LIB_DIR}")
     else()
       set("PETSC_${lib}_FOUND" TRUE CACHE INTERNAL "PETSC library present")
       set(PETSC_LIBS ${PETSC_LIBS} ${petsclib})
@@ -75,13 +71,13 @@ set(PETSC_LIB_NAMES
   )
 endif()
 
-petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
+petscLibCheck("${PETSC_LIB_NAMES}")
 
 find_path(PETSC_INCLUDE_DIR 
   NAMES petsc.h 
   PATHS ${PETSC_INCLUDE_DIR})
 if(NOT EXISTS "${PETSC_INCLUDE_DIR}")
-  message(FATAL_ERROR "PETSC include dir not found")
+  message("PETSC include dir not found")
 endif()
 
 set(PETSC_LIBRARIES ${PETSC_LIBS} )
