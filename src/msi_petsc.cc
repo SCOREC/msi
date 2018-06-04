@@ -814,9 +814,66 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   return 0;
 }
 
+// ----------------- Testing part by Aggy --------------------------
+// This part is for testing only and shouldn't be part of the 
+// master repo; use these functions for printing output
+#include <sstream>
+#include <fstream>
+#include <cstdlib>
+#include <algorithm>
+#include <string>
+#include <vector>
+
+void print_owned_field_data(std::string, pMesh, pField);
+
+// Print vertex ID and field value if vertex is owned by current rank
+// vname is the repetitive name pattern
+// pMesh m is the pointer to mesh on this rank
+// pField f is the pointer to the pumi field in question
+void print_owned_field_data(const std::string vname, const pMesh m, const pField f)
+{
+	std::ofstream outFile;
+	std::stringstream name;
+	std::string filename;
+
+	name << PCU_Comm_Self();
+	filename = vname + name.str() + ".txt";
+	outFile.open(filename.c_str());
+	if (outFile.fail()){
+		std::cerr << "Failed to open " << filename << std::endl << std::flush;
+		std::exit(EXIT_FAILURE);
+	}
+
+	pMeshIter itv = m->begin(0);
+	pMeshEnt vtx;
+  int vtx_ID;	
+	double field_val[FIXSIZEBUFF];
+	while ((vtx = m->iterate(itv))){
+		if (pumi::instance()->mesh->isGhost(vtx))
+			continue;
+		int owner=pumi_ment_getOwnPID(vtx, msi_solver::instance()->ownership);
+		if (owner!=PCU_Comm_Self())
+			continue;
+ 		vtx_ID = msi_node_getGlobalID(vtx, 0);
+		msi_node_getField(f, vtx, 0, field_val);
+		// Assumes only 1 DOF
+		outFile << vtx_ID << " " << field_val[0] << std::endl;
+	}
+	m->end(itv);
+	
+	outFile.close();
+	MPI_Barrier(MPI_COMM_WORLD);
+}
+// ----------------- End of testing part by Aggy --------------------------
+
 int matrix_solve::solve(pField rhs, pField sol)
 {
   Vec x, b;
+
+	// --------------------- Testing
+	print_owned_field_data("rhs_", pumi::instance()->mesh, rhs);
+	// -------------------------
+
   copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   //std::cout<<" before solve "<<std::endl;
@@ -833,6 +890,11 @@ int matrix_solve::solve(pField rhs, pField sol)
   iterNum = its;
   //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
   copyPetscVec2Field(x, sol);
+
+	// --------------------- Testing
+	print_owned_field_data("solution_", pumi::instance()->mesh, sol);
+	// -------------------------
+
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
 }
