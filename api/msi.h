@@ -124,11 +124,11 @@ int msi_epetra_print(int* matrix_id);
 
 int msi_solver_aztec(int* matrix_id, pField x_field, pField b_field,
                        int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol,  double* ilu_fill,
-		       double* ilu_omega, int* poly_ord);
+           const char* krylov_solver, const char*
+           preconditioner, const char* sub_dom_solver,
+           int* overlap, int* graph_fill, double*
+           ilu_drop_tol,  double* ilu_fill,
+           double* ilu_omega, int* poly_ord);
   
 int msi_solver_amesos(int* matrix_id, pField in_field, pField out_field, const char* solver_name);
 int msi_solver_getnumiter(int* matrix_id, int * iter_num);
