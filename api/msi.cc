@@ -957,17 +957,17 @@ bool isNotAlnum(char c) {
 bool invalidChar (char c) 
 {  
   return !((c > 65 && c < 90) ||
-	   (c > 97 && c < 122) ||
-	   (c == '_'));
+     (c > 97 && c < 122) ||
+     (c == '_'));
 } 
 
 int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field, 
                        int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol, double* ilu_fill, double*
-		       ilu_omega, int* poly_ord)
+           const char* krylov_solver, const char*
+           preconditioner, const char* sub_dom_solver,
+           int* overlap, int* graph_fill, double*
+           ilu_drop_tol, double* ilu_fill, double*
+           ilu_omega, int* poly_ord)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
@@ -977,12 +977,12 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   }
   else
     if (!PCU_Comm_Self())
-	std::cout <<"[msi] "<<__func__<<": matrix "<<*
-	matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
+  std::cout <<"[msi] "<<__func__<<": matrix "<<*
+  matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
 
   // assemble matrix
   Epetra_Export exporter(/*target*/*(mat->_overlap_map),
-			 /*source*/*(mat->_owned_map));
+       /*source*/*(mat->_owned_map));
   Epetra_CrsMatrix A(Copy, *(mat->_owned_map), mat->nge);
   A.Export(*(mat->epetra_mat),exporter,Add);
   A.FillComplete();
@@ -1016,17 +1016,17 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   std::string sub_dom_solver_s = sub_dom_solver;
 
   krylov_solver_s.erase(std::remove_if(krylov_solver_s.begin(),
-				       krylov_solver_s.end(),
-				       invalidChar),
-			krylov_solver_s.end());
+               krylov_solver_s.end(),
+               invalidChar),
+      krylov_solver_s.end());
   preconditioner_s.erase(std::remove_if(preconditioner_s.begin(),
-					preconditioner_s.end(),
-					invalidChar),
-			 preconditioner_s.end());
+          preconditioner_s.end(),
+          invalidChar),
+       preconditioner_s.end());
   sub_dom_solver_s.erase(std::remove_if(sub_dom_solver_s.begin(),
-					sub_dom_solver_s.end(),
-					invalidChar),
-			 sub_dom_solver_s.end());
+          sub_dom_solver_s.end(),
+          invalidChar),
+       sub_dom_solver_s.end());
   
   if (krylov_solver_s == "cg")
     solver.SetAztecOption(AZ_solver, AZ_cg);
@@ -1069,22 +1069,22 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   if (preconditioner_s == "dom_decomp")
     {
       if (sub_dom_solver_s == "ilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
 
       if (sub_dom_solver_s == "lu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
 
       if (sub_dom_solver_s == "ilut")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
 
       if (sub_dom_solver_s == "rilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
 
       if (sub_dom_solver_s == "bilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
 
       if (sub_dom_solver_s == "icc")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
       
       // Set Aztec options from input for dom_decomp
       solver.SetAztecOption(AZ_overlap, *overlap);
@@ -1095,7 +1095,7 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
       solver.SetAztecParam(AZ_drop, *ilu_drop_tol);
       solver.SetAztecParam(AZ_ilut_fill, *ilu_fill);
       if (sub_dom_solver_s == "rilu")
-	solver.SetAztecParam(AZ_omega, *ilu_omega);
+  solver.SetAztecParam(AZ_omega, *ilu_omega);
     }
   
   // Setup alternate preconditioner options from input/default
