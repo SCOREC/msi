@@ -12,6 +12,14 @@
 #include "pumi.h"
 #include "mpi.h"
 
+// Added for the synchronization function
+#include "apfFieldData.h"
+#include "apfNew.h"
+#include "apfNumbering.h"
+//#include "/lore/trusza/scorec/apf/apfNumberingClass.h"
+#include "apfNumberingClass.h"
+#include "apfShape.h"
+
 // to-delete
 #define MSI_SUCCESS 0
 #define MSI_FAILURE 1
@@ -21,6 +29,13 @@ enum msi_matrix_type { /*0*/ MSI_MULTIPLY=0,
                        /*1*/ MSI_SOLVE}; 
 enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
                          /*1*/ MSI_FIXED};
+
+
+template <class T>
+void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, MPI_Comm comm, bool delete_shr);
+void accumulateFieldData_parasol(apf::FieldDataOf<double>* data, apf::Sharing* shr, MPI_Comm comm, bool delete_shr);
+template <class T>
+void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data, apf::Sharing* shr, int iplane, bool delete_shr);
 
 // START OF API
 // remember to delete ownership after use
@@ -109,11 +124,11 @@ int msi_epetra_print(int* matrix_id);
 
 int msi_solver_aztec(int* matrix_id, pField x_field, pField b_field,
                        int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol,  double* ilu_fill,
-		       double* ilu_omega, int* poly_ord);
+           const char* krylov_solver, const char*
+           preconditioner, const char* sub_dom_solver,
+           int* overlap, int* graph_fill, double*
+           ilu_drop_tol,  double* ilu_fill,
+           double* ilu_omega, int* poly_ord);
   
 int msi_solver_amesos(int* matrix_id, pField in_field, pField out_field, const char* solver_name);
 int msi_solver_getnumiter(int* matrix_id, int * iter_num);

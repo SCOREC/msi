@@ -45,9 +45,9 @@ int matrix_solve::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-	// This is now hardcoded for the parallel solver, 
-	// we may want to introduce a flag in the matrix_solve class 
-	// that will decided which function to use - like in matrix_mult
+  // This is now hardcoded for the parallel solver, 
+  // we may want to introduce a flag in the matrix_solve class 
+  // that will decided which function to use - like in matrix_mult
   setUpRemoteAStructParaMat();
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
@@ -193,7 +193,7 @@ int msi_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int
 
 
 // ***********************************
-// 		matrix_mult
+//    matrix_mult
 // ***********************************
 
 int matrix_mult::multiply(pField in_field, pField out_field)
@@ -243,7 +243,7 @@ int matrix_mult::multiply(pField in_field, pField out_field)
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
 
-    pumi_field_accumulate(out_field);
+    accumulateFieldData_parasol(out_field->getData(), msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
   }
 }
 int matrix_mult::assemble()
@@ -257,7 +257,7 @@ int matrix_mult::assemble()
 }
 
 // ***********************************
-// 		matrix_solve
+//    matrix_solve
 // ***********************************
 matrix_solve::matrix_solve(pField f): msi_matrix(f) 
 {  
@@ -496,7 +496,7 @@ int  msi_matrix::preAllocateParaMat()
   std::vector<PetscInt> dnnz(numBlocks), onnz(numBlocks);
   int startDof, endDofPlusOne;
   
-  // Removed and replaced with per plane (subcom) count 	
+  // Removed and replaced with per plane (subcom) count   
   //msi_field_getowndofid (field, &startDof, &endDofPlusOne);
 
   int rank, psize;
@@ -511,9 +511,9 @@ int  msi_matrix::preAllocateParaMat()
 
   // Indices for current rank  
   // Can also use a simple loop - this requires additional header 
-	// (<numeric>)
-	// Accumulate under gcc (4.7, 4.9) gives a 0 sum for .begin() - .begin() range but
-	// not sure if this is quaranteed by the standard, hence ternary 
+  // (<numeric>)
+  // Accumulate under gcc (4.7, 4.9) gives a 0 sum for .begin() - .begin() range but
+  // not sure if this is quaranteed by the standard, hence ternary 
   startDof = rank == 0 ? 0 : std::accumulate(&all_dofs[0], &all_dofs[rank], 0);
   endDofPlusOne = startDof + num_own_dof;
 
@@ -524,24 +524,24 @@ int  msi_matrix::preAllocateParaMat()
   int start_global_dof_id, end_global_dof_id_plus_one;
 
   // Total number of DOFs (nodes) per plane - can remove, both this
-	// and related assertions
+  // and related assertions
   int tot_dof = std::accumulate(&all_dofs[0], &all_dofs[psize], 0); 
-	
+  
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance()->mesh->begin(0);  
   while ((ent = pumi::instance()->mesh->iterate(it)))
   {
-		msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
 
-		// Check if correct
-		assert(start_global_dof_id >= 0); 
-		assert(start_global_dof_id < tot_dof);
+    // Check if correct
+    assert(start_global_dof_id >= 0); 
+    assert(start_global_dof_id < tot_dof);
 
-		int startIdx = start_global_dof_id;
+    int startIdx = start_global_dof_id;
 
-		if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
+    if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
-	    apf::Adjacent elements;
+      apf::Adjacent elements;
       getBridgeAdjacent(pumi::instance()->mesh, ent, brgType, 0, elements);
       int num_elem=0;
       for (int i=0; i<elements.getSize(); ++i)
@@ -557,11 +557,11 @@ int  msi_matrix::preAllocateParaMat()
     startIdx -= startDof;
     startIdx /=bs; 
 
-   	int adjNodeOwned, adjNodeGlb;
-	  pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
+    int adjNodeOwned, adjNodeGlb;
+    pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_global_adj_node_tag, &adjNodeGlb);
     pumi::instance()->mesh->getIntTag(ent, msi_solver::instance()->num_own_adj_node_tag, &adjNodeOwned);
 
-		assert(adjNodeGlb>=adjNodeOwned);
+    assert(adjNodeGlb>=adjNodeOwned);
 
     for(int i=0; i<numBlockNode; i++)
     {
@@ -619,8 +619,8 @@ int matrix_solve::setUpRemoteAStruct()
       apf::Copies remotes;
       pumi::instance()->mesh->getRemotes(ent,remotes);
       APF_ITERATE(apf::Copies, remotes, it){
-       	remotePidOwned.insert(it->first);
-			}
+        remotePidOwned.insert(it->first);
+      }
     }
     ++inode;
   }
@@ -645,11 +645,11 @@ int matrix_solve::setUpRemoteAStructParaMat()
 
   int num_vtx = pumi_mesh_getNumEnt(pumi::instance()->mesh, 0);
 
-	// For subcom check
-	MPI_Group comm_group, world_group;
-	int wrank[1], crank[1];
-	MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
-	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+  // For subcom check
+  MPI_Group comm_group, world_group;
+  int wrank[1], crank[1];
+  MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
+  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
   std::vector<int> nnz_remote(num_values*num_vtx);
   int brgType = 2;
@@ -682,12 +682,12 @@ int matrix_solve::setUpRemoteAStructParaMat()
       apf::Copies remotes;
       pumi::instance()->mesh->getRemotes(ent,remotes);
       APF_ITERATE(apf::Copies, remotes, it){
-				wrank[0] = it->first;
-				// Check if in this subcomm
-				MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-				if (crank[0] != MPI_UNDEFINED)
-        	remotePidOwned.insert(it->first);
-			}
+        wrank[0] = it->first;
+        // Check if in this subcomm
+        MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+        if (crank[0] != MPI_UNDEFINED)
+          remotePidOwned.insert(it->first);
+      }
     }
     ++inode;
   }
@@ -764,7 +764,7 @@ int msi_matrix::setupParaMat()
 {
   int num_own_ent, vertex_type=0, num_own_dof;
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance()->mesh, 0);
-	
+  
   msi_field_getnumowndof(field, &num_own_dof);
 
   int dofPerEnt=0;
@@ -923,7 +923,9 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
     msi_node_setField(f, ent, 0, dofPerEnt, &dof_data[0]);
   }
   pumi::instance()->mesh->end(it);
-  pumi_field_synchronize(f);
+
+  synchronizeFieldData_parasol<double>(f->getData(), msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
+  
   return 0;
 }
 
@@ -932,7 +934,7 @@ int matrix_solve::solve(pField rhs, pField sol)
   Vec x, b;
   copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
-  //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
+
   if(!kspSet) setKspType();
   ierr = KSPSolve(*ksp, b, x);
   CHKERRQ(ierr);
@@ -943,8 +945,9 @@ int matrix_solve::solve(pField rhs, pField sol)
   if (PCU_Comm_Self() == 0)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   iterNum = its;
-  //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
+  
   copyPetscVec2Field(x, sol);
+
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
 }

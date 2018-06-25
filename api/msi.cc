@@ -19,7 +19,6 @@
 #include "apfFieldData.h"
 #include "apfNew.h"
 #include "apfNumbering.h"
-//#include "/lore/trusza/scorec/apf/apfNumberingClass.h"
 #include "apfNumberingClass.h"
 #include "apfShape.h"
 
@@ -39,23 +38,20 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
     shr = getSharing(m);
     delete_shr=true;
   }
+  int own_plane = PCU_Comm_Self()%8;
+  // Rank membership checking
+  MPI_Group comm_group, world_group;
+  int wrank[1], crank[1];
+  // Group made out of this communicator and world
+  MPI_Comm_group(comm, &comm_group);
+  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
   for (int d=0; d < 4; ++d)
   {
     if ( ! s->hasNodesIn(d))
       continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
-    
-	// Can we move the MPI grouping outside the for loop?
-	PCU_Comm_Begin();
-	
-	// Rank membership checking
-	MPI_Group comm_group, world_group;
-	int wrank[1], crank[1];
-	// Group made out of this communicator and world
-	MPI_Comm_group(comm, &comm_group);
-	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-
+    PCU_Comm_Begin();
     while ((e = m->iterate(it)))
     {
       if (( ! data->hasEntity(e))||
@@ -68,34 +64,13 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
       shr->getCopies(e, copies);
       for (size_t i = 0; i < copies.getSize(); ++i)
       {
-		// Local rank in part of this comm, MPI_UNDEFINED 
-		// otherwise (need to check if guaranteed)
-		wrank[0] = copies[i].peer;
-		// Check just this one rank - can possibly be made more efficient 
-		// if we have all peers ranks at a time instead
-		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-		// If in comm, process			
-		if (crank[0] != MPI_UNDEFINED)
-		{
-        	PCU_COMM_PACK(copies[i].peer, copies[i].entity);
-        	PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(T));
-			//std::cout << "Got in!" << std::endl;
-		}else{
-			//std::cout << "Didn't get in!" << std::endl;
-		}
-      }
-      apf::Copies ghosts;  
-      if (m->getGhosts(e, ghosts))
-      APF_ITERATE(Copies, ghosts, it)
-      {
-		// Same as above
-		wrank[0] = it->first;
-		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-		if (crank[0] != MPI_UNDEFINED)
-		{	
-        	PCU_COMM_PACK(it->first, it->second);
-        	PCU_Comm_Pack(it->first, &(values[0]), n*sizeof(T));
-		}
+        wrank[0] = copies[i].peer;
+        MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+        if (crank[0] != MPI_UNDEFINED)
+        {
+          PCU_COMM_PACK(copies[i].peer, copies[i].entity);
+          PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(T));
+        }      
       }
     }
     m->end(it);
@@ -109,20 +84,158 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
       PCU_Comm_Unpack(&(values[0]),n*sizeof(T));
       data->set(e,&(values[0]));
     }
-	// Free the temporary groups
- 	MPI_Group_free(&comm_group);
-  	MPI_Group_free(&world_group);
-  }
-
+   }
   if (delete_shr) delete shr;
-
+  MPI_Group_free(&comm_group);
+  MPI_Group_free(&world_group);
 }
-
-/* instantiate here */
 template void synchronizeFieldData_parasol<int>(apf::FieldDataOf<int>*, apf::Sharing*, MPI_Comm, bool);
 template void synchronizeFieldData_parasol<double>(apf::FieldDataOf<double>*, apf::Sharing*, MPI_Comm, bool);
 template void synchronizeFieldData_parasol<long>(apf::FieldDataOf<long>*, apf::Sharing*, MPI_Comm, bool);
 
+void accumulateFieldData_parasol(apf::FieldDataOf<double>* data, apf::Sharing* shr, MPI_Comm comm, bool delete_shr)
+{
+  apf::FieldBase* f = data->getField();
+  apf::Mesh* m = f->getMesh();
+  apf::FieldShape* s = f->getShape();
+  if (!shr)
+  {
+    shr = getSharing(m);
+    delete_shr=true;
+  }
+
+  int own_plane = PCU_Comm_Self()%8;
+
+  // Rank membership checking
+  MPI_Group comm_group, world_group;
+  int wrank[1], crank[1];
+  // Group made out of this communicator and world
+  MPI_Comm_group(comm, &comm_group);
+  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+  for (int d=0; d < 4; ++d)
+  {
+    if ( ! s->hasNodesIn(d))
+      continue;
+    apf::MeshEntity* e;
+    apf::MeshIterator* it = m->begin(d);
+    PCU_Comm_Begin();
+    while ((e = m->iterate(it)))
+    {
+      if (( ! data->hasEntity(e)) || m->isGhost(e) ||
+          (shr->isOwned(e)))
+        continue; /* non-owners send to owners */
+      
+      apf::CopyArray copies;
+      shr->getCopies(e, copies);
+      int n = f->countValuesOn(e);
+      apf::NewArray<double> values(n);
+      data->get(e,&(values[0]));
+      /* actually, non-owners send to all others,
+         since apf::Sharing doesn't identify the owner */
+      for (size_t i = 0; i < copies.getSize(); ++i)
+      {
+        wrank[0] = copies[i].peer; // add group removal
+        MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+        if (crank[0] != MPI_UNDEFINED)
+        {
+          PCU_COMM_PACK(copies[i].peer, copies[i].entity);
+          PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(double));
+        }
+      }
+    }
+    m->end(it);
+    PCU_Comm_Send();
+    while (PCU_Comm_Listen())
+      while ( ! PCU_Comm_Unpacked())
+      { /* receive and add. we only care about correctness
+           on the owners */
+        apf::MeshEntity* e;
+        PCU_COMM_UNPACK(e);
+        int n = f->countValuesOn(e);
+        apf::NewArray<double> values(n);
+        apf::NewArray<double> inValues(n);
+        PCU_Comm_Unpack(&(inValues[0]),n*sizeof(double));
+        data->get(e,&(values[0]));
+        for (int i = 0; i < n; ++i)
+          values[i] += inValues[i];
+        data->set(e,&(values[0]));
+      }
+  } /* broadcast back out to non-owners */
+  synchronizeFieldData_parasol<double>(data, shr, comm, delete_shr);
+  MPI_Group_free(&comm_group);
+  MPI_Group_free(&world_group);
+}
+
+// Synchronization function for collecting field data from the same group on all planes
+// Assumes that DOF ordering in apf::Field corresponds to plane ordering i.e. DOF i is the
+// value on plane i; maybe just overload the previous 
+template <class T>
+void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data, apf::Sharing* shr, int iplane, bool delete_shr)
+{
+  std::map<apf::MeshEntity*, std::vector<T> > all_values; 
+  apf::FieldBase* f = data->getField();
+  apf::Mesh* m = f->getMesh();
+  apf::FieldShape* s = f->getShape();
+  if (!shr)
+  {
+    shr = getSharing(m);
+    delete_shr=true;
+  }
+  for (int d=0; d < 4; ++d)
+  {
+    if ( ! s->hasNodesIn(d))
+      continue;
+    apf::MeshEntity* e;
+    apf::MeshIterator* it = m->begin(d);
+    
+    PCU_Comm_Begin();
+    while ((e = m->iterate(it)))
+    {
+      if (( ! data->hasEntity(e))||
+          ( ! shr->isOwned(e)))
+        continue;
+      int n = f->countValuesOn(e);
+      apf::NewArray<T> values(n);
+      data->get(e,&(values[0]));
+      // Own plane - value
+      all_values[e].resize(n);
+      all_values[e][iplane] = values[iplane];
+      CopyArray copies;
+      shr->getCopies(e, copies);
+      for (size_t i = 0; i < copies.getSize(); ++i)
+      {
+          PCU_COMM_PACK(copies[i].peer, iplane);
+          PCU_COMM_PACK(copies[i].peer, copies[i].entity);
+          PCU_Comm_Pack(copies[i].peer, &values[iplane], sizeof(T));
+      }
+    }
+    m->end(it);
+    PCU_Comm_Send();
+
+    while (PCU_Comm_Receive())
+    {
+      apf::MeshEntity* e;
+      int iplane = -1;
+      T value;
+      PCU_COMM_UNPACK(iplane);
+      PCU_COMM_UNPACK(e);
+      int n = f->countValuesOn(e);
+      apf::NewArray<T> values(n);
+      all_values[e].resize(n); // this is far from ideal but will do for now
+      PCU_Comm_Unpack(&value, sizeof(T));
+      all_values[e][iplane] = value;
+    }
+    // If the resulting vector is not continguous, garbage will propagate
+    typename std::map<apf::MeshEntity*, std::vector<T> >::iterator it_elem;
+    for (it_elem = all_values.begin(); it_elem != all_values.end(); it_elem++)
+      data->set(it_elem->first, &it_elem->second[0]);
+  }
+  if (delete_shr) delete shr;
+}
+template void synchronizeFieldData_parasol_all_planes<int>(apf::FieldDataOf<int>*, apf::Sharing*, MPI_Comm, bool);
+template void synchronizeFieldData_parasol_all_planes<double>(apf::FieldDataOf<double>*, apf::Sharing*, MPI_Comm, bool);
+template void synchronizeFieldData_parasol_all_planes<long>(apf::FieldDataOf<long>*, apf::Sharing*, MPI_Comm, bool);
 
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape 
@@ -1103,17 +1216,17 @@ bool isNotAlnum(char c) {
 bool invalidChar (char c) 
 {  
   return !((c > 65 && c < 90) ||
-	   (c > 97 && c < 122) ||
-	   (c == '_'));
+     (c > 97 && c < 122) ||
+     (c == '_'));
 } 
 
 int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field, 
                        int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol, double* ilu_fill, double*
-		       ilu_omega, int* poly_ord)
+           const char* krylov_solver, const char*
+           preconditioner, const char* sub_dom_solver,
+           int* overlap, int* graph_fill, double*
+           ilu_drop_tol, double* ilu_fill, double*
+           ilu_omega, int* poly_ord)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
@@ -1123,12 +1236,12 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   }
   else
     if (!PCU_Comm_Self())
-	std::cout <<"[msi] "<<__func__<<": matrix "<<*
-	matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
+  std::cout <<"[msi] "<<__func__<<": matrix "<<*
+  matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
 
   // assemble matrix
   Epetra_Export exporter(/*target*/*(mat->_overlap_map),
-			 /*source*/*(mat->_owned_map));
+       /*source*/*(mat->_owned_map));
   Epetra_CrsMatrix A(Copy, *(mat->_owned_map), mat->nge);
   A.Export(*(mat->epetra_mat),exporter,Add);
   A.FillComplete();
@@ -1162,17 +1275,17 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   std::string sub_dom_solver_s = sub_dom_solver;
 
   krylov_solver_s.erase(std::remove_if(krylov_solver_s.begin(),
-				       krylov_solver_s.end(),
-				       invalidChar),
-			krylov_solver_s.end());
+               krylov_solver_s.end(),
+               invalidChar),
+      krylov_solver_s.end());
   preconditioner_s.erase(std::remove_if(preconditioner_s.begin(),
-					preconditioner_s.end(),
-					invalidChar),
-			 preconditioner_s.end());
+          preconditioner_s.end(),
+          invalidChar),
+       preconditioner_s.end());
   sub_dom_solver_s.erase(std::remove_if(sub_dom_solver_s.begin(),
-					sub_dom_solver_s.end(),
-					invalidChar),
-			 sub_dom_solver_s.end());
+          sub_dom_solver_s.end(),
+          invalidChar),
+       sub_dom_solver_s.end());
   
   if (krylov_solver_s == "cg")
     solver.SetAztecOption(AZ_solver, AZ_cg);
@@ -1215,22 +1328,22 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   if (preconditioner_s == "dom_decomp")
     {
       if (sub_dom_solver_s == "ilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
 
       if (sub_dom_solver_s == "lu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
 
       if (sub_dom_solver_s == "ilut")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
 
       if (sub_dom_solver_s == "rilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
 
       if (sub_dom_solver_s == "bilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
 
       if (sub_dom_solver_s == "icc")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
+  solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
       
       // Set Aztec options from input for dom_decomp
       solver.SetAztecOption(AZ_overlap, *overlap);
@@ -1241,7 +1354,7 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
       solver.SetAztecParam(AZ_drop, *ilu_drop_tol);
       solver.SetAztecParam(AZ_ilut_fill, *ilu_fill);
       if (sub_dom_solver_s == "rilu")
-	solver.SetAztecParam(AZ_omega, *ilu_omega);
+  solver.SetAztecParam(AZ_omega, *ilu_omega);
     }
   
   // Setup alternate preconditioner options from input/default

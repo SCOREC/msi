@@ -20,7 +20,7 @@
 #include <Epetra_CrsMatrix.h>
 
 // ***********************************
-// 		MSI_LINEAR SYSTEM
+//    MSI_LINEAR SYSTEM
 // ***********************************
 
 msi_ls* msi_ls::_instance=NULL;
@@ -77,7 +77,7 @@ apf::Numbering* get_owned_numbering()
 
 
 // ***********************************
-// 		MSI_EPETRA
+//    MSI_EPETRA
 // ***********************************
 
 Epetra_Map* createEpetraMap(global_ordinal_type num_dof, bool owned)
