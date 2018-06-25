@@ -26,7 +26,7 @@ using std::complex;
 #endif
 
 // ***********************************
-// 		MSI_SOLVER
+//    MSI_SOLVER
 // ***********************************
 
 msi_solver* msi_solver::_instance=NULL;
