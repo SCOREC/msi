@@ -18,12 +18,6 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-# default installation
-#get_filename_component (default_prefix ".." ABSOLUTE)
-#set (CMAKE_INSTALL_PREFIX ${default_prefix} CACHE STRING
-#      "Choose the installation directory; by default it installs in the NORMA directory."
-#      FORCE)
-
 # FFLAGS depend on the compiler
 get_filename_component(Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 message(Fortran_COMPILER_NAME = ${Fortran_COMPILER_NAME})
@@ -68,12 +62,13 @@ set(CMAKE_MODULE_PATH
    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 set(lib_name msi)
-find_package(Scorec REQUIRED)
-set(include_dirs ${include_dirs} ${SCOREC_INCLUDE_DIRS})
-set(link_libs ${link_libs} ${SCOREC_LIBRARIES})
 
 find_package(las REQUIRED)
 set(link_libs ${link_libs} las)
+
+find_package(SCOREC REQUIRED)
+set(link_libs ${link_libs} SCOREC::apf SCOREC::pumi)
+
 
 #Source and header files
 set(SOURCES
@@ -89,11 +84,10 @@ set(HEADERS
 
 add_library(${lib_name} ${SOURCES})
 target_link_libraries(${lib_name} ${link_libs})
-target_include_directories(${lib_name}
+target_include_directories(${lib_name} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api>
-  $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-  ${include_dirs})
+  $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
 INSTALL(FILES ${HEADERS} DESTINATION include)
 INSTALL(TARGETS ${lib_name}

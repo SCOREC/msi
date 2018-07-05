@@ -1,25 +1,15 @@
-/****************************************************************************** 
-
-  (c) 2017 Scientific Computation Research Center, 
+/******************************************************************************
+  (c) 2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
 *******************************************************************************/
 #include "msi.h"
-#include "pumi.h"
-#include <iostream>
-#include <assert.h>
+#include <pumi.h>
 #include <parma.h>
-#include "PCU.h"
-#include "petscksp.h"
+#include <PCU.h>
+#include <cassert>
 #include <iostream>
-#include <assert.h>
-
-using namespace std;
-static char help[] = "Purpose: testing pumi-petsc interface;\n\tdo mat-vec product A*b=c; solve Ax=c; compare x and b\n";
-
 bool AlmostEqualDoubles(double A, double B,
             double maxDiff, double maxRelDiff);
 
