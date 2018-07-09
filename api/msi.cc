@@ -38,7 +38,6 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
     shr = getSharing(m);
     delete_shr=true;
   }
-  int own_plane = PCU_Comm_Self()%8;
   // Rank membership checking
   MPI_Group comm_group, world_group;
   int wrank[1], crank[1];
@@ -103,9 +102,6 @@ void accumulateFieldData_parasol(apf::FieldDataOf<double>* data, apf::Sharing* s
     shr = getSharing(m);
     delete_shr=true;
   }
-
-  int own_plane = PCU_Comm_Self()%8;
-
   // Rank membership checking
   MPI_Group comm_group, world_group;
   int wrank[1], crank[1];
@@ -188,7 +184,6 @@ void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data, apf::Sha
       continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
-    
     PCU_Comm_Begin();
     while ((e = m->iterate(it)))
     {
@@ -212,7 +207,6 @@ void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data, apf::Sha
     }
     m->end(it);
     PCU_Comm_Send();
-
     while (PCU_Comm_Receive())
     {
       apf::MeshEntity* e;
