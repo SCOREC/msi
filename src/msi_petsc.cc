@@ -243,7 +243,8 @@ int matrix_mult::multiply(pField in_field, pField out_field)
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
 
-    pumi_field_accumulate(out_field);
+    accumulateFieldData_parasol(out_field->getData(),
+        msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
   }
 }
 int matrix_mult::assemble()
@@ -923,7 +924,9 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
     msi_node_setField(f, ent, 0, dofPerEnt, &dof_data[0]);
   }
   pumi::instance()->mesh->end(it);
-  pumi_field_synchronize(f);
+  synchronizeFieldData_parasol<double>(f->getData(),
+      msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
+
   return 0;
 }
 
