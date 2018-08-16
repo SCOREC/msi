@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2017 Scientific Computation Research Center, 
+  (c) 2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #include "msi.h"
 #include "msi_solver.h"
@@ -28,7 +28,10 @@ void set_adj_node_tag(pMesh m, pOwnership, pMeshTag num_global_adj_node_tag, pMe
 
 // Synchronization alternative to apf::synchronizeFieldData for multiple ownership in parasol
 template <class T>
-void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, MPI_Comm comm, bool delete_shr)
+void synchronizeFieldData_parasol(apf::FieldDataOf<T> * data,
+                                  apf::Sharing * shr,
+                                  MPI_Comm comm,
+                                  bool delete_shr)
 {
   apf::FieldBase* f = data->getField();
   apf::Mesh* m = f->getMesh();
@@ -44,16 +47,16 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
       continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
-    
-	// Can we move the MPI grouping outside the for loop?
-	PCU_Comm_Begin();
-	
-	// Rank membership checking
-	MPI_Group comm_group, world_group;
-	int wrank[1], crank[1];
-	// Group made out of this communicator and world
-	MPI_Comm_group(comm, &comm_group);
-	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+    // Can we move the MPI grouping outside the for loop?
+    PCU_Comm_Begin();
+
+    // Rank membership checking
+    MPI_Group comm_group, world_group;
+    int wrank[1], crank[1];
+    // Group made out of this communicator and world
+    MPI_Comm_group(comm, &comm_group);
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
     while ((e = m->iterate(it)))
     {
@@ -67,35 +70,35 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
       shr->getCopies(e, copies);
       for (size_t i = 0; i < copies.getSize(); ++i)
       {
-		// Local rank in part of this comm, MPI_UNDEFINED 
-		// otherwise (need to check if guaranteed)
-		wrank[0] = copies[i].peer;
-		// Check just this one rank - can possibly be made more efficient 
-		// if we have all peers ranks at a time instead
-		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-		// If in comm, process			
-		if (crank[0] != MPI_UNDEFINED)
-		{
-        	PCU_COMM_PACK(copies[i].peer, copies[i].entity);
-        	PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(T));
-			//std::cout << "Got in!" << std::endl;
-		}else{
-			//std::cout << "Didn't get in!" << std::endl;
-		}
+        // Local rank in part of this comm, MPI_UNDEFINED
+        // otherwise (need to check if guaranteed)
+        wrank[0] = copies[i].peer;
+        // Check just this one rank - can possibly be made more efficient
+        // if we have all peers ranks at a time instead
+        MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+        // If in comm, process
+        if (crank[0] != MPI_UNDEFINED)
+        {
+          PCU_COMM_PACK(copies[i].peer, copies[i].entity);
+          PCU_Comm_Pack(copies[i].peer, &(values[0]), n*sizeof(T));
+          //std::cout << "Got in!" << std::endl;
+        }else{
+          //std::cout << "Didn't get in!" << std::endl;
+        }
       }
-      apf::Copies ghosts;  
+      apf::Copies ghosts;
       if (m->getGhosts(e, ghosts))
-      APF_ITERATE(Copies, ghosts, it)
-      {
-		// Same as above
-		wrank[0] = it->first;
-		MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-		if (crank[0] != MPI_UNDEFINED)
-		{	
-        	PCU_COMM_PACK(it->first, it->second);
-        	PCU_Comm_Pack(it->first, &(values[0]), n*sizeof(T));
-		}
-      }
+        APF_ITERATE(Copies, ghosts, it)
+        {
+          // Same as above
+          wrank[0] = it->first;
+          MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
+          if (crank[0] != MPI_UNDEFINED)
+          {
+            PCU_COMM_PACK(it->first, it->second);
+            PCU_Comm_Pack(it->first, &(values[0]), n*sizeof(T));
+          }
+        }
     }
     m->end(it);
     PCU_Comm_Send();
@@ -108,9 +111,9 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr, 
       PCU_Comm_Unpack(&(values[0]),n*sizeof(T));
       data->set(e,&(values[0]));
     }
-	// Free the temporary groups
- 	MPI_Group_free(&comm_group);
-  	MPI_Group_free(&world_group);
+    // Free the temporary groups
+    MPI_Group_free(&comm_group);
+    MPI_Group_free(&world_group);
   }
 
   if (delete_shr) delete shr;
@@ -124,14 +127,14 @@ template void synchronizeFieldData_parasol<long>(apf::FieldDataOf<long>*, apf::S
 
 
 // returns sequential local numbering of entity's ith node
-// local numbering is based on mesh shape 
+// local numbering is based on mesh shape
 int msi_node_getID (pMeshEnt e, int n)
 {
   assert(apf::isNumbered(msi_solver::instance()->local_n,e,n,0));
   return pumi_node_getNumber(msi_solver::instance()->local_n, e, n);
 }
 
-// returns global numbering of entity's ith node 
+// returns global numbering of entity's ith node
 // global numbering is based on ownership set in msi_start
 int msi_node_getGlobalID (pMeshEnt e, int n)
 {
@@ -187,7 +190,7 @@ int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data)
 
 //*******************************************************
 void msi_node_getFieldID (pField f, pMeshEnt e, int n,
-     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+                          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
   int num_dof = apf::countComponents(f);
@@ -201,7 +204,7 @@ void msi_node_getFieldID (pField f, pMeshEnt e, int n,
 
 //*******************************************************
 void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
-     int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+                                int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
   int num_dof = apf::countComponents(f);
@@ -216,7 +219,7 @@ void msi_node_getGlobalFieldID (pField f, pMeshEnt e, int n,
 //********************************************************
 void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
 //********************************************************
-{  
+{
 #if 0 // turn on to debug with gdb
   int i, processid = getpid();
   if (!PCU_Comm_Self())
@@ -229,7 +232,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-  if (o) 
+  if (o)
   {
     msi_solver::instance()->ownership=o;
     if (!pumi_rank()) std::cout<<"[msi] ("<<pumi_rank()<<") "<<__func__<<": user-defined ownership is in use\n";
@@ -243,7 +246,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
 
   pumi_mesh_setCount(m, o);
 
-  if (s) 
+  if (s)
     pumi_mesh_setShape(m, s);
   else
     s = pumi_mesh_getShape(m);
@@ -251,14 +254,14 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   PetscMemorySetGetMaximumUsage();
   msi_solver::instance()->num_global_adj_node_tag = m->createIntTag("msi_num_global_adj_node", 1);
   msi_solver::instance()->num_own_adj_node_tag = m->createIntTag("msi_num_own_adj_node", 1);
-  set_adj_node_tag(m, o, msi_solver::instance()->num_global_adj_node_tag, 
+  set_adj_node_tag(m, o, msi_solver::instance()->num_global_adj_node_tag,
                    msi_solver::instance()->num_own_adj_node_tag);
 
   // set local numbering
   const char* name = s->getName();
   pNumbering ln = m->findNumbering(name);
-  if (!ln) 
-    ln = apf::numberOverlapNodes(m,name,s); 
+  if (!ln)
+    ln = apf::numberOverlapNodes(m,name,s);
   msi_solver::instance()->local_n = ln;
 
   // generate global ID's per ownership
@@ -270,7 +273,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   msi_solver::instance()->vertices = new pMeshEnt[m->count(0)];
 
   pMeshEnt e;
-  pMeshIter it =m->begin(0);  
+  pMeshIter it =m->begin(0);
   while ((e = m->iterate(it)))
   {
 #ifdef DEBUG
@@ -323,14 +326,14 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name, pSha
 }
 
 void msi_finalize(pMesh m)
-{  
+{
   apf::removeTagFromDimension(m, msi_solver::instance()->num_global_adj_node_tag, 0);
   m->destroyTag(msi_solver::instance()->num_global_adj_node_tag);
   apf::removeTagFromDimension(m, msi_solver::instance()->num_own_adj_node_tag, 0);
   m->destroyTag(msi_solver::instance()->num_own_adj_node_tag);
 
   pumi_numbering_delete(msi_solver::instance()->local_n);
-  pumi_numbering_delete(msi_solver::instance()->global_n);  
+  pumi_numbering_delete(msi_solver::instance()->global_n);
 }
 
 pOwnership msi_getOwnership()
@@ -353,15 +356,15 @@ void msi_field_assign(pField f, double* fac)
       dofs.at(2*i+1)=fac[1];
 
   pMeshEnt e;
-  pMeshIter it = pumi::instance()->mesh->begin(0);  
+  pMeshIter it = pumi::instance()->mesh->begin(0);
   while ((e = pumi::instance()->mesh->iterate(it)))
     msi_node_setField (f, e, 0, dofPerEnt, &dofs[0]);
   pumi::instance()->mesh->end(it);
 }
 
 //*******************************************************
-pField msi_field_create (pMesh m, const char* /* in */ field_name, int /*in*/ num_values, 
-int /*in*/ num_dofs_per_value, pShape shape)
+pField msi_field_create (pMesh m, const char* /* in */ field_name, int /*in*/ num_values,
+                         int /*in*/ num_dofs_per_value, pShape shape)
 //*******************************************************
 {
   int scalar_type=0;
@@ -415,7 +418,7 @@ msi_matrix* msi_matrix_create(int matrix_type, pField f)
     matrix_mult* new_mat = new matrix_mult(f);
     return (msi_matrix*)new_mat;
   }
-  else 
+  else
   {
     matrix_solve* new_mat= new matrix_solve(f);
     return (msi_matrix*)new_mat;
@@ -429,7 +432,7 @@ pField msi_matrix_getField(pMatrix mat)
 
 
 //*******************************************************
-void msi_matrix_assemble(pMatrix mat) 
+void msi_matrix_assemble(pMatrix mat)
 //*******************************************************
 {
 #ifdef DEBUG
@@ -441,7 +444,7 @@ void msi_matrix_assemble(pMatrix mat)
 //*******************************************************
 void msi_matrix_delete(pMatrix mat)
 //*******************************************************
-{  
+{
 #ifdef DEBUG
   if (!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<"\n";
 #endif
@@ -449,10 +452,10 @@ void msi_matrix_delete(pMatrix mat)
 }
 
 //*******************************************************
-void msi_matrix_insert(pMatrix mat, int row, 
-         int col, int scalar_type, double* val)
+void msi_matrix_insert(pMatrix mat, int row,
+                       int col, int scalar_type, double* val)
 //*******************************************************
-{  
+{
   assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
@@ -471,10 +474,10 @@ void msi_matrix_insert(pMatrix mat, int row,
 }
 
 //*******************************************************
-void msi_matrix_add (pMatrix mat, int row, int col, 
-                    int scalar_type, double* val) 
+void msi_matrix_add (pMatrix mat, int row, int col,
+                     int scalar_type, double* val)
 //*******************************************************
-{  
+{
   assert(mat->get_status()!=MSI_FIXED);
 
 #ifdef DEBUG
@@ -495,7 +498,7 @@ void msi_matrix_add (pMatrix mat, int row, int col,
 //*******************************************************
 void msi_matrix_setBC(pMatrix mat, int row)
 //*******************************************************
-{  
+{
   assert(mat->get_type()==MSI_SOLVE);
 
   int num_values = msi_field_getNumVal(mat->get_field());
@@ -519,7 +522,7 @@ void msi_matrix_setBC(pMatrix mat, int row)
 
 //*******************************************************
 void msi_matrix_setLaplaceBC(pMatrix mat, int row,
-         int numVals, int* columns, double* values)
+                             int numVals, int* columns, double* values)
 //*******************************************************
 {
   assert(mat->get_type()==MSI_SOLVE);
@@ -533,7 +536,7 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
   pMeshEnt e = msi_solver::instance()->vertices[inode];
 
   int start_global_dof_id, end_global_dof_id_plus_one;
-  msi_node_getGlobalFieldID(mat->get_field(), e, 0, 
+  msi_node_getGlobalFieldID(mat->get_field(), e, 0,
                             &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
@@ -554,9 +557,9 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row,
 }
 
 //*******************************************************
-void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec) 
+void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
 //*******************************************************
-{  
+{
 #ifdef DEBUG
   if (!PCU_Comm_Self()) std::cout<<"[msi] "<<__func__<<": input \""<<getName(inputvec)<<"\", output \""<<getName(outputvec)<<"\"\n";
 #endif
@@ -566,13 +569,13 @@ void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
 }
 
 //*******************************************************
-void msi_matrix_solve(pMatrix mat, pField rhs, pField sol) 
+void msi_matrix_solve(pMatrix mat, pField rhs, pField sol)
 //*******************************************************
-{  
+{
   assert(mat->get_type()==MSI_SOLVE);
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[msi] "<<__func__<<": RHS \""<<getName(rhs)<<"\", sol \""<<getName(sol)<<"\"\n";
+    std::cout <<"[msi] "<<__func__<<": RHS \""<<getName(rhs)<<"\", sol \""<<getName(sol)<<"\"\n";
 #endif
   (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
 }
@@ -580,13 +583,13 @@ void msi_matrix_solve(pMatrix mat, pField rhs, pField sol)
 //*******************************************************
 int msi_matrix_getNumIter(pMatrix mat)
 //*******************************************************
-{ 
+{
   return dynamic_cast<matrix_solve*> (mat)->iterNum;
 }
 
 //*******************************************************
-void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, 
-          int rowIdx, int columnIdx, double* values)
+void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
+                         int rowIdx, int columnIdx, double* values)
 //*******************************************************
 {
   // need to change later, should get the value from field calls ...
@@ -627,9 +630,9 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
     for(int inode=0; inode<num_node; inode++)
     {
-      if (mmat->is_mat_local()) 
+      if (mmat->is_mat_local())
         msi_node_getFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
-      else 
+      else
         msi_node_getGlobalFieldID(mat->get_field(), vertices[inode], 0, &start_global_dof_id, &end_global_dof_id_plus_one);
       for(int i=0; i<dofPerVar; i++)
       {
@@ -663,7 +666,7 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
     {
       if (nodeOwner[inode]!=PCU_Comm_Self())
         smat->add_blockvalues(1, rows_bloc+inode, num_node, columns_bloc, values+offset);
-      else 
+      else
         smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*num_node, columns, values+offset);
       offset+=numValuesNode;
     }
@@ -678,7 +681,7 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e,
 void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
 //*******************************************************
 {
-  if (!filename) 
+  if (!filename)
     return msi_matrix_print(mat);
 
   char matrix_filename[256];
@@ -709,7 +712,7 @@ void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
       ++index;
     }
   }
-  fclose(fp);  
+  fclose(fp);
   assert(index == vals.size());
 }
 
@@ -759,13 +762,13 @@ void verifyFieldEpetraVector(apf::Field* f, Epetra_MultiVector* x)
   assert(countComponents(f)*m3dc1_mesh::instance()->mesh->count(0)==x->MyLength());
 
   for(int i=0; i<x->MyLength(); ++i)
-  { 
+  {
     assert(!value_is_nan((*x)[0][i]) && !value_is_nan(field_data[i]));
 
     if (!(m3dc1_double_isequal((*x)[0][i], field_data[i])))
       std::cout<<"[p"<<PCU_Comm_Self()<<"] x["<<i<<"]="<<(*x)[0][i]
-                <<", field_data["<<i<<"]="<<field_data[i]<<"\n";
-      assert(m3dc1_double_isequal((*x)[0][i], field_data[i]));
+               <<", field_data["<<i<<"]="<<field_data[i]<<"\n";
+    assert(m3dc1_double_isequal((*x)[0][i], field_data[i]));
   }
 }
 
@@ -777,14 +780,14 @@ int m3dc1_epetra_create(int* matrix_id, int* matrix_type, pField f)
   {
     if (!PCU_Comm_Self())
       std::cout <<"[msi] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
-    return M3DC1_FAILURE; 
+    return M3DC1_FAILURE;
   }
   // check field exists
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
   {
     if (!PCU_Comm_Self())
       std::cout <<"[msi] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
-    return M3DC1_FAILURE; 
+    return M3DC1_FAILURE;
   }
   m3dc1_ls::instance()->add_matrix(*matrix_id, new m3dc1_epetra(*matrix_id, *matrix_type, *field_id));
   return M3DC1_SUCCESS;
@@ -819,33 +822,33 @@ void print_elem (int elem_id)
 {
   int ielm_dim;
   apf::Mesh2* m=m3dc1_mesh::instance()->mesh;
-  
+
   int num_node_per_element;
   apf::Downward downward;
 
-  ielm_dim = (m->getDimension()==2)? 2:3; 
+  ielm_dim = (m->getDimension()==2)? 2:3;
   apf::MeshEntity* e = getMdsEntity(m, ielm_dim, elem_id);
   num_node_per_element = m->getDownward(e, 0, downward);
- 
+
   int *id = new int[num_node_per_element];
   for (int i=0; i<num_node_per_element; ++i)
     id[i] = get_ent_globalid(m, downward[i]);
 
   switch (num_node_per_element)
-  { 
-    case 3: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
-                      <<id[0]<<" "<<id[1]<<" "<<id[2]<<"\n";
-            break;
-    case 4: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
-                      <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<"\n";
-            break;
-    case 5: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
-                      <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<" "<<id[4]<<"\n";
-            break;
-    case 6: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
-                      <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<" "<<id[4]<<" "<<id[5]<<"\n";
-            break;
-    default: break;
+  {
+   case 3: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
+                     <<id[0]<<" "<<id[1]<<" "<<id[2]<<"\n";
+     break;
+   case 4: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
+                     <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<"\n";
+     break;
+   case 5: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
+                     <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<" "<<id[4]<<"\n";
+     break;
+   case 6: std::cout <<"["<<PCU_Comm_Self()<<"] elem "<<elem_id<<": nodes "
+                     <<id[0]<<" "<<id[1]<<" "<<id[2]<<" "<<id[3]<<" "<<id[4]<<" "<<id[5]<<"\n";
+     break;
+   default: break;
   }
   delete [] id;
 }
@@ -864,7 +867,7 @@ void epetra_add_values(Epetra_CrsMatrix* mat, int rsize, int * rows, int csize, 
       col[0] = columns[j];
       val[0] = values[i*csize+j];
       int ierr = mat->SumIntoGlobalValues(rows[i], 1, val, col);
-      if (ierr) 
+      if (ierr)
         ierr =mat->InsertGlobalValues(rows[i], 1, val, col);
       assert(!ierr);
     }
@@ -917,8 +920,8 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
       }
     }
     //FIXME: mmat->add_values(dofPerVar*num_node, rows,dofPerVar*num_node, columns, values);
-    epetra_add_values(mat->epetra_mat, dofPerVar*num_node, 
-                      rows,dofPerVar*num_node, columns, values);     
+    epetra_add_values(mat->epetra_mat, dofPerVar*num_node,
+                      rows,dofPerVar*num_node, columns, values);
   }
   else //M3DC1_SOLVE
   {
@@ -941,8 +944,8 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
     for(int inode=0; inode<num_node; inode++)
     {
       // FIXME: smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*num_node, columns, values+offset);
-      epetra_add_values(mat->epetra_mat, dofPerVar, rows+dofPerVar*inode, 
-                       dofPerVar*num_node, columns, values+offset);
+      epetra_add_values(mat->epetra_mat, dofPerVar, rows+dofPerVar*inode,
+                        dofPerVar*num_node, columns, values+offset);
       offset += numValuesNode;
     }
   }
@@ -976,12 +979,12 @@ int m3dc1_epetra_setbc(int* matrix_id, int* row)
 #endif
   global_ordinal_type row_g = start_global_dof_id+*row%total_num_dof;
   global_ordinal_type col[1]; col[0] = row_g;
-  double val[1]; val[0]=1.0; 
- 
+  double val[1]; val[0]=1.0;
+
   // MatSetValue(*A, row, row, 1.0, ADD_VALUES);
 
   int err = mat->epetra_mat->SumIntoGlobalValues(row_g, 1, val, col);
-  if (err) 
+  if (err)
     err =mat->epetra_mat->InsertGlobalValues(row_g, 1, val, col);
   assert(err == 0);
 
@@ -1018,7 +1021,7 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
     columns_g.at(i) = start_global_dof_id+columns[i]%total_num_dof;
 
   int err = mat->epetra_mat->SumIntoGlobalValues(row_g, *numVals, values, &columns_g[0]);
-  if (err) 
+  if (err)
     err =mat->epetra_mat->InsertGlobalValues(row_g, *numVals, values, &columns_g[0]);
   return M3DC1_SUCCESS;
 }
@@ -1094,25 +1097,25 @@ void copyEpetraVec2Field(Epetra_MultiVector* x, apf::Field* f)
 }
 
 bool isNotAlnum(char c) {
-    return isalnum(c) == 0;
+  return isalnum(c) == 0;
 }
 
 // For filtering spaces and control characters in Trilinos
 // options
-bool invalidChar (char c) 
-{  
+bool invalidChar (char c)
+{
   return !((c > 65 && c < 90) ||
-	   (c > 97 && c < 122) ||
-	   (c == '_'));
-} 
+           (c > 97 && c < 122) ||
+           (c == '_'));
+}
 
-int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field, 
+int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
                        int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol, double* ilu_fill, double*
-		       ilu_omega, int* poly_ord)
+                       const char* krylov_solver, const char*
+                       preconditioner, const char* sub_dom_solver,
+                       int* overlap, int* graph_fill, double*
+                       ilu_drop_tol, double* ilu_fill, double*
+                       ilu_omega, int* poly_ord)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
@@ -1122,19 +1125,19 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   }
   else
     if (!PCU_Comm_Self())
-	std::cout <<"[msi] "<<__func__<<": matrix "<<*
-	matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
+      std::cout <<"[msi] "<<__func__<<": matrix "<<*
+        matrix_id<<", field "<<* x_fieldid<<" (tol "<<*tolerance<<")\n";
 
   // assemble matrix
   Epetra_Export exporter(/*target*/*(mat->_overlap_map),
-			 /*source*/*(mat->_owned_map));
+                                   /*source*/*(mat->_owned_map));
   Epetra_CrsMatrix A(Copy, *(mat->_owned_map), mat->nge);
   A.Export(*(mat->epetra_mat),exporter,Add);
   A.FillComplete();
   A.OptimizeStorage();
   A.MakeDataContiguous();
 
-  // copy field to vec  
+  // copy field to vec
   apf::Field* b_field = (*(m3dc1_mesh::instance()->field_container))[*b_fieldid]->get_field();
   synchronize_field(b_field);
   double* b_field_data = getArrayData(b_field);
@@ -1161,18 +1164,18 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   std::string sub_dom_solver_s = sub_dom_solver;
 
   krylov_solver_s.erase(std::remove_if(krylov_solver_s.begin(),
-				       krylov_solver_s.end(),
-				       invalidChar),
-			krylov_solver_s.end());
+                                       krylov_solver_s.end(),
+                                       invalidChar),
+                        krylov_solver_s.end());
   preconditioner_s.erase(std::remove_if(preconditioner_s.begin(),
-					preconditioner_s.end(),
-					invalidChar),
-			 preconditioner_s.end());
+                                        preconditioner_s.end(),
+                                        invalidChar),
+                         preconditioner_s.end());
   sub_dom_solver_s.erase(std::remove_if(sub_dom_solver_s.begin(),
-					sub_dom_solver_s.end(),
-					invalidChar),
-			 sub_dom_solver_s.end());
-  
+                                        sub_dom_solver_s.end(),
+                                        invalidChar),
+                         sub_dom_solver_s.end());
+
   if (krylov_solver_s == "cg")
     solver.SetAztecOption(AZ_solver, AZ_cg);
 
@@ -1209,40 +1212,40 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
 
   if (preconditioner_s == "dom_decomp")
     solver.SetAztecOption(AZ_precond, AZ_dom_decomp);
-  
+
   // Setup subdomain solver from input/default
   if (preconditioner_s == "dom_decomp")
-    {
-      if (sub_dom_solver_s == "ilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
+  {
+    if (sub_dom_solver_s == "ilu")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
 
-      if (sub_dom_solver_s == "lu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
+    if (sub_dom_solver_s == "lu")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_lu);
 
-      if (sub_dom_solver_s == "ilut")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
+    if (sub_dom_solver_s == "ilut")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_ilut);
 
-      if (sub_dom_solver_s == "rilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
+    if (sub_dom_solver_s == "rilu")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_rilu);
 
-      if (sub_dom_solver_s == "bilu")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
+    if (sub_dom_solver_s == "bilu")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_bilu);
 
-      if (sub_dom_solver_s == "icc")
-	solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
-      
-      // Set Aztec options from input for dom_decomp
-      solver.SetAztecOption(AZ_overlap, *overlap);
-      solver.SetAztecOption(AZ_graph_fill, *graph_fill);
+    if (sub_dom_solver_s == "icc")
+      solver.SetAztecOption(AZ_subdomain_solve, AZ_icc);
 
-      // Setup Aztec parameters from input/default
-      solver.SetAztecParam(AZ_tol, *tolerance);
-      solver.SetAztecParam(AZ_drop, *ilu_drop_tol);
-      solver.SetAztecParam(AZ_ilut_fill, *ilu_fill);
-      if (sub_dom_solver_s == "rilu")
-	solver.SetAztecParam(AZ_omega, *ilu_omega);
-    }
-  
+    // Set Aztec options from input for dom_decomp
+    solver.SetAztecOption(AZ_overlap, *overlap);
+    solver.SetAztecOption(AZ_graph_fill, *graph_fill);
+
+    // Setup Aztec parameters from input/default
+    solver.SetAztecParam(AZ_tol, *tolerance);
+    solver.SetAztecParam(AZ_drop, *ilu_drop_tol);
+    solver.SetAztecParam(AZ_ilut_fill, *ilu_fill);
+    if (sub_dom_solver_s == "rilu")
+      solver.SetAztecParam(AZ_omega, *ilu_omega);
+  }
+
   // Setup alternate preconditioner options from input/default
   if (preconditioner_s == "Jacobi" ||
       preconditioner_s == "Neumann" ||
@@ -1253,7 +1256,7 @@ int m3dc1_solver_aztec(int* matrix_id, pField x_field, pField b_field,
   // Now perform the solve
   solver.Iterate(*num_iter,*tolerance);
   mat->num_solver_iter = solver.NumIters();
-  
+
   apf::Field* x_field = (*(m3dc1_mesh::instance()->field_container))[*x_fieldid]->get_field();
   copyEpetraVec2Field(&x, x_field);
   return M3DC1_SUCCESS;
@@ -1278,7 +1281,7 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, 
 
   Epetra_Export exporter(*(mat->_overlap_map),*(mat->_owned_map));
   Epetra_CrsMatrix A(Copy, *(mat->_owned_map), mat->nge);
-  
+
   apf::Field* b_field = (*(m3dc1_mesh::instance()->field_container))[*b_fieldid]->get_field();
   double* b_field_data = getArrayData(b_field);
 
@@ -1343,7 +1346,7 @@ int m3dc1_epetra_freeze(int* matrix_id)
 {
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   assert(mat);
-  
+
   mat->epetra_mat->FillComplete();
   assert(mat->epetra_mat->Filled());
   return M3DC1_SUCCESS;
@@ -1442,7 +1445,7 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
       apf::MeshEntity* ownerEnt2=pumi_ment_getOwnEnt(elements[i],o);
       int owner=pumi_ment_getOwnPID(elements[i], o);
       msgs.push_back(entMsg(owner, ownerEnt2));
-      if(own_partid==PCU_Comm_Self()) 
+      if(own_partid==PCU_Comm_Self())
       {
         count_map2[e].insert(*msgs.rbegin());
       }
@@ -1472,7 +1475,7 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag, p
     }
   }
 
-  for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); 
+  for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin();
        mit!=count_map2.end(); ++mit)
   {
     e = mit->first;
