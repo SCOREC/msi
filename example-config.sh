@@ -4,10 +4,12 @@ if [ -z "${DEVROOT}" ] ; then
 fi
 
 if [ -z "${INSTALLROOT}" ] ; then
+    echo "No INSTALLROOT in environment, default is $DEVROOT/install"
     INSTALLROOT=$DEVROOT/install
 fi
 
 if [ -z "${SCOREC_ROOT}" ] ; then
+    echo "No SCOREC_ROOT in environment, default is $INSTALLROOT/core/lib/cmake/SCOREC"
     SCOREC_ROOT=$INSTALLROOT/core/lib/cmake/SCOREC
 fi
 
