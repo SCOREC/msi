@@ -16,11 +16,10 @@
 #include <vector>
 #include <assert.h>
 // Added for the synchronization function
-#include "apfFieldData.h"
+#include "apfFieldData.h" // not a public-facing api
 #include "apfNew.h"
 #include "apfNumbering.h"
-//#include "/lore/trusza/scorec/apf/apfNumberingClass.h"
-#include "apfNumberingClass.h"
+#include "apfNumberingClass.h" // not a public-facing api
 #include "apfShape.h"
 
 using std::vector;
