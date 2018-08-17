@@ -47,14 +47,12 @@ set(SOURCES
   api/msi.cc
   src/msi_solver.cc
   src/msi_petsc.cc
-  src/msi_trilinos.cc
 )
 
 set(HEADERS
   api/msi.h
   include/msi_solver.h
   include/msi_petsc.h
-  include/msi_trilinos.h
 )
 
 # create the msi library and set include dirs and link libraries

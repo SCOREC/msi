@@ -7,7 +7,6 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifdef MSI_PETSC
 #ifndef MSI_PETSC_H
 #define MSI_PETSC_H
 #include "pumi.h"
@@ -104,4 +103,3 @@ private:
 };
 
 #endif
-#endif //#ifdef MSI_PETSC
