@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
-project(msi)
-enable_language(CXX)
-enable_language(C)
-enable_language(Fortran)
+project(msi VERSION 0.1.0 LANGUAGES CXX C Fortran)
+
+include(cmake/bob.cmake)
+bob_begin_package()
 
 # make sure that the default is a RELEASE
 if(NOT CMAKE_BUILD_TYPE)
@@ -18,10 +18,31 @@ if(BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
 endif()
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/msiConfig.cmake.in"
-  "${CMAKE_BINARY_DIR}/msiConfig.cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+
+set(TARGET_LIB_NAME msi)
+
+# find dependencies and set library and include dir info
+
+find_package(SCOREC CONFIG REQUIRED)
+
+if(ENABLE_PETSC)
+  find_package(PETSc REQUIRED)
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
+
+  set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES})
+  set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PETSC_INCLUDE_DIRS})
+
+  if(ENABLE_COMPLEX)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX)
+    set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
+  endif()
+endif()
 
 # source and header files
+
 set(SOURCES
   api/msi.cc
   src/msi_solver.cc
@@ -36,49 +57,10 @@ set(HEADERS
   include/msi_trilinos.h
 )
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
-
-set(TARGET_LIB_NAME msi)
-
-# find dependencies and set library and include dir info
-
-find_package(SCOREC CONFIG REQUIRED)
-
-if(ENABLE_TRILINOS)
-  find_package(Trilinos REQUIRED)
-  find_package(Boost REQUIRED)
-
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMSI_TRILINOS")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSI_TRILINOS")
-
-  set(INCLUDE_DIRS ${TRILINOS_INCLUDE_DIRS})
-  set(DEP_LIBS ${DEP_LIBS} ${TRILINOS_LIBRARIES} ${BOOST_LIBRARIES})
-
-  set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_trilinos)
-else()
-  set(ENABLE_PETSC "ON")
-endif()
-
-if(ENABLE_PETSC)
-  find_package(PETSc REQUIRED)
-  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
-
-  set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES})
-  set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PETSC_INCLUDE_DIRS})
-
-  set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_petsc)
-
-  if(ENABLE_COMPLEX)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX)
-    set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
-  endif()
-endif()
-
 # create the msi library and set include dirs and link libraries
 
 add_library(${TARGET_LIB_NAME} STATIC ${SOURCES})
+set_target_properties(${TARGET_LIB_NAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 target_link_libraries(${TARGET_LIB_NAME} SCOREC::pumi SCOREC::apf ${DEP_LIBS})
 target_include_directories(${TARGET_LIB_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -86,13 +68,9 @@ target_include_directories(${TARGET_LIB_NAME} PUBLIC
   $<INSTALL_INTERFACE:include/${TARGET_LIB_NAME}>
   ${INCLUDE_DIRS})
 
-# installation instructions
+# installation and target export setup
+bob_export_target(${TARGET_LIB_NAME})
 
-INSTALL(FILES ${HEADERS} DESTINATION include)
-INSTALL(TARGETS ${TARGET_LIB_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  INCLUDES DESTINATION include/${TARGET_LIB_NAME})
 
 # binary distribution package
 set(CPACK_GENERATOR "TGZ")
@@ -119,14 +97,9 @@ if(ENABLE_TESTING)
     target_link_libraries(petsc ${TARGET_LIB_NAME} ${DEP_LIBS})
     # INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
   endif()
-  if(ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${TARGET_LIB_NAME} ${DEP_LIBS})
-    # INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-  endif()
 endif()
 
-#Doxygen generation system
+# doxygen generation system
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
@@ -138,3 +111,5 @@ COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
 endif(DOXYGEN_FOUND)
 
+# finalize target export
+bob_end_package()
