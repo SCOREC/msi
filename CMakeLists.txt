@@ -1,33 +1,81 @@
-#This is the top MSI CMakeList File for the Build
+cmake_minimum_required(VERSION 3.11)
+project(msi VERSION 0.1.0 LANGUAGES CXX C Fortran)
 
-#Setting Version Number, Project Name
-cmake_minimum_required (VERSION 2.8)
-project (msi)
-enable_language (Fortran)
+include(cmake/bob.cmake)
+bob_begin_package()
 
 # make sure that the default is a RELEASE
-if (NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RELEASE CACHE STRING
       "Choose the type of build, options are: None Debug Release."
       FORCE)
-endif (NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
-# default installation
-#get_filename_component (default_prefix ".." ABSOLUTE)
-#set (CMAKE_INSTALL_PREFIX ${default_prefix} CACHE STRING
-#      "Choose the installation directory; by default it installs in the NORMA directory."
-#      FORCE)
-
-# FFLAGS depend on the compiler
-get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-message (Fortran_COMPILER_NAME = ${Fortran_COMPILER_NAME})
-
-#unless building shared libs, then select static libs 
-# if both static and shared libs are available 
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so") 
+# unless building shared libs, then select static libs
+#  if both static and shared libs are available
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
 if(BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
 endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+
+set(TARGET_LIB_NAME msi)
+
+# find dependencies and set library and include dir info
+
+find_package(SCOREC CONFIG REQUIRED)
+
+if(ENABLE_PETSC)
+  find_package(PETSc REQUIRED)
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
+
+  set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES})
+  set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PETSC_INCLUDE_DIRS})
+
+  if(ENABLE_COMPLEX)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX)
+    set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
+  endif()
+endif()
+
+# source and header files
+
+set(SOURCES
+  api/msi.cc
+  src/msi_solver.cc
+  src/msi_petsc.cc
+)
+
+set(HEADERS
+  api/msi.h
+  include/msi_solver.h
+  include/msi_petsc.h
+)
+
+# create the msi library and set include dirs and link libraries
+
+add_library(${TARGET_LIB_NAME} STATIC ${SOURCES})
+set_target_properties(${TARGET_LIB_NAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
+target_link_libraries(${TARGET_LIB_NAME} SCOREC::pumi SCOREC::apf ${DEP_LIBS})
+target_include_directories(${TARGET_LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api>
+  $<INSTALL_INTERFACE:include/${TARGET_LIB_NAME}>
+  ${INCLUDE_DIRS})
+
+# installation and target export setup
+bob_export_target(${TARGET_LIB_NAME})
+
+
+# binary distribution package
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VERSION "1.0.1")
+include(CPack)
+
+## Testing and Documentation
 
 #Settings options for testing
 enable_testing()
@@ -35,13 +83,21 @@ include(CTest)
 #This will be set to ON by the CTest driver script (and only by that)
 option(ENABLE_TESTING "Build for CTest" OFF)
 set(MPIRUN "mpirun"
-    CACHE string 
+    CACHE string
     "the mpirun or srun executable")
 set(MPIRUN_PROCFLAG "-np"
-    CACHE string 
+    CACHE string
     "the command line flag to give process count to MPIRUN")
 
-#Doxygen generation system
+if(ENABLE_TESTING)
+  if(ENABLE_PETSC)
+    add_executable(petsc test/petsc/main.cc)
+    target_link_libraries(petsc ${TARGET_LIB_NAME} ${DEP_LIBS})
+    # INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  endif()
+endif()
+
+# doxygen generation system
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
@@ -53,102 +109,5 @@ COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
 endif(DOXYGEN_FOUND)
 
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/msiConfig.cmake.in"
-    "${CMAKE_BINARY_DIR}/msiConfig.cmake")
-
-#Source and header files
-set(SOURCES
-  api/msi.cc
-  src/msi_solver.cc
-  src/msi_petsc.cc
-  src/msi_trilinos.cc
-)
-
-set(HEADERS
-  api/msi.h 
-  include/msi_solver.h
-  include/msi_petsc.h
-  include/msi_trilinos.h
-)
-
-set(CMAKE_MODULE_PATH 
-   ${CMAKE_MODULE_PATH} 
-   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/api)
-set(TARGET_LIB_NAME msi)
-
-find_package(Scorec QUIET REQUIRED)
-include_directories(${SCOREC_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${SCOREC_LIBRARIES} )
-
-if (ENABLE_TRILINOS)
-find_package(Trilinos QUIET REQUIRED)
-find_package(Boost QUIET REQUIRED)
-include_directories(${TRILINOS_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${TRILINOS_LIBRARIES})
-set(DEP_LIBS ${DEP_LIBS} ${BOOST_LIBRARIES})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMSI_TRILINOS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSI_TRILINOS")
-set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_trilinos)
-else()
-  set(ENABLE_PETSC "ON")
-endif()
-
-if (ENABLE_PETSC)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMSI_PETSC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSI_PETSC")
-find_package(Hdf5 QUIET REQUIRED)
-set(DEP_LIBS ${DEP_LIBS} ${HDF5_LIBRARIES} )
-find_package(Petsc QUIET REQUIRED)
-include_directories(${PETSC_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES} )
-endif()
-
-if(ENABLE_COMPLEX)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX")
-set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
-endif()
-
-add_library(${TARGET_LIB_NAME} ${SOURCES})
-target_link_libraries(${TARGET_LIB_NAME} ${DEP_LIBS})
-
-INSTALL(FILES ${HEADERS} DESTINATION include)
-INSTALL(TARGETS ${TARGET_LIB_NAME}
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib)
-
-if (ENABLE_TESTING)
-if (ENABLE_PETSC)
-add_executable(petsc test/petsc/main.cc)
-target_link_libraries(petsc ${DEP_LIBS})
-target_link_libraries(petsc ${TARGET_LIB_NAME})
-INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)  
-endif()
-if (ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${DEP_LIBS})
-    target_link_libraries(epetra ${TARGET_LIB_NAME})
-    INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-endif() #enable_testing
-
-#binary distribution package
-set(CPACK_GENERATOR "TGZ")
-set(CPACK_PACKAGE_VERSION "1.0.1")
-include(CPack)
-
-message("ENV_FLAGS = $ENV{FFLAGS}")
-message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
-message("CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
-message("CMAKE_Fortran_COMPILER_INIT = ${CMAKE_Fortran_COMPILER_INIT}")
-message("CMAKE_Fortran_COMPILER_FULLPATH =
-${CMAKE_Fortran_COMPILER_FULLPATH}")
-message("CMAKE_Fortran_COMPILER = ${CMAKE_Fortran_COMPILER}")
-message("CMAKE_Fortran_FLAGS = ${CMAKE_Fortran_FLAGS}")
-message("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-
-
+# finalize target export
+bob_end_package()

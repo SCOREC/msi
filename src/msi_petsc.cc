@@ -7,7 +7,6 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#ifdef MSI_PETSC
 #include "msi_petsc.h"
 #include "apf.h"
 #include "apfNumbering.h"
@@ -931,4 +930,3 @@ int msi_matrix::printInfo()
   MatStashGetInfo(*A,&nstash,&reallocs,&bnstash,&breallocs);
   std::cout<<"\t nstash, reallocs, bnstash, breallocs "<<nstash<<" "<<reallocs<<" "<<bnstash<<" "<<breallocs<<std::endl;
 }
-#endif //#ifndef MSI_MESHGEN
