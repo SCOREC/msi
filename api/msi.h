@@ -10,7 +10,6 @@
 #ifndef MSI_HEADER_H
 #define MSI_HEADER_H
 #include "pumi.h"
-#include "mpi.h"
 #include "msi_petsc.h"
 
 // to-delete
@@ -25,11 +24,9 @@ enum msi_matrix_status { /*0*/ MSI_NOT_FIXED=0,
 
 // START OF API
 // remember to delete ownership after use
-void msi_start(pMesh m, pOwnership o=NULL, pShape s=NULL, MPI_Comm cm=MPI_COMM_NULL);
+void msi_start(pMesh m, pOwnership o=NULL, pShape s=NULL);
 void msi_finalize(pMesh m);
 pOwnership msi_getOwnership();
-
-pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name, pShape s, pOwnership o, MPI_Comm cm); // [PARASOL]
 
 // field creation with multiple variables
 pField msi_field_create (pMesh m, const char* /* in */ field_name, 
