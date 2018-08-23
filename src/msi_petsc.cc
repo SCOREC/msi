@@ -242,7 +242,6 @@ int matrix_mult::multiply(pField in_field, pField out_field)
     MatMult(*A, b, c);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
-
     accumulateFieldData_parasol(out_field->getData(),
         msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
   }
@@ -926,7 +925,6 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   pumi::instance()->mesh->end(it);
   synchronizeFieldData_parasol<double>(f->getData(),
       msi_solver::instance()->ownership, PETSC_COMM_WORLD, false);
-
   return 0;
 }
 
@@ -934,8 +932,8 @@ int matrix_solve::solve(pField rhs, pField sol)
 {
   Vec x, b;
   copyField2PetscVec(rhs, b);
-  int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
-  //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
+  int ierr = VecDuplicate(b, &x);
+  CHKERRQ(ierr);
   if(!kspSet) setKspType();
   ierr = KSPSolve(*ksp, b, x);
   CHKERRQ(ierr);
@@ -946,7 +944,6 @@ int matrix_solve::solve(pField rhs, pField sol)
   if (PCU_Comm_Self() == 0)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   iterNum = its;
-  //VecView(x, PETSC_VIEWER_STDOUT_WORLD);
   copyPetscVec2Field(x, sol);
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
