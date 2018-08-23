@@ -19,6 +19,13 @@ int copyField2PetscVec(pField f, Vec& petscVec);
 int copyPetscVec2Field(Vec& petscVec, pField f);
 void printMemStat();
 
+// Added for the synchronization function
+#include "apfFieldData.h"
+#include "apfNew.h"
+#include "apfNumbering.h"
+#include "apfNumberingClass.h"
+#include "apfShape.h"
+
 // NOTE: all field realted interaction is done through msi api rather than apf
 class msi_matrix
 {
@@ -92,6 +99,7 @@ public:
   int iterNum;
 private:  
   int setUpRemoteAStruct();
+  int setUpRemoteAStructParaMat();
   int setKspType();
   int kspSet;
   KSP* ksp; 
