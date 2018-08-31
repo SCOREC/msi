@@ -4,7 +4,6 @@ sudo: true
 
 before_script:
   - pwd
-  - cd ~
   - export DEVROOT=`pwd`
   - echo ${DEVROOT}
   - export NP=`grep -c ^processor /proc/cpuinfo`
