@@ -20,7 +20,7 @@ before_script:
   - cd build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
   - make -j ${NP} && make install
-  - cd ..
+  - cd ../..
 
 script:
   - cd msi
