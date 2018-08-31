@@ -6,6 +6,7 @@ before_script:
   - pwd
   - export NP=`grep -c ^processor /proc/cpuinfo`
   - export DEVROOT=${TRAVIS_BUILD_DIR}
+  - echo ${DEVROOT}
   - sudo apt-get update -y
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update -y
@@ -36,4 +37,3 @@ script:
 before_install:
   - test -n $CC  && unset CC
   - test -n $CXX && unset CXX
-  - cd ~
