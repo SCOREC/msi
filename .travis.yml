@@ -16,7 +16,6 @@ before_script:
   - which mpicc
   - git clone --branch=develop https://github.com/SCOREC/core.git
   - cd core
-  - cat mds/mds.c
   - mkdir -p build
   - cd build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
