@@ -15,18 +15,19 @@ before_script:
   - mpicc --version
   - which mpicc
   - git clone --branch=develop https://github.com/SCOREC/core.git
-  - cd core
+  - cd ${DEVROOT}/core
   - mkdir -p build
-  - cd build
+  - cd ${DEVROOT}/core/build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
   - make -j ${NP} && make install
-  - cd ../..
+  - cd ${DEVROOT}
+  - pwd && ls
 
 script:
-  - cd msi
+  - cd ${DEVROOT}/msi
   - mkdir -p build
   - cp example-config.sh build/config.sh
-  - cd build
+  - cd ${DEVROOT}/msi/build
   - ./config.sh
   - make -j ${NP} VERBOSE=1
   - ctest
