@@ -11,6 +11,8 @@ before_script:
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
   - sudo update-alternatives --config gcc
   - sudo apt-get --yes install mpich
+  - mpicc --version
+  - which mpicc
   - git clone https://github.com/SCOREC/core.git
   - cd core
   - git checkout develop
