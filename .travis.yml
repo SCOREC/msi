@@ -4,9 +4,10 @@ sudo: true
 
 before_script:
   - pwd
-  - export NP=`grep -c ^processor /proc/cpuinfo`
-  - export DEVROOT=${TRAVIS_BUILD_DIR}
+  - cd ~
+  - export DEVROOT=`pwd`
   - echo ${DEVROOT}
+  - export NP=`grep -c ^processor /proc/cpuinfo`
   - sudo apt-get update -y
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update -y
@@ -18,7 +19,7 @@ before_script:
   - which mpicc
   - git clone --branch=develop https://github.com/SCOREC/core.git
   - cd ${DEVROOT}/core
-  - mkdir -p build
+  - mkdir -p ${DEVROOT}/core/build
   - cd ${DEVROOT}/core/build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
   - make -j ${NP} && make install
@@ -26,10 +27,10 @@ before_script:
   - pwd && ls
 
 script:
-  - cd ${DEVROOT}/msi
-  - mkdir -p build
-  - cp example-config.sh build/config.sh
-  - cd ${DEVROOT}/msi/build
+  - cd ${DEVROOT}/SCOREC/msi
+  - mkdir -p ${DEVROOT}/SCOREC/msi/build
+  - cp ${DEVROOT}/SCOREC/msi/example-config.sh ${DEVROOT}/SCOREC/msi/build/config.sh
+  - cd ${DEVROOT}/SCOREC/msi/build
   - ./config.sh
   - make -j ${NP} VERBOSE=1
   - ctest
