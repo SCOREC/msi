@@ -1,0 +1,27 @@
+language: cpp
+compiler: gcc
+sudo: true
+
+before_script:
+  - set DEVROOT=${TRAVIS_BUILD_DIR}
+  - sudo apt-get update
+  - sudo apt-get --yes install mpich
+  - git clone git@github.com:SCOREC/core.git
+  - cd core
+  - mkdir -p build
+  - cd build
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+  - make && make install
+
+script:
+  - set DEVROOT=${TRAVIS_BUILD_DIR}
+  - mkdir -p build
+  - cp example-config.sh build/config.sh
+  - cd build
+  - ./config.sh
+  - make
+  - ctest
+
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX
