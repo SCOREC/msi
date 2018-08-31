@@ -23,7 +23,7 @@ before_script:
   - cd ..
 
 script:
-  - cd SCOREC/msi
+  - cd msi
   - mkdir -p build
   - cp example-config.sh build/config.sh
   - cd build
@@ -34,3 +34,4 @@ script:
 before_install:
   - test -n $CC  && unset CC
   - test -n $CXX && unset CXX
+  - cd ~
