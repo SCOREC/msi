@@ -5,8 +5,6 @@ sudo: true
 before_script:
   - export DEVROOT=${TRAVIS_BUILD_DIR}
   - sudo apt-get update -y
-  - sudo apt-get upgrade -y
-  - sudo apt-get dist-upgrade -y
   - sudo add-apt-repository ppa:ubuntu-toolchian-r/test -y
   - sudo apt-get update -y
   - sudo apt-get --yes install gcc-7 g++-7
