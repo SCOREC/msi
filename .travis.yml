@@ -13,9 +13,10 @@ before_script:
   - cd build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
   - make && make install
+  - cd ..
 
 script:
-  - export DEVROOT=${TRAVIS_BUILD_DIR}
+  - cd SCOREC/msi
   - mkdir -p build
   - cp example-config.sh build/config.sh
   - cd build
