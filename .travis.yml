@@ -4,7 +4,14 @@ sudo: true
 
 before_script:
   - export DEVROOT=${TRAVIS_BUILD_DIR}
-  - sudo apt-get update
+  - sudo apt-get update -y
+  - sudo apt-get upgrade -y
+  - sudo apt-get dist-upgrade -y
+  - sudo add-apt-repository ppa:ubuntu-toolchian-r/test -y
+  - sudo apt-get update -y
+  - sudo apt-get --yes install gcc-7 g++-7
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo update-alternatives --config gcc
   - sudo apt-get --yes install mpich
   - git clone https://github.com/SCOREC/core.git
   - cd core
@@ -12,7 +19,7 @@ before_script:
   - mkdir -p build
   - cd build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
-  - make && make install
+  - make -j 2 && make install
   - cd ..
 
 script:
@@ -21,7 +28,7 @@ script:
   - cp example-config.sh build/config.sh
   - cd build
   - ./config.sh
-  - make
+  - make -j 2
   - ctest
 
 before_install:
