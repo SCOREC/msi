@@ -17,7 +17,7 @@ before_script:
   - mkdir -p build
   - cd build
   - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install -DIS_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
-  - make -j 2 && make install
+  - make -j 2 VERBOSE=1 && make install
   - cd ..
 
 script:
@@ -26,7 +26,7 @@ script:
   - cp example-config.sh build/config.sh
   - cd build
   - ./config.sh
-  - make -j 2
+  - make -j 2 VERBOSE=1
   - ctest
 
 before_install:
