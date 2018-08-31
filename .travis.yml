@@ -3,6 +3,7 @@ compiler: gcc
 sudo: true
 
 before_script:
+  - pwd
   - export NP=`grep -c ^processor /proc/cpuinfo`
   - export DEVROOT=${TRAVIS_BUILD_DIR}
   - sudo apt-get update -y
