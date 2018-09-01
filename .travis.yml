@@ -4,8 +4,7 @@ sudo: true
 
 before_script:
   - pwd
-  - export DEVROOT=`pwd`
-  - echo ${DEVROOT}
+  - export DEVROOT=/home/travis/build
   - export NP=`grep -c ^processor /proc/cpuinfo`
   - sudo apt-get update -y
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
