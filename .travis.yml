@@ -28,8 +28,8 @@ before_script:
 script:
   - cd ${DEVROOT}/SCOREC/msi
   - mkdir -p ${DEVROOT}/SCOREC/msi/build
-  - cp ${DEVROOT}/SCOREC/msi/example-config.sh ${DEVROOT}/SCOREC/msi/build/config.sh
-  - cd ${DEVROOT}/SCOREC/msi/build
+  - cp example-config.sh build/config.sh
+  - cd build
   - ./config.sh
   - make -j ${NP} VERBOSE=1
   - ctest
