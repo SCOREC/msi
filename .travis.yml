@@ -1,0 +1,47 @@
+language: cpp
+compiler: gcc
+sudo: true
+
+before_script:
+  - pwd
+  - export DEVROOT=/home/travis/build
+  - cd ${DEVROOT}
+  - export NP=`grep -c ^processor /proc/cpuinfo`
+  - sudo apt-get update -y
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update -y
+  - sudo apt-get --yes install gcc-7 g++-7
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo update-alternatives --config gcc
+  - sudo apt-get --yes install mpich
+  - mpicc --version
+  - which mpicc
+  - cd ${DEVROOT}
+  - git clone https://bitbucket.org/petsc/petsc.git petsc
+  - cd ${DEVROOT}/petsc
+  - ./configure --prefix=${DEVROOT}/install/petsc/real --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=real --with-clanguange=C++ --with-64-bit-indices=1 --PETSC_ARCH=real-cxx-gcc-720-debug
+  - make -j ${NP} && make install
+  - ./configure --prefix=${DEVROOT}/install/petsc/complex --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=complex --with-clanguange=C++ --with-64-bit-indices=1 --PETSC_ARCH=complex-cxx-gcc-720-debug
+  - make -j ${NP} && make install
+  - cd ${DEVROOT}
+  - git clone --branch=develop https://github.com/SCOREC/core.git core
+  - cd ${DEVROOT}/core
+  - mkdir -p ${DEVROOT}/core/build
+  - cd ${DEVROOT}/core/build
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/core -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
+  - make -j ${NP} && make install
+  - cd ${DEVROOT}
+  - pwd && ls
+
+script:
+  - cd ${DEVROOT}/SCOREC/msi
+  - mkdir -p ${DEVROOT}/SCOREC/msi/build
+  - cd build
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_LIB_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_LIB_DIR=${DEVROOT}/install/core/lib/ -DSCOREC_INCLUDE_DIR=${DEVROOT}/install/core/include -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
+  - ./config.sh
+  - make -j ${NP} VERBOSE=1
+  - ctest
+
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX

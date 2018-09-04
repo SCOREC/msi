@@ -56,7 +56,6 @@ set(HEADERS
 )
 
 # create the msi library and set include dirs and link libraries
-
 add_library(${TARGET_LIB_NAME} STATIC ${SOURCES})
 set_target_properties(${TARGET_LIB_NAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 target_link_libraries(${TARGET_LIB_NAME} SCOREC::pumi SCOREC::apf ${DEP_LIBS})
