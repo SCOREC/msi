@@ -22,6 +22,7 @@ before_script:
   - cd ${DEVROOT}/cmake-3.12.1
   - ./bootstrap
   - make -j ${NP} && sudo make install
+  - which cmake
   - cmake --version
   - cd ${DEVROOT}
   - git clone https://bitbucket.org/petsc/petsc.git petsc
@@ -35,7 +36,7 @@ before_script:
   - cd ${DEVROOT}/core
   - mkdir -p ${DEVROOT}/core/build
   - cd ${DEVROOT}/core/build
-  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/core -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
+  - cmake-3.12 .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/core -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
   - make -j ${NP} && make install
   - cd ${DEVROOT}
   - pwd && ls
@@ -44,7 +45,7 @@ script:
   - cd ${DEVROOT}/SCOREC/msi
   - mkdir -p ${DEVROOT}/SCOREC/msi/build
   - cd build
-  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_LIB_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_LIB_DIR=${DEVROOT}/install/core/lib/ -DSCOREC_INCLUDE_DIR=${DEVROOT}/install/core/include -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
+  - cmake-3.12 .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_LIB_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_LIB_DIR=${DEVROOT}/install/core/lib/ -DSCOREC_INCLUDE_DIR=${DEVROOT}/install/core/include -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
   - ./config.sh
   - make -j ${NP} VERBOSE=1
   - ctest
