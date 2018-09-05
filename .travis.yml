@@ -46,7 +46,7 @@ script:
   - cd ${DEVROOT}/SCOREC/msi
   - mkdir -p ${DEVROOT}/SCOREC/msi/build
   - cd build
-  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_LIB_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_DIR=${DEVROOT}/install/core/lib/cmake/SCOREC/ -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_DIR=${DEVROOT}/install/core/lib/cmake/SCOREC/ -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
   - ./config.sh
   - make -j ${NP} VERBOSE=1
   - ctest
