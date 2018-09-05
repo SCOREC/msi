@@ -758,7 +758,7 @@ void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
   for (int i = 0; i < rows.size( ); ++i)
     sum_csize += n_cols[i];
   assert(vals.size( ) == sum_csize);
-  fprintf(fp, "%d\t%d\t%d\n", rows.size( ), n_cols.size( ), vals.size( ));
+  fprintf(fp, "%lu\t%lu\t%lu\n", rows.size( ), n_cols.size( ), vals.size( ));
   for (int i = 0; i < rows.size( ); ++i)
   {
     row = rows[i];
