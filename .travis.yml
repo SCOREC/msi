@@ -47,9 +47,9 @@ install:
   - cd ${DEVROOT}
   - git clone https://bitbucket.org/petsc/petsc.git petsc
   - cd ${DEVROOT}/petsc
-  - ./configure --prefix=${DEVROOT}/install/petsc/real --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=real --with-clanguange=C++ --with-64-bit-indices=1 --PETSC_ARCH=real-cxx-gcc-720-debug
+  - ./configure --prefix=${DEVROOT}/install/petsc/real --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=real --with-clanguange=C++ --with-64-bit-indices=0 --PETSC_ARCH=real-cxx-gcc-720-debug
   - make -j ${NP} && make install
-  - ./configure --prefix=${DEVROOT}/install/petsc/complex --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=complex --with-clanguange=C++ --with-64-bit-indices=1 --PETSC_ARCH=complex-cxx-gcc-720-debug
+  - ./configure --prefix=${DEVROOT}/install/petsc/complex --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=complex --with-clanguange=C++ --with-64-bit-indices=0 --PETSC_ARCH=complex-cxx-gcc-720-debug
   - make -j ${NP} && make install
   - cd ${DEVROOT}
   - git clone --branch=install_apfField https://github.com/SCOREC/core.git core
