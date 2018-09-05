@@ -27,6 +27,10 @@ before_install:
   - cd ${DEVROOT}
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
   - sudo update-alternatives --config gcc
+  - which gcc
+  - gcc --version
+  - which mpicc
+  - mpicc --version
   - export DEVROOT=/home/travis/build
   - cd ${DEVROOT}
   - wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
