@@ -2,20 +2,25 @@ language: cpp
 compiler: gcc
 sudo: true
 
-before_script:
+addons:
+  apt:
+    update: true
+    sources:
+      - sourceline: 'ppa:ubuntu-toolchain-r/test'
+    packages:
+      - gcc-7 g++7
+      - mpich
+      - clang
+
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX
   - pwd
-  - export DEVROOT=/home/travis/build
-  - cd ${DEVROOT}
   - export NP=`grep -c ^processor /proc/cpuinfo`
-  - sudo apt-get update -y
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  - sudo apt-get update -y
-  - sudo apt-get --yes install gcc-7 g++-7
+  - cd ${DEVROOT}
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
   - sudo update-alternatives --config gcc
-  - sudo apt-get --yes install mpich
-  - mpicc --version
-  - which mpicc
+  - export DEVROOT=/home/travis/build
   - cd ${DEVROOT}
   - wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
   - tar xzf cmake-3.12.1.tar.gz
@@ -25,6 +30,8 @@ before_script:
   - which cmake
   - cmake --version
   - export PATH=/usr/local/bin:${PATH}
+
+install:
   - cd ${DEVROOT}
   - git clone https://bitbucket.org/petsc/petsc.git petsc
   - cd ${DEVROOT}/petsc
@@ -51,6 +58,3 @@ script:
   - make -j ${NP} VERBOSE=1
   - ctest
 
-before_install:
-  - test -n $CC  && unset CC
-  - test -n $CXX && unset CXX
