@@ -17,6 +17,7 @@ addons:
       - gcc-7
       - g++-7
       - mpich
+      - libmpich-dev
       - clang
 
 before_install:
