@@ -1,6 +1,12 @@
+dist: trusty
 language: cpp
 compiler: gcc
 sudo: true
+
+branches:
+  only:
+   - master
+   - dev
 
 addons:
   apt:
@@ -8,7 +14,8 @@ addons:
     sources:
       - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
-      - gcc-7 g++7
+      - gcc-7
+      - g++-7
       - mpich
       - clang
 
