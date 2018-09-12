@@ -22,13 +22,17 @@
 #include "apfNumberingClass.h"
 #include "apfShape.h"
 using std::vector;
-void set_adj_node_tag(pMesh m, pOwnership, pMeshTag num_global_adj_node_tag,
+void set_adj_node_tag(pMesh m,
+                      pOwnership,
+                      pMeshTag num_global_adj_node_tag,
                       pMeshTag num_own_adj_node_tag);
 // Synchronization alternative to apf::synchronizeFieldData for multiple
 // ownership in parasol
 template <class T>
-void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr,
-                                  MPI_Comm comm, bool delete_shr)
+void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data,
+                                  apf::Sharing* shr,
+                                  MPI_Comm comm,
+                                  bool delete_shr)
 {
   apf::FieldBase* f = data->getField( );
   apf::Mesh* m = f->getMesh( );
@@ -46,13 +50,15 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr,
   MPI_Comm_group(MPI_COMM_WORLD, &world_group);
   for (int d = 0; d < 4; ++d)
   {
-    if (!s->hasNodesIn(d)) continue;
+    if (!s->hasNodesIn(d))
+      continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
     PCU_Comm_Begin( );
     while ((e = m->iterate(it)))
     {
-      if ((!data->hasEntity(e)) || (!shr->isOwned(e))) continue;
+      if ((!data->hasEntity(e)) || (!shr->isOwned(e)))
+        continue;
       int n = f->countValuesOn(e);
       apf::NewArray<T> values(n);
       data->get(e, &(values[0]));
@@ -81,19 +87,26 @@ void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr,
       data->set(e, &(values[0]));
     }
   }
-  if (delete_shr) delete shr;
+  if (delete_shr)
+    delete shr;
   MPI_Group_free(&comm_group);
   MPI_Group_free(&world_group);
 }
 template void synchronizeFieldData_parasol<int>(apf::FieldDataOf<int>*,
-                                                apf::Sharing*, MPI_Comm, bool);
+                                                apf::Sharing*,
+                                                MPI_Comm,
+                                                bool);
 template void synchronizeFieldData_parasol<double>(apf::FieldDataOf<double>*,
-                                                   apf::Sharing*, MPI_Comm,
+                                                   apf::Sharing*,
+                                                   MPI_Comm,
                                                    bool);
 template void synchronizeFieldData_parasol<long>(apf::FieldDataOf<long>*,
-                                                 apf::Sharing*, MPI_Comm, bool);
+                                                 apf::Sharing*,
+                                                 MPI_Comm,
+                                                 bool);
 void accumulateFieldData_parasol(apf::FieldDataOf<double>* data,
-                                 apf::Sharing* shr, MPI_Comm comm,
+                                 apf::Sharing* shr,
+                                 MPI_Comm comm,
                                  bool delete_shr)
 {
   apf::FieldBase* f = data->getField( );
@@ -112,7 +125,8 @@ void accumulateFieldData_parasol(apf::FieldDataOf<double>* data,
   MPI_Comm_group(MPI_COMM_WORLD, &world_group);
   for (int d = 0; d < 4; ++d)
   {
-    if (!s->hasNodesIn(d)) continue;
+    if (!s->hasNodesIn(d))
+      continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
     PCU_Comm_Begin( );
@@ -165,7 +179,8 @@ void accumulateFieldData_parasol(apf::FieldDataOf<double>* data,
 // i.e. DOF i is the value on plane i; maybe just overload the previous
 template <class T>
 void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
-                                             apf::Sharing* shr, int iplane,
+                                             apf::Sharing* shr,
+                                             int iplane,
                                              bool delete_shr)
 {
   std::map<apf::MeshEntity*, std::vector<T> > all_values;
@@ -179,13 +194,15 @@ void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
   }
   for (int d = 0; d < 4; ++d)
   {
-    if (!s->hasNodesIn(d)) continue;
+    if (!s->hasNodesIn(d))
+      continue;
     apf::MeshEntity* e;
     apf::MeshIterator* it = m->begin(d);
     PCU_Comm_Begin( );
     while ((e = m->iterate(it)))
     {
-      if ((!data->hasEntity(e)) || (!shr->isOwned(e))) continue;
+      if ((!data->hasEntity(e)) || (!shr->isOwned(e)))
+        continue;
       int n = f->countValuesOn(e);
       apf::NewArray<T> values(n);
       data->get(e, &(values[0]));
@@ -221,14 +238,24 @@ void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
     for (it_elem = all_values.begin( ); it_elem != all_values.end( ); it_elem++)
       data->set(it_elem->first, &it_elem->second[0]);
   }
-  if (delete_shr) delete shr;
+  if (delete_shr)
+    delete shr;
 }
 template void synchronizeFieldData_parasol_all_planes<int>(
-  apf::FieldDataOf<int>*, apf::Sharing*, MPI_Comm, bool);
+  apf::FieldDataOf<int>*,
+  apf::Sharing*,
+  MPI_Comm,
+  bool);
 template void synchronizeFieldData_parasol_all_planes<double>(
-  apf::FieldDataOf<double>*, apf::Sharing*, MPI_Comm, bool);
+  apf::FieldDataOf<double>*,
+  apf::Sharing*,
+  MPI_Comm,
+  bool);
 template void synchronizeFieldData_parasol_all_planes<long>(
-  apf::FieldDataOf<long>*, apf::Sharing*, MPI_Comm, bool);
+  apf::FieldDataOf<long>*,
+  apf::Sharing*,
+  MPI_Comm,
+  bool);
 // returns sequential local numbering of entity's ith node
 // local numbering is based on mesh shape
 int msi_node_getID(pMeshEnt e, int n)
@@ -248,7 +275,10 @@ bool value_is_nan(double val)
 {
   return val != val || fabs(val) > FIELDVALUELIMIT;
 }
-void msi_node_setField(pField f, pMeshEnt e, int n, int num_dof,
+void msi_node_setField(pField f,
+                       pMeshEnt e,
+                       int n,
+                       int num_dof,
                        double* dof_data)
 {
 #ifdef DEBUG
@@ -287,7 +317,9 @@ int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data)
   return num_dof;
 }
 //*******************************************************
-void msi_node_getFieldID(pField f, pMeshEnt e, int n,
+void msi_node_getFieldID(pField f,
+                         pMeshEnt e,
+                         int n,
                          int* /* out */ start_dof_id,
                          int* /* out */ end_dof_id_plus_one)
 //*******************************************************
@@ -301,7 +333,9 @@ void msi_node_getFieldID(pField f, pMeshEnt e, int n,
   *end_dof_id_plus_one = *start_dof_id + num_dof;
 }
 //*******************************************************
-void msi_node_getGlobalFieldID(pField f, pMeshEnt e, int n,
+void msi_node_getGlobalFieldID(pField f,
+                               pMeshEnt e,
+                               int n,
                                int* /* out */ start_dof_id,
                                int* /* out */ end_dof_id_plus_one)
 //*******************************************************
@@ -355,12 +389,15 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
     m->createIntTag("msi_num_global_adj_node", 1);
   msi_solver::instance( )->num_own_adj_node_tag =
     m->createIntTag("msi_num_own_adj_node", 1);
-  set_adj_node_tag(m, o, msi_solver::instance( )->num_global_adj_node_tag,
+  set_adj_node_tag(m,
+                   o,
+                   msi_solver::instance( )->num_global_adj_node_tag,
                    msi_solver::instance( )->num_own_adj_node_tag);
   // set local numbering
   const char* name = s->getName( );
   pNumbering ln = m->findNumbering(name);
-  if (!ln) ln = apf::numberOverlapNodes(m, name, s);
+  if (!ln)
+    ln = apf::numberOverlapNodes(m, name, s);
   msi_solver::instance( )->local_n = ln;
   // generate global ID's per ownership
   if (cm == MPI_COMM_NULL)
@@ -382,8 +419,10 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   }
   m->end(it);
 }
-pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name,
-                                                 pShape s, pOwnership o,
+pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
+                                                 const char* name,
+                                                 pShape s,
+                                                 pOwnership o,
                                                  MPI_Comm cm)
 {
   pNumbering n = m->findNumbering(name);
@@ -394,13 +433,16 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name,
                 << "\" already exists\n";
     return n;
   }
-  if (!s) s = m->getShape( );
+  if (!s)
+    s = m->getShape( );
   n = numberOwnedNodes(m, name, s, o);
   MPI_Comm prevComm = PCU_Get_Comm( );
   PCU_Switch_Comm(cm);
   apf::globalize(n);
   PCU_Switch_Comm(prevComm);
-  synchronizeFieldData_parasol<int>(n->getData( ), o, cm,
+  synchronizeFieldData_parasol<int>(n->getData( ),
+                                    o,
+                                    cm,
                                     false);  // synchronize(n, o);
 #ifdef DEBUG
   pMeshEnt v;
@@ -427,8 +469,8 @@ void msi_finalize(pMesh m)
   apf::removeTagFromDimension(
     m, msi_solver::instance( )->num_global_adj_node_tag, 0);
   m->destroyTag(msi_solver::instance( )->num_global_adj_node_tag);
-  apf::removeTagFromDimension(m, msi_solver::instance( )->num_own_adj_node_tag,
-                              0);
+  apf::removeTagFromDimension(
+    m, msi_solver::instance( )->num_own_adj_node_tag, 0);
   m->destroyTag(msi_solver::instance( )->num_own_adj_node_tag);
   pumi_numbering_delete(msi_solver::instance( )->local_n);
   pumi_numbering_delete(msi_solver::instance( )->global_n);
@@ -454,8 +496,10 @@ void msi_field_assign(pField f, double* fac)
   pumi::instance( )->mesh->end(it);
 }
 //*******************************************************
-pField msi_field_create(pMesh m, const char* /* in */ field_name,
-                        int /*in*/ num_values, int /*in*/ num_dofs_per_value,
+pField msi_field_create(pMesh m,
+                        const char* /* in */ field_name,
+                        int /*in*/ num_values,
+                        int /*in*/ num_dofs_per_value,
                         pShape shape)
 //*******************************************************
 {
@@ -515,7 +559,8 @@ void msi_matrix_assemble(pMatrix mat)
 //*******************************************************
 {
 #ifdef DEBUG
-  if (!PCU_Comm_Self( )) std::cout << "[msi] " << __func__ << "\n";
+  if (!PCU_Comm_Self( ))
+    std::cout << "[msi] " << __func__ << "\n";
 #endif
   mat->assemble( );
 }
@@ -524,12 +569,16 @@ void msi_matrix_delete(pMatrix mat)
 //*******************************************************
 {
 #ifdef DEBUG
-  if (!PCU_Comm_Self( )) std::cout << "[msi] " << __func__ << "\n";
+  if (!PCU_Comm_Self( ))
+    std::cout << "[msi] " << __func__ << "\n";
 #endif
   delete mat;
 }
 //*******************************************************
-void msi_matrix_insert(pMatrix mat, int row, int col, int scalar_type,
+void msi_matrix_insert(pMatrix mat,
+                       int row,
+                       int col,
+                       int scalar_type,
                        double* val)
 //*******************************************************
 {
@@ -573,20 +622,23 @@ void msi_matrix_setBC(pMatrix mat, int row)
   int inode = row / total_num_dof;
   pMeshEnt e = msi_solver::instance( )->vertices[inode];
   int start_global_dof_id, end_global_dof_id_plus_one;
-  msi_node_getGlobalFieldID(mat->get_field( ), e, 0, &start_global_dof_id,
-                            &end_global_dof_id_plus_one);
+  msi_node_getGlobalFieldID(
+    mat->get_field( ), e, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   assert(!pumi::instance( )->mesh->isGhost(e));
   int start_dof_id, end_dof_id_plus_one;
-  msi_node_getFieldID(mat->get_field( ), e, 0, &start_dof_id,
-                      &end_dof_id_plus_one);
+  msi_node_getFieldID(
+    mat->get_field( ), e, 0, &start_dof_id, &end_dof_id_plus_one);
   assert(row >= start_dof_id && row < end_dof_id_plus_one);
 #endif
   int row_g = start_global_dof_id + row % total_num_dof;
   (dynamic_cast<matrix_solve*>(mat))->set_bc(row_g);
 }
 //*******************************************************
-void msi_matrix_setLaplaceBC(pMatrix mat, int row, int numVals, int* columns,
+void msi_matrix_setLaplaceBC(pMatrix mat,
+                             int row,
+                             int numVals,
+                             int* columns,
                              double* values)
 //*******************************************************
 {
@@ -597,13 +649,13 @@ void msi_matrix_setLaplaceBC(pMatrix mat, int row, int numVals, int* columns,
   int inode = row / total_num_dof;
   pMeshEnt e = msi_solver::instance( )->vertices[inode];
   int start_global_dof_id, end_global_dof_id_plus_one;
-  msi_node_getGlobalFieldID(mat->get_field( ), e, 0, &start_global_dof_id,
-                            &end_global_dof_id_plus_one);
+  msi_node_getGlobalFieldID(
+    mat->get_field( ), e, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   assert(!pumi::instance( )->mesh->isGhost(e));
   int start_dof_id, end_dof_id_plus_one;
-  msi_node_getFieldID(mat->get_field( ), e, 0, &start_dof_id,
-                      &end_dof_id_plus_one);
+  msi_node_getFieldID(
+    mat->get_field( ), e, 0, &start_dof_id, &end_dof_id_plus_one);
   assert(row >= start_dof_id && row < end_dof_id_plus_one);
   for (int i = 0; i < numVals; i++)
     assert(columns[i] >= start_dof_id && columns[i] < end_dof_id_plus_one);
@@ -647,7 +699,10 @@ int msi_matrix_getNumIter(pMatrix mat)
   return dynamic_cast<matrix_solve*>(mat)->iterNum;
 }
 //*******************************************************
-void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
+void msi_matrix_addBlock(pMatrix mat,
+                         pMeshEnt e,
+                         int rowIdx,
+                         int columnIdx,
                          double* values)
 //*******************************************************
 {
@@ -657,7 +712,8 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
   int dofPerVar = total_num_dof / num_values;
   int ent_dim = 0;
   int ielm_dim = pumi::instance( )->mesh->getDimension( );
-  if (pumi::instance( )->mesh->isGhost(e)) return;
+  if (pumi::instance( )->mesh->isGhost(e))
+    return;
   std::vector<pMeshEnt> vertices;
   pumi_ment_getAdj(e, 0, vertices);
   int num_node = ( int )vertices.size( );
@@ -683,10 +739,15 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
     for (int inode = 0; inode < num_node; inode++)
     {
       if (mmat->is_mat_local( ))
-        msi_node_getFieldID(mat->get_field( ), vertices[inode], 0,
-                            &start_global_dof_id, &end_global_dof_id_plus_one);
+        msi_node_getFieldID(mat->get_field( ),
+                            vertices[inode],
+                            0,
+                            &start_global_dof_id,
+                            &end_global_dof_id_plus_one);
       else
-        msi_node_getGlobalFieldID(mat->get_field( ), vertices[inode], 0,
+        msi_node_getGlobalFieldID(mat->get_field( ),
+                                  vertices[inode],
+                                  0,
                                   &start_global_dof_id,
                                   &end_global_dof_id_plus_one);
       for (int i = 0; i < dofPerVar; i++)
@@ -697,8 +758,8 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
           start_global_dof_id + columnIdx * dofPerVar + i;
       }
     }
-    mmat->add_values(dofPerVar * num_node, rows, dofPerVar * num_node, columns,
-                     values);
+    mmat->add_values(
+      dofPerVar * num_node, rows, dofPerVar * num_node, columns, values);
   }
   else  // solve
   {
@@ -710,7 +771,9 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
     {
       nodeOwner[inode] =
         msi_solver::instance( )->ownership->getOwner(vertices[inode]);
-      msi_node_getGlobalFieldID(mat->get_field( ), vertices[inode], 0,
+      msi_node_getGlobalFieldID(mat->get_field( ),
+                                vertices[inode],
+                                0,
                                 &start_global_dof_id,
                                 &end_global_dof_id_plus_one);
       rows_bloc[inode] = nodes[inode] * numVar + rowIdx;
@@ -728,11 +791,14 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
     for (int inode = 0; inode < num_node; inode++)
     {
       if (nodeOwner[inode] != PCU_Comm_Self( ))
-        smat->add_blockvalues(1, rows_bloc + inode, num_node, columns_bloc,
-                              values + offset);
+        smat->add_blockvalues(
+          1, rows_bloc + inode, num_node, columns_bloc, values + offset);
       else
-        smat->add_values(dofPerVar, rows + dofPerVar * inode,
-                         dofPerVar * num_node, columns, values + offset);
+        smat->add_values(dofPerVar,
+                         rows + dofPerVar * inode,
+                         dofPerVar * num_node,
+                         columns,
+                         values + offset);
       offset += numValuesNode;
     }
     delete[] nodeOwner;
@@ -745,7 +811,8 @@ void msi_matrix_addBlock(pMatrix mat, pMeshEnt e, int rowIdx, int columnIdx,
 void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
 //*******************************************************
 {
-  if (!filename) return msi_matrix_print(mat);
+  if (!filename)
+    return msi_matrix_print(mat);
   char matrix_filename[256];
   sprintf(matrix_filename, "%s-%d", filename, PCU_Comm_Self( ));
   FILE* fp = fopen(matrix_filename, "w");
@@ -765,7 +832,10 @@ void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
     csize = n_cols[i];
     for (int j = 0; j < csize; ++j)
     {
-      fprintf(fp, "%d\t%d\t%E\n", row + start_index, cols[index] + start_index,
+      fprintf(fp,
+              "%d\t%d\t%E\n",
+              row + start_index,
+              cols[index] + start_index,
               vals[index]);
       ++index;
     }
@@ -820,7 +890,9 @@ struct classcomp
   }
 };
 // **********************************************
-void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag,
+void set_adj_node_tag(pMesh m,
+                      pOwnership o,
+                      pMeshTag num_global_adj_node_tag,
                       pMeshTag num_own_adj_node_tag)
 // **********************************************
 {
@@ -837,17 +909,20 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag,
     int num_adj = elements.getSize( );
     for (int i = 0; i < num_adj; ++i)
     {
-      if (pumi_ment_isOwned(elements[i], o)) ++num_adj_node;
+      if (pumi_ment_isOwned(elements[i], o))
+        ++num_adj_node;
     }
     m->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
-    if (!m->isShared(e)) continue;
+    if (!m->isShared(e))
+      continue;
     // first pass msg size to owner
     int own_partid = pumi_ment_getOwnPID(e, o);
     apf::MeshEntity* own_copy = pumi_ment_getOwnEnt(e, o);
     if (!own_copy)  // own_copy does not exist so let;'s
     {
     }
-    if (own_partid == PCU_Comm_Self( )) continue;
+    if (own_partid == PCU_Comm_Self( ))
+      continue;
     PCU_COMM_PACK(own_partid, own_copy);
     PCU_Comm_Pack(own_partid, &num_adj, sizeof(int));
   }
@@ -909,7 +984,8 @@ void set_adj_node_tag(pMesh m, pOwnership o, pMeshTag num_global_adj_node_tag,
   }
   for (std::map<apf::MeshEntity*, std::set<entMsg, classcomp> >::iterator mit =
          count_map2.begin( );
-       mit != count_map2.end( ); ++mit)
+       mit != count_map2.end( );
+       ++mit)
   {
     e = mit->first;
     int num_global_adj = count_map2[e].size( );
