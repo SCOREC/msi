@@ -30,12 +30,8 @@ void getConfig(int argc, char** argv)
 {
   if (argc<3)
   {
-    if (!PCU_Comm_Self()) 
-      cout<<help<<"Usage: "<<argv[0]<<" model(.dmg) distributed-mesh(.smb)\n";
-    PetscFinalize();
-    pumi_finalize();
-    MPI_Finalize();
-    exit(EXIT_FAILURE);
+    if (!PCU_Comm_Self())
+      std::cout << help << "Usage: " << argv[0] << " model(.dmg) distributed-mesh(.smb)\n" << std::endl;
   }
   modelFile = argv[1];
   meshFile = argv[2];
@@ -43,9 +39,10 @@ void getConfig(int argc, char** argv)
 
 int main( int argc, char** argv)
 {
+  // read input args - in-model-file in-mesh-file out-mesh-file num-in-part
+  getConfig(argc,argv);
   MPI_Init(&argc,&argv);
-  pumi_start();
-  
+
   PetscInitialize(&argc,&argv,0,help);
   PetscLogDouble mem;
   double t1, t2, t3, t4, t5, t6;
@@ -54,10 +51,6 @@ int main( int argc, char** argv)
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1; // complex
 #endif
-
-  // read input args - in-model-file in-mesh-file out-mesh-file num-in-part
-  getConfig(argc,argv);
-
   // load model
   pGeom g = pumi_geom_load(modelFile);
   pMesh m = pumi_mesh_load(g, meshFile, pumi_size());
@@ -219,10 +212,9 @@ int main( int argc, char** argv)
   pumi_field_delete(b_field);
   pumi_field_delete(c_field);
 
-  msi_finalize(m);
+  msi_stop(m);
   pumi_mesh_delete(m);
-  pumi_finalize();
-  PetscFinalize();
+  msi_finalize();
   MPI_Finalize();
   return 0;
 }

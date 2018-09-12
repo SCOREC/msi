@@ -8,9 +8,6 @@
 
 *******************************************************************************/
 #include "msi.h"
-#include <assert.h>
-#include <iostream>
-#include <vector>
 #include "PCU.h"
 #include "apfMDS.h"
 #include "msi_petsc.h"
@@ -22,10 +19,94 @@
 #include "apfNumberingClass.h"
 #include "apfShape.h"
 using std::vector;
+#include <unistd.h>
+#include <cassert>
+#include <iostream>
+#include <vector>
+void msi_init(int argc, char * argv[], MPI_Comm cm)
+{
+  pumi_start();
+  msi_matrix_setComm(cm);
+  PetscInitialize(&argc,&argv,NULL,NULL);
+}
+// declaration for use in msi_start
 void set_adj_node_tag(pMesh m,
                       pOwnership,
                       pMeshTag num_global_adj_node_tag,
                       pMeshTag num_own_adj_node_tag);
+void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
+{
+  if (o)
+  {
+    msi_solver::instance( )->ownership = o;
+    if (!pumi_rank( ))
+      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
+                << ": user-defined ownership is in use\n";
+    pumi_ownership_verify(m, o);
+  }
+  else
+  {
+    msi_solver::instance( )->ownership = new apf::NormalSharing(m);
+    if (!pumi_rank( ))
+      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
+                << ": the default mesh ownership is in use\n";
+  }
+  pumi_mesh_setCount(m, o);
+  if (s)
+    pumi_mesh_setShape(m, s);
+  else
+    s = pumi_mesh_getShape(m);
+  PetscMemorySetGetMaximumUsage( );
+  msi_solver::instance( )->num_global_adj_node_tag =
+    m->createIntTag("msi_num_global_adj_node", 1);
+  msi_solver::instance( )->num_own_adj_node_tag =
+    m->createIntTag("msi_num_own_adj_node", 1);
+  set_adj_node_tag(m,
+                   o,
+                   msi_solver::instance( )->num_global_adj_node_tag,
+                   msi_solver::instance( )->num_own_adj_node_tag);
+  // set local numbering
+  const char* name = s->getName( );
+  pNumbering ln = m->findNumbering(name);
+  if (!ln)
+    ln = apf::numberOverlapNodes(m, name, s);
+  msi_solver::instance( )->local_n = ln;
+  // generate global ID's per ownership
+  if (cm == MPI_COMM_NULL)
+    msi_solver::instance( )->global_n =
+      pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
+  else
+    msi_solver::instance( )->global_n =
+      msi_numbering_createGlobal_multiOwner(m, "pumi_global", NULL, o, cm);
+  msi_solver::instance( )->vertices = new pMeshEnt[m->count(0)];
+  pMeshEnt e;
+  pMeshIter it = m->begin(0);
+  while ((e = m->iterate(it)))
+  {
+#ifdef DEBUG
+    assert(apf::isNumbered(msi_solver::instance( )->local_n, e, 0, 0));
+    assert(apf::isNumbered(msi_solver::instance( )->global_n, e, 0, 0));
+#endif
+    msi_solver::instance( )->vertices[msi_node_getID(e, 0)] = e;
+  }
+  m->end(it);
+}
+void msi_stop(pMesh m)
+{
+  apf::removeTagFromDimension(
+    m, msi_solver::instance( )->num_global_adj_node_tag, 0);
+  m->destroyTag(msi_solver::instance( )->num_global_adj_node_tag);
+  apf::removeTagFromDimension(
+    m, msi_solver::instance( )->num_own_adj_node_tag, 0);
+  m->destroyTag(msi_solver::instance( )->num_own_adj_node_tag);
+  pumi_numbering_delete(msi_solver::instance( )->local_n);
+  pumi_numbering_delete(msi_solver::instance( )->global_n);
+}
+void msi_finalize()
+{
+  PetscFinalize();
+  pumi_finalize();
+}
 // Synchronization alternative to apf::synchronizeFieldData for multiple
 // ownership in parasol
 template <class T>
@@ -348,77 +429,6 @@ void msi_node_getGlobalFieldID(pField f,
   *start_dof_id = ent_id * num_dof;
   *end_dof_id_plus_one = *start_dof_id + num_dof;
 }
-#include <unistd.h>
-//********************************************************
-void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
-//********************************************************
-{
-#if 0  // turn on to debug with gdb
-  int i, processid = getpid();
-  if (!PCU_Comm_Self())
-  {
-    std::cout<<"Proc "<<PCU_Comm_Self()<<">> pid "<<processid<<" Enter any digit...\n";
-    std::cin>>i;
-  }
-  else
-    std::cout<<"Proc "<<PCU_Comm_Self()<<">> pid "<<processid<<" Waiting...\n";
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-  if (o)
-  {
-    msi_solver::instance( )->ownership = o;
-    if (!pumi_rank( ))
-      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
-                << ": user-defined ownership is in use\n";
-    pumi_ownership_verify(m, o);
-  }
-  else
-  {
-    msi_solver::instance( )->ownership = new apf::NormalSharing(m);
-    if (!pumi_rank( ))
-      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
-                << ": the default mesh ownership is in use\n";
-  }
-  pumi_mesh_setCount(m, o);
-  if (s)
-    pumi_mesh_setShape(m, s);
-  else
-    s = pumi_mesh_getShape(m);
-  PetscMemorySetGetMaximumUsage( );
-  msi_solver::instance( )->num_global_adj_node_tag =
-    m->createIntTag("msi_num_global_adj_node", 1);
-  msi_solver::instance( )->num_own_adj_node_tag =
-    m->createIntTag("msi_num_own_adj_node", 1);
-  set_adj_node_tag(m,
-                   o,
-                   msi_solver::instance( )->num_global_adj_node_tag,
-                   msi_solver::instance( )->num_own_adj_node_tag);
-  // set local numbering
-  const char* name = s->getName( );
-  pNumbering ln = m->findNumbering(name);
-  if (!ln)
-    ln = apf::numberOverlapNodes(m, name, s);
-  msi_solver::instance( )->local_n = ln;
-  // generate global ID's per ownership
-  if (cm == MPI_COMM_NULL)
-    msi_solver::instance( )->global_n =
-      pumi_numbering_createGlobal(m, "pumi_global", NULL, o);
-  else
-    msi_solver::instance( )->global_n =
-      msi_numbering_createGlobal_multiOwner(m, "pumi_global", NULL, o, cm);
-  msi_solver::instance( )->vertices = new pMeshEnt[m->count(0)];
-  pMeshEnt e;
-  pMeshIter it = m->begin(0);
-  while ((e = m->iterate(it)))
-  {
-#ifdef DEBUG
-    assert(apf::isNumbered(msi_solver::instance( )->local_n, e, 0, 0));
-    assert(apf::isNumbered(msi_solver::instance( )->global_n, e, 0, 0));
-#endif
-    msi_solver::instance( )->vertices[msi_node_getID(e, 0)] = e;
-  }
-  m->end(it);
-}
 pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
                                                  const char* name,
                                                  pShape s,
@@ -463,17 +473,6 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
   pumi_field_delete(f);
 #endif
   return n;
-}
-void msi_finalize(pMesh m)
-{
-  apf::removeTagFromDimension(
-    m, msi_solver::instance( )->num_global_adj_node_tag, 0);
-  m->destroyTag(msi_solver::instance( )->num_global_adj_node_tag);
-  apf::removeTagFromDimension(
-    m, msi_solver::instance( )->num_own_adj_node_tag, 0);
-  m->destroyTag(msi_solver::instance( )->num_own_adj_node_tag);
-  pumi_numbering_delete(msi_solver::instance( )->local_n);
-  pumi_numbering_delete(msi_solver::instance( )->global_n);
 }
 pOwnership msi_getOwnership( ) { return msi_solver::instance( )->ownership; }
 //*******************************************************

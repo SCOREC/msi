@@ -44,12 +44,14 @@ void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
                                              int iplane,
                                              bool delete_shr);
 // START OF API
+void msi_init(int argc, char * argv[], MPI_Comm cm);
 // remember to delete ownership after use
 void msi_start(pMesh m,
                pOwnership o = NULL,
                pShape s = NULL,
                MPI_Comm cm = MPI_COMM_NULL);
-void msi_finalize(pMesh m);
+void msi_stop(pMesh m);
+void msi_finalize();
 pOwnership msi_getOwnership( );
 pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
                                                  const char* name,
