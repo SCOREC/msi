@@ -1,0 +1,71 @@
+dist: trusty
+language: cpp
+compiler: gcc
+sudo: true
+
+branches:
+  only:
+   - master
+   - dev
+
+addons:
+  apt:
+    update: true
+    sources:
+      - sourceline: 'ppa:ubuntu-toolchain-r/test'
+    packages:
+      - gcc-7
+      - g++-7
+      - mpich
+      - libmpich-dev
+      - clang
+
+before_install:
+  - test -n $CC  && unset CC
+  - test -n $CXX && unset CXX
+  - pwd
+  - export NP=`grep -c ^processor /proc/cpuinfo`
+  - cd ${DEVROOT}
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo update-alternatives --config gcc
+  - which gcc
+  - gcc --version
+  - which mpicc
+  - mpicc --version
+  - export DEVROOT=/home/travis/build
+  - cd ${DEVROOT}
+  - wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
+  - tar xzf cmake-3.12.1.tar.gz
+  - cd ${DEVROOT}/cmake-3.12.1
+  - ./bootstrap
+  - make -j ${NP} && sudo make install
+  - which cmake
+  - cmake --version
+  - export PATH=/usr/local/bin:${PATH}
+
+install:
+  - cd ${DEVROOT}
+  - git clone https://bitbucket.org/petsc/petsc.git petsc
+  - cd ${DEVROOT}/petsc
+  - ./configure --prefix=${DEVROOT}/install/petsc/real --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=real --with-clanguange=C++ --with-64-bit-indices=0 --PETSC_ARCH=real-cxx-gcc-720-debug
+  - make -j ${NP} && make install
+  - ./configure --prefix=${DEVROOT}/install/petsc/complex --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 --download-fblaslapack --download-parmetis --download-metis --with-single-library=1 --with-debugging=1 --with-shared-libraries=0 --with-cxx-dialect=c++11 --with-precision=double --with-scalar-type=complex --with-clanguange=C++ --with-64-bit-indices=0 --PETSC_ARCH=complex-cxx-gcc-720-debug
+  - make -j ${NP} && make install
+  - cd ${DEVROOT}
+  - git clone --branch=install_apfField https://github.com/SCOREC/core.git core
+  - cd ${DEVROOT}/core
+  - mkdir -p ${DEVROOT}/core/build
+  - cd ${DEVROOT}/core/build
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/core -DIS_TESTING=OFF -DBUILD_EXES=OFF -DCMAKE_BUILD_TYPE=Release
+  - make -j ${NP} && make install
+  - cd ${DEVROOT}
+  - pwd && ls
+
+script:
+  - cd ${DEVROOT}/SCOREC/msi
+  - mkdir -p ${DEVROOT}/SCOREC/msi/build
+  - cd build
+  - cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_Fortran_COMPILER=mpif90 -DENABLE_PETSC=ON -DPETSC_DIR=${DEVROOT}/install/petsc/real -DPETSC_ARCH=/ -DENABLE_COMPLEX=OFF -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DSCOREC_DIR=${DEVROOT}/install/core/lib/cmake/SCOREC/ -DCMAKE_INSTALL_PREFIX=${DEVROOT}/install/msi
+  - make -j ${NP} VERBOSE=1
+  - ctest
+
