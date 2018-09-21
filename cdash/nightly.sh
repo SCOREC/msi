@@ -24,7 +24,7 @@ build_dir=${project_root}/build
 nightly_dir=${project_root}/cdash
 
 [[ ! -d ${project_root} ]] && git clone "${REPO}" "${DEVROOT}/${PROJECT}"
-cd ${project_root} && git pull
+cd ${project_root} && git checkout dev && git pull
 
 [[ -d ${build_dir} ]] && rm -rf ${build_dir}
 mkdir ${build_dir}
