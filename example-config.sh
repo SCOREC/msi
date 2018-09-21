@@ -2,7 +2,7 @@
 DEVLOC=fasttmp
 DEVDIR=dev
 CC=mpicc
-CXX=mpicx
+CXX=mpicxx
 FTN=mpif90
 IMPLICIT_PETSC=OFF
 
