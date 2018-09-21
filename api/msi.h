@@ -9,9 +9,9 @@
 *******************************************************************************/
 #ifndef MSI_HEADER_H
 #define MSI_HEADER_H
-#include "pumi.h"
-#include "msi_petsc.h"
 #include "mpi.h"
+#include "msi_petsc.h"
+#include "pumi.h"
 // Added for the synchronization function
 #include "apfFieldData.h"
 #include "apfNew.h"
@@ -30,27 +30,40 @@ enum msi_matrix_status
 { /*0*/ MSI_NOT_FIXED = 0,
   /*1*/ MSI_FIXED };
 template <class T>
-void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data, apf::Sharing* shr,
-                                  MPI_Comm comm, bool delete_shr);
+void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data,
+                                  apf::Sharing* shr,
+                                  MPI_Comm comm,
+                                  bool delete_shr);
 void accumulateFieldData_parasol(apf::FieldDataOf<double>* data,
-                                 apf::Sharing* shr, MPI_Comm comm,
+                                 apf::Sharing* shr,
+                                 MPI_Comm comm,
                                  bool delete_shr);
 template <class T>
 void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
-                                             apf::Sharing* shr, int iplane,
+                                             apf::Sharing* shr,
+                                             int iplane,
                                              bool delete_shr);
 // START OF API
+void msi_init(int argc, char * argv[], MPI_Comm cm);
 // remember to delete ownership after use
-void msi_start(pMesh m, pOwnership o = NULL, pShape s = NULL,
+void msi_start(pMesh m,
+               pOwnership o = NULL,
+               pShape s = NULL,
                MPI_Comm cm = MPI_COMM_NULL);
-void msi_finalize(pMesh m);
+void msi_stop(pMesh m);
+void msi_finalize();
 pOwnership msi_getOwnership( );
-pNumbering msi_numbering_createGlobal_multiOwner(pMesh m, const char* name,
-                                                 pShape s, pOwnership o,
+pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
+                                                 const char* name,
+                                                 pShape s,
+                                                 pOwnership o,
                                                  MPI_Comm cm);  // [PARASOL]
 // field creation with multiple variables
-pField msi_field_create(pMesh m, const char* /* in */ field_name, int /*in*/ nv,
-                        int /*in*/ nd, pShape shape = NULL);
+pField msi_field_create(pMesh m,
+                        const char* /* in */ field_name,
+                        int /*in*/ nv,
+                        int /*in*/ nd,
+                        pShape shape = NULL);
 int msi_field_getNumVal(pField f);
 int msi_field_getSize(pField f);
 // returns sequential local numbering of entity's ith node
@@ -59,15 +72,22 @@ int msi_node_getID(pMeshEnt e, int n);
 // returns global numbering of entity's ith node
 // global numbering is based on ownership set in msi_start
 int msi_node_getGlobalID(pMeshEnt e, int n);
-void msi_node_setField(pField f, pMeshEnt e, int n, int size_dof,
+void msi_node_setField(pField f,
+                       pMeshEnt e,
+                       int n,
+                       int size_dof,
                        double* dof_data);
 int msi_node_getField(pField f, pMeshEnt e, int n, double* dof_data);
 // returns local DOF id range based on local numbering
-void msi_node_getFieldID(pField f, pMeshEnt e, int n,
+void msi_node_getFieldID(pField f,
+                         pMeshEnt e,
+                         int n,
                          int* /* out */ start_dof_id,
                          int* /* out */ end_dof_id_plus_one);
 // returns global DOF id range based on ownership
-void msi_node_getGlobalFieldID(pField f, pMeshEnt e, int n,
+void msi_node_getGlobalFieldID(pField f,
+                               pMeshEnt e,
+                               int n,
                                int* /* out */ start_dof_id,
                                int* /* out */ end_dof_id_plus_one);
 class msi_matrix;
@@ -82,14 +102,26 @@ pMatrix msi_matrix_create(int matrix_type, pField f);
 void msi_matrix_delete(pMatrix mat);
 pField msi_matrix_getField(pMatrix mat);
 void msi_matrix_assemble(pMatrix mat);
-void msi_matrix_insert(pMatrix mat, int row, int column, int scalar_type,
+void msi_matrix_insert(pMatrix mat,
+                       int row,
+                       int column,
+                       int scalar_type,
                        double* val);
-void msi_matrix_add(pMatrix mat, int row, int column, int scalar_type,
+void msi_matrix_add(pMatrix mat,
+                    int row,
+                    int column,
+                    int scalar_type,
                     double* val);
-void msi_matrix_addBlock(pMatrix mat, pMeshEnt elem, int rowVarIdx,
-                         int columnVarIdx, double* values);
+void msi_matrix_addBlock(pMatrix mat,
+                         pMeshEnt elem,
+                         int rowVarIdx,
+                         int columnVarIdx,
+                         double* values);
 void msi_matrix_setBC(pMatrix mat, int row);
-void msi_matrix_setLaplaceBC(pMatrix mat, int row, int size, int* columns,
+void msi_matrix_setLaplaceBC(pMatrix mat,
+                             int row,
+                             int size,
+                             int* columns,
                              double* values);
 void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
 void msi_matrix_solve(pMatrix mat, pField rhs, pField sol);

@@ -13,11 +13,13 @@
 #include "msi.h"
 #include "pumi.h"
 // helper routines
-int msi_field_getglobaldofid(pField f, int* /* out */ start_dof_id,
+int msi_field_getglobaldofid(pField f,
+                             int* /* out */ start_dof_id,
                              int* /* out */ end_dof_id_plus_one);
 int msi_field_getnumowndof(pField f, int* /* out */ num_own_dof);
 int msi_field_getdataptr(pField f, double** pts);
-int msi_field_getowndofid(pField f, int* /* out */ start_dof_id,
+int msi_field_getowndofid(pField f,
+                          int* /* out */ start_dof_id,
                           int* /* out */ end_dof_id_plus_one);
 class msi_solver
 {
@@ -38,7 +40,6 @@ class msi_solver
   pOwnership ownership;
   pNumbering local_n;
   pNumbering global_n;
-
   private:
   static msi_solver* _instance;
 };

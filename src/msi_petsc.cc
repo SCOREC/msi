@@ -88,10 +88,14 @@ msi_matrix::~msi_matrix( )
   delete A;
 }
 int msi_matrix::set_value(
-  int row, int col, int operation, double real_val,
+  int row,
+  int col,
+  int operation,
+  double real_val,
   double imag_val)  // insertion/addition with global numbering
 {
-  if (mat_status == MSI_FIXED) return MSI_FAILURE;
+  if (mat_status == MSI_FIXED)
+    return MSI_FAILURE;
   PetscErrorCode ierr;
 #ifndef PETSC_USE_COMPLEX
   if (operation)
@@ -107,10 +111,14 @@ int msi_matrix::set_value(
 #endif
   CHKERRQ(ierr);
 }
-int msi_matrix::add_values(int rsize, int* rows, int csize, int* columns,
+int msi_matrix::add_values(int rsize,
+                           int* rows,
+                           int csize,
+                           int* columns,
                            double* values)
 {
-  if (mat_status == MSI_FIXED) return MSI_FAILURE;
+  if (mat_status == MSI_FIXED)
+    return MSI_FAILURE;
   PetscErrorCode ierr;
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   vector<PetscScalar> petscValues(rsize * csize);
@@ -129,13 +137,16 @@ int msi_matrix::add_values(int rsize, int* rows, int csize, int* columns,
   ierr =
     MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
 #else
-  ierr = MatSetValues(*A, rsize, rows, csize, columns, ( PetscScalar* )values,
-                      ADD_VALUES);
+  ierr = MatSetValues(
+    *A, rsize, rows, csize, columns, ( PetscScalar* )values, ADD_VALUES);
 #endif
   CHKERRQ(ierr);
 }
-int matrix_solve::add_blockvalues(int rbsize, int* rows, int cbsize,
-                                  int* columns, double* values)
+int matrix_solve::add_blockvalues(int rbsize,
+                                  int* rows,
+                                  int cbsize,
+                                  int* columns,
+                                  double* values)
 {
   int bs;
   MatGetBlockSize(remoteA, &bs);
@@ -153,13 +164,16 @@ int matrix_solve::add_blockvalues(int rbsize, int* rows, int cbsize,
 #endif
     }
   }
-  int ierr = MatSetValuesBlocked(remoteA, rbsize, rows, cbsize, columns,
-                                 &petscValues[0], ADD_VALUES);
+  int ierr = MatSetValuesBlocked(
+    remoteA, rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES);
 }
-int msi_matrix::get_values(vector<int>& rows, vector<int>& n_columns,
-                           vector<int>& columns, vector<double>& values)
+int msi_matrix::get_values(vector<int>& rows,
+                           vector<int>& n_columns,
+                           vector<int>& columns,
+                           vector<double>& values)
 {
-  if (mat_status != MSI_FIXED) return MSI_FAILURE;
+  if (mat_status != MSI_FIXED)
+    return MSI_FAILURE;
 #ifdef PETSC_USE_COMPLEX
   if (!PCU_Comm_Self( ))
     std::cout << "[MSI ERROR] " << __func__ << ": not supported for complex\n";
@@ -228,12 +242,12 @@ int matrix_mult::multiply(pField in_field, pField out_field)
     MatGetBlockSize(*A, &bs);
     PetscScalar* array[2];
     msi_field_getdataptr(in_field, ( double** )array);
-    ierr = VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof,
-                                 ( PetscScalar* )array[0], &b);
+    ierr = VecCreateSeqWithArray(
+      PETSC_COMM_SELF, bs, num_dof, ( PetscScalar* )array[0], &b);
     CHKERRQ(ierr);
     msi_field_getdataptr(out_field, ( double** )array + 1);
-    ierr = VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof,
-                                 ( PetscScalar* )array[1], &c);
+    ierr = VecCreateSeqWithArray(
+      PETSC_COMM_SELF, bs, num_dof, ( PetscScalar* )array[1], &c);
     CHKERRQ(ierr);
     ierr = VecAssemblyBegin(b);
     CHKERRQ(ierr);
@@ -250,7 +264,8 @@ int matrix_mult::multiply(pField in_field, pField out_field)
     CHKERRQ(ierr);
     accumulateFieldData_parasol(out_field->getData( ),
                                 msi_solver::instance( )->ownership,
-                                PETSC_COMM_WORLD, false);
+                                PETSC_COMM_WORLD,
+                                false);
   }
 }
 int matrix_mult::assemble( )
@@ -273,9 +288,11 @@ matrix_solve::matrix_solve(pField f) : msi_matrix(f)
 }
 matrix_solve::~matrix_solve( )
 {
-  if (kspSet) KSPDestroy(ksp);
+  if (kspSet)
+    KSPDestroy(ksp);
   delete ksp;
-  if (mat_status == MSI_NOT_FIXED) MatDestroy(&remoteA);
+  if (mat_status == MSI_NOT_FIXED)
+    MatDestroy(&remoteA);
 }
 int matrix_solve::assemble( )
 {
@@ -287,7 +304,8 @@ int matrix_solve::assemble( )
   t2 = MPI_Wtime( );
   // pass remoteA to ownnering process
   int vertex_type = 0, brgType = 2;
-  if (pumi::instance( )->mesh->getDimension( ) == 3) brgType = 3;
+  if (pumi::instance( )->mesh->getDimension( ) == 3)
+    brgType = 3;
   char field_name[256];
   int num_values = msi_field_getNumVal(field);
   int total_num_dof = msi_field_getSize(field);
@@ -299,7 +317,8 @@ int matrix_solve::assemble( )
   std::map<int, std::vector<PetscScalar> > valuesSendBuff, valuesRecvBuff;
   int blockMatSize = total_num_dof * total_num_dof;
   for (std::map<int, std::map<int, int> >::iterator it = remoteNodeRow.begin( );
-       it != remoteNodeRow.end( ); it++)
+       it != remoteNodeRow.end( );
+       it++)
   {
     idxSendBuff[it->first].resize(it->second.size( ) +
                                   remoteNodeRowSize[it->first]);
@@ -308,7 +327,8 @@ int matrix_solve::assemble( )
     int idxOffset = 0;
     int valueOffset = 0;
     for (std::map<int, int>::iterator it2 = it->second.begin( );
-         it2 != it->second.end( ); it2++)
+         it2 != it->second.end( );
+         it2++)
     {
       idxSendBuff[it->first].at(idxOffset++) = it2->second;
       apf::MeshEntity* ent = msi_solver::instance( )->vertices[it2->first];
@@ -330,7 +350,10 @@ int matrix_solve::assemble( )
         int local_id = msi_node_getID(vecAdj.at(i), 0);
         localNodeId.at(i) = local_id;
         int start_global_dof_id, end_global_dof_id_plus_one;
-        msi_node_getGlobalFieldID(field, vecAdj.at(i), 0, &start_global_dof_id,
+        msi_node_getGlobalFieldID(field,
+                                  vecAdj.at(i),
+                                  0,
+                                  &start_global_dof_id,
                                   &end_global_dof_id_plus_one);
         idxSendBuff[it->first].at(idxOffset++) = start_global_dof_id;
       }
@@ -341,9 +364,11 @@ int matrix_solve::assemble( )
         for (int j = 0; j < total_num_dof; j++)
           columns.at(offset++) = startColumn + j;
       }
-      ierr = MatGetValues(remoteA, total_num_dof,
+      ierr = MatGetValues(remoteA,
+                          total_num_dof,
                           &columns.at(total_num_dof * (numAdj - 1)),
-                          total_num_dof * numAdj, &columns[0],
+                          total_num_dof * numAdj,
+                          &columns[0],
                           &valuesSendBuff[it->first].at(valueOffset));
       valueOffset += it2->second * blockMatSize;
     }
@@ -359,27 +384,40 @@ int matrix_solve::assemble( )
   std::map<int, std::pair<int, int> > msgSendSize;
   std::map<int, std::pair<int, int> > msgRecvSize;
   for (std::map<int, int>::iterator it = remoteNodeRowSize.begin( );
-       it != remoteNodeRowSize.end( ); it++)
+       it != remoteNodeRowSize.end( );
+       it++)
   {
     int destPid = it->first;
     msgSendSize[destPid].first = idxSendBuff[it->first].size( );
     msgSendSize[destPid].second = valuesSendBuff[it->first].size( );
-    MPI_Isend(&(msgSendSize[destPid]), sizeof(std::pair<int, int>), MPI_BYTE,
-              destPid, sendTag, MPI_COMM_WORLD, &(my_request[requestOffset++]));
+    MPI_Isend(&(msgSendSize[destPid]),
+              sizeof(std::pair<int, int>),
+              MPI_BYTE,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
+              &(my_request[requestOffset++]));
   }
   assert(requestOffset < 256);
   for (std::set<int>::iterator it = remotePidOwned.begin( );
-       it != remotePidOwned.end( ); it++)
+       it != remotePidOwned.end( );
+       it++)
   {
     int destPid = *it;
-    MPI_Irecv(&(msgRecvSize[destPid]), sizeof(std::pair<int, int>), MPI_BYTE,
-              destPid, sendTag, MPI_COMM_WORLD, &(my_request[requestOffset++]));
+    MPI_Irecv(&(msgRecvSize[destPid]),
+              sizeof(std::pair<int, int>),
+              MPI_BYTE,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
+              &(my_request[requestOffset++]));
   }
   assert(requestOffset < 256);
   MPI_Waitall(requestOffset, my_request, my_status);
   // set up receive buff
   for (std::map<int, std::pair<int, int> >::iterator it = msgRecvSize.begin( );
-       it != msgRecvSize.end( ); it++)
+       it != msgRecvSize.end( );
+       it++)
   {
     idxRecvBuff[it->first].resize(it->second.first);
     valuesRecvBuff[it->first].resize(it->second.second);
@@ -388,42 +426,63 @@ int matrix_solve::assemble( )
   sendTag = 9999;
   requestOffset = 0;
   for (std::map<int, int>::iterator it = remoteNodeRowSize.begin( );
-       it != remoteNodeRowSize.end( ); it++)
+       it != remoteNodeRowSize.end( );
+       it++)
   {
     int destPid = it->first;
-    MPI_Isend(&(idxSendBuff[destPid].at(0)), idxSendBuff[destPid].size( ),
-              MPI_INT, destPid, sendTag, MPI_COMM_WORLD,
+    MPI_Isend(&(idxSendBuff[destPid].at(0)),
+              idxSendBuff[destPid].size( ),
+              MPI_INT,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
               &(my_request[requestOffset++]));
     MPI_Isend(&(valuesSendBuff[destPid].at(0)),
-              sizeof(PetscScalar) * valuesSendBuff[destPid].size( ), MPI_BYTE,
-              destPid, sendTag, MPI_COMM_WORLD, &(my_request[requestOffset++]));
+              sizeof(PetscScalar) * valuesSendBuff[destPid].size( ),
+              MPI_BYTE,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
+              &(my_request[requestOffset++]));
   }
   assert(requestOffset < 256);
   for (std::set<int>::iterator it = remotePidOwned.begin( );
-       it != remotePidOwned.end( ); it++)
+       it != remotePidOwned.end( );
+       it++)
   {
     int destPid = *it;
-    MPI_Irecv(&(idxRecvBuff[destPid].at(0)), idxRecvBuff[destPid].size( ),
-              MPI_INT, destPid, sendTag, MPI_COMM_WORLD,
+    MPI_Irecv(&(idxRecvBuff[destPid].at(0)),
+              idxRecvBuff[destPid].size( ),
+              MPI_INT,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
               &(my_request[requestOffset++]));
     MPI_Irecv(&(valuesRecvBuff[destPid].at(0)),
-              sizeof(PetscScalar) * valuesRecvBuff[destPid].size( ), MPI_BYTE,
-              destPid, sendTag, MPI_COMM_WORLD, &(my_request[requestOffset++]));
+              sizeof(PetscScalar) * valuesRecvBuff[destPid].size( ),
+              MPI_BYTE,
+              destPid,
+              sendTag,
+              MPI_COMM_WORLD,
+              &(my_request[requestOffset++]));
   }
   assert(requestOffset < 256);
   MPI_Waitall(requestOffset, my_request, my_status);
   for (std::map<int, std::vector<int> >::iterator it = idxSendBuff.begin( );
-       it != idxSendBuff.end( ); it++)
+       it != idxSendBuff.end( );
+       it++)
     std::vector<int>( ).swap(it->second);
   for (std::map<int, std::vector<PetscScalar> >::iterator it =
          valuesSendBuff.begin( );
-       it != valuesSendBuff.end( ); it++)
+       it != valuesSendBuff.end( );
+       it++)
     std::vector<PetscScalar>( ).swap(it->second);
   valuesSendBuff.clear( );
   idxSendBuff.clear( );
   // now assemble the matrix
   for (std::set<int>::iterator it = remotePidOwned.begin( );
-       it != remotePidOwned.end( ); it++)
+       it != remotePidOwned.end( );
+       it++)
   {
     int destPid = *it;
     int valueOffset = 0;
@@ -445,10 +504,13 @@ int matrix_solve::assemble( )
       }
       assert(columns.at(total_num_dof * (numAdj - 1)) >= firstRow &&
              *columns.rbegin( ) < lastRowPlusOne);
-      ierr = MatSetValues(*A, total_num_dof,
+      ierr = MatSetValues(*A,
+                          total_num_dof,
                           &columns.at(total_num_dof * (numAdj - 1)),
-                          total_num_dof * numAdj, &columns[0],
-                          &values.at(valueOffset), ADD_VALUES);
+                          total_num_dof * numAdj,
+                          &columns[0],
+                          &values.at(valueOffset),
+                          ADD_VALUES);
       valueOffset += blockMatSize * numAdj;
     }
     std::vector<int>( ).swap(idxRecvBuff[destPid]);
@@ -504,7 +566,8 @@ int msi_matrix::preAllocateParaMat( )
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance( )->mesh, 0);
   msi_field_getnumowndof(field, &num_own_dof);
   int dofPerEnt = 0;
-  if (num_own_ent) dofPerEnt = num_own_dof / num_own_ent;
+  if (num_own_ent)
+    dofPerEnt = num_own_dof / num_own_ent;
   if (strcmp(type, MATSEQAIJ) == 0 || strcmp(type, MATMPIAIJ) == 0)
     bs = 1;
   else
@@ -523,8 +586,8 @@ int msi_matrix::preAllocateParaMat( )
   // Or just some error check later.
   int all_dofs[psize];
   // Gather DOF number from all ranks on all ranks
-  MPI_Allgather(&num_own_dof, 1, MPI_INT, all_dofs, 1, MPI_INT,
-                PETSC_COMM_WORLD);
+  MPI_Allgather(
+    &num_own_dof, 1, MPI_INT, all_dofs, 1, MPI_INT, PETSC_COMM_WORLD);
   // Indices for current rank
   // Can also use a simple loop - this requires additional header
   // (<numeric>)
@@ -543,8 +606,8 @@ int msi_matrix::preAllocateParaMat( )
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   while ((ent = pumi::instance( )->mesh->iterate(it)))
   {
-    msi_node_getGlobalFieldID(field, ent, 0, &start_global_dof_id,
-                              &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(
+      field, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     // Check if correct
     assert(start_global_dof_id >= 0);
     assert(start_global_dof_id < tot_dof);
@@ -556,7 +619,8 @@ int msi_matrix::preAllocateParaMat( )
       int num_elem = 0;
       for (int i = 0; i < elements.getSize( ); ++i)
       {
-        if (!pumi::instance( )->mesh->isGhost(elements[i])) ++num_elem;
+        if (!pumi::instance( )->mesh->isGhost(elements[i]))
+          ++num_elem;
       }
       nnzStash += dofPerEnt * dofPerEnt * (num_elem + 1);
       continue;
@@ -590,7 +654,8 @@ int matrix_solve::setUpRemoteAStruct( )
   int num_vtx = pumi_mesh_getNumEnt(pumi::instance( )->mesh, 0);
   std::vector<int> nnz_remote(num_values * num_vtx);
   int brgType = 2;
-  if (pumi::instance( )->mesh->getDimension( ) == 3) brgType = 3;
+  if (pumi::instance( )->mesh->getDimension( ) == 3)
+    brgType = 3;
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   int inode = 0;
@@ -604,7 +669,8 @@ int matrix_solve::setUpRemoteAStruct( )
       int num_elem = 0;
       for (int i = 0; i < elements.getSize( ); ++i)
       {
-        if (!pumi::instance( )->mesh->isGhost(elements[i])) ++num_elem;
+        if (!pumi::instance( )->mesh->isGhost(elements[i]))
+          ++num_elem;
       }
       remoteNodeRow[owner][inode] = num_elem + 1;
       remoteNodeRowSize[owner] += num_elem + 1;
@@ -629,8 +695,11 @@ int matrix_solve::setUpRemoteAStruct( )
   CHKERRQ(ierr);
   ierr = MatSetBlockSize(remoteA, dofPerVar);
   CHKERRQ(ierr);
-  ierr = MatSetSizes(remoteA, total_num_dof * num_vtx, total_num_dof * num_vtx,
-                     PETSC_DECIDE, PETSC_DECIDE);
+  ierr = MatSetSizes(remoteA,
+                     total_num_dof * num_vtx,
+                     total_num_dof * num_vtx,
+                     PETSC_DECIDE,
+                     PETSC_DECIDE);
   CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp(remoteA);
@@ -650,7 +719,8 @@ int matrix_solve::setUpRemoteAStructParaMat( )
   MPI_Comm_group(MPI_COMM_WORLD, &world_group);
   std::vector<int> nnz_remote(num_values * num_vtx);
   int brgType = 2;
-  if (pumi::instance( )->mesh->getDimension( ) == 3) brgType = 3;
+  if (pumi::instance( )->mesh->getDimension( ) == 3)
+    brgType = 3;
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   int inode = 0;
@@ -664,7 +734,8 @@ int matrix_solve::setUpRemoteAStructParaMat( )
       int num_elem = 0;
       for (int i = 0; i < elements.getSize( ); ++i)
       {
-        if (!pumi::instance( )->mesh->isGhost(elements[i])) ++num_elem;
+        if (!pumi::instance( )->mesh->isGhost(elements[i]))
+          ++num_elem;
       }
       remoteNodeRow[owner][inode] = num_elem + 1;
       remoteNodeRowSize[owner] += num_elem + 1;
@@ -680,7 +751,8 @@ int matrix_solve::setUpRemoteAStructParaMat( )
         wrank[0] = it->first;
         // Check if in this subcomm
         MPI_Group_translate_ranks(world_group, 1, wrank, comm_group, crank);
-        if (crank[0] != MPI_UNDEFINED) remotePidOwned.insert(it->first);
+        if (crank[0] != MPI_UNDEFINED)
+          remotePidOwned.insert(it->first);
       }
     }
     ++inode;
@@ -692,8 +764,11 @@ int matrix_solve::setUpRemoteAStructParaMat( )
   CHKERRQ(ierr);
   ierr = MatSetBlockSize(remoteA, dofPerVar);
   CHKERRQ(ierr);
-  ierr = MatSetSizes(remoteA, total_num_dof * num_vtx, total_num_dof * num_vtx,
-                     PETSC_DECIDE, PETSC_DECIDE);
+  ierr = MatSetSizes(remoteA,
+                     total_num_dof * num_vtx,
+                     total_num_dof * num_vtx,
+                     PETSC_DECIDE,
+                     PETSC_DECIDE);
   CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp(remoteA);
@@ -710,7 +785,8 @@ int msi_matrix::preAllocateSeqMat( )
   num_dof /= 2;
 #endif
   int dofPerEnt = 0;
-  if (num_vtx) dofPerEnt = num_dof / num_vtx;
+  if (num_vtx)
+    dofPerEnt = num_dof / num_vtx;
   if (strcmp(type, MATSEQAIJ) == 0 || strcmp(type, MATMPIAIJ) == 0)
     bs = 1;
   else
@@ -719,7 +795,8 @@ int msi_matrix::preAllocateSeqMat( )
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> nnz(numBlocks);
   int brgType = 2;
-  if (pumi::instance( )->mesh->getDimension( ) == 3) brgType = 3;
+  if (pumi::instance( )->mesh->getDimension( ) == 3)
+    brgType = 3;
   apf::MeshEntity* ent;
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   int inode = 0, start_dof, end_dof_plus_one;
@@ -733,7 +810,8 @@ int msi_matrix::preAllocateSeqMat( )
     int numAdj = 0;
     for (int i = 0; i < elements.getSize( ); ++i)
     {
-      if (!pumi::instance( )->mesh->isGhost(elements[i])) ++numAdj;
+      if (!pumi::instance( )->mesh->isGhost(elements[i]))
+        ++numAdj;
     }
     startIdx /= bs;
     for (int i = 0; i < numBlockNode; i++)
@@ -754,7 +832,8 @@ int msi_matrix::setupParaMat( )
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance( )->mesh, 0);
   msi_field_getnumowndof(field, &num_own_dof);
   int dofPerEnt = 0;
-  if (num_own_ent) dofPerEnt = num_own_dof / num_own_ent;
+  if (num_own_ent)
+    dofPerEnt = num_own_dof / num_own_ent;
   PetscInt mat_dim = num_own_dof;
   // create matrix
   PetscErrorCode ierr = MatCreate(PETSC_COMM_WORLD, A);  // [PARASOL]
@@ -773,7 +852,8 @@ int msi_matrix::setupSeqMat( )
   num_dof /= 2;
 #endif
   int dofPerEnt = 0;
-  if (num_ent) dofPerEnt = num_dof / num_ent;
+  if (num_ent)
+    dofPerEnt = num_dof / num_ent;
   PetscInt mat_dim = num_dof;
   // create matrix
   PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A);
@@ -811,7 +891,8 @@ int copyField2PetscVec(pField f, Vec& petscVec)
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance( )->mesh, 0);
   msi_field_getnumowndof(f, &num_own_dof);
   int dofPerEnt = 0;
-  if (num_own_ent) dofPerEnt = num_own_dof / num_own_ent;
+  if (num_own_ent)
+    dofPerEnt = num_own_dof / num_own_ent;
   int ierr =
     VecCreateMPI(PETSC_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
   CHKERRQ(ierr);
@@ -824,11 +905,12 @@ int copyField2PetscVec(pField f, Vec& petscVec)
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   while ((ent = pumi::instance( )->mesh->iterate(it)))
   {
-    if (!pumi_ment_isOwned(ent, msi_solver::instance( )->ownership)) continue;
+    if (!pumi_ment_isOwned(ent, msi_solver::instance( )->ownership))
+      continue;
     ++nodeCounter;
     int num_dof = msi_node_getField(f, ent, 0, dof_data);
-    msi_node_getGlobalFieldID(f, ent, 0, &start_global_dof_id,
-                              &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(
+      f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = 0;
     for (int i = 0; i < dofPerEnt; i++)
     {
@@ -861,7 +943,8 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   num_own_ent = pumi_mesh_getNumOwnEnt(pumi::instance( )->mesh, 0);
   msi_field_getnumowndof(f, &num_own_dof);
   int dofPerEnt = 0;
-  if (num_own_ent) dofPerEnt = num_own_dof / num_own_ent;
+  if (num_own_ent)
+    dofPerEnt = num_own_dof / num_own_ent;
   std::vector<PetscInt> ix(dofPerEnt);
   std::vector<PetscScalar> values(dofPerEnt);
   std::vector<double> dof_data(dofPerEnt * (1 + scalar_type));
@@ -871,10 +954,11 @@ int copyPetscVec2Field(Vec& petscVec, pField f)
   pMeshIter it = pumi::instance( )->mesh->begin(0);
   while ((ent = pumi::instance( )->mesh->iterate(it)))
   {
-    if (!pumi_ment_isOwned(ent, msi_solver::instance( )->ownership)) continue;
+    if (!pumi_ment_isOwned(ent, msi_solver::instance( )->ownership))
+      continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
-    msi_node_getGlobalFieldID(f, ent, 0, &start_global_dof_id,
-                              &end_global_dof_id_plus_one);
+    msi_node_getGlobalFieldID(
+      f, ent, 0, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     for (int i = 0; i < dofPerEnt; i++)
       ix.at(i) = startIdx + i;
@@ -904,7 +988,8 @@ int matrix_solve::solve(pField rhs, pField sol)
   copyField2PetscVec(rhs, b);
   int ierr = VecDuplicate(b, &x);
   CHKERRQ(ierr);
-  if (!kspSet) setKspType( );
+  if (!kspSet)
+    setKspType( );
   ierr = KSPSolve(*ksp, b, x);
   CHKERRQ(ierr);
   PetscInt its;
@@ -981,7 +1066,8 @@ int matrix_solve::setKspType( )
         sprintf(field_name, "%dth", i);
         ierr = PCFieldSplitSetFields(pc, field_name, 1, &i, &i);
       }
-      if (num_values == 2) PCFieldSplitSetType(pc, PC_COMPOSITE_SCHUR);
+      if (num_values == 2)
+        PCFieldSplitSetType(pc, PC_COMPOSITE_SCHUR);
       ierr = KSPSetUp(*ksp);
       CHKERRQ(ierr);
       KSP* subksp;
