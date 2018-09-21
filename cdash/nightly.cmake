@@ -15,7 +15,7 @@ set(CTEST_SOURCE_NAME "msi")
 set(CTEST_BINARY_NAME "build")
 
 set(REPO_URL_BASE "git@github.com:SCOREC/xgc_scorec")
-set(BRANCHES "master;develop")
+set(BRANCHES "master;dev")
 set(MERGE_AUTHOR "Nightly Bot <donotemail@scorec.rpi.edu>")
 
 set(CTEST_SOURCE_DIRECTORY "${CTEST_DASHBOARD_ROOT}/${CTEST_SOURCE_NAME}")

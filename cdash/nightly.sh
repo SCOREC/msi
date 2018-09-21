@@ -1,4 +1,5 @@
-PROJECT="smi"
+PROJECT="msi"
+REPO="git@github.com:SCOREC/msi.git"
 
 USER=`whoami`
 WWW="/net/web/public/${USER}/nightly/cdash/${PROJECT}/cmake.log"
@@ -21,6 +22,8 @@ module load pumi
 project_root=${DEVROOT}/${PROJECT}
 build_dir=${project_root}/build
 nightly_dir=${project_root}/cdash
+
+[[ ! -d ${project_root} ]] && git clone "${REPO}" "${DEVROOT}/${PROJECT}"
 
 [[ -d ${build_dir} ]] && rm -rf ${build_dir}
 mkdir ${build_dir}
