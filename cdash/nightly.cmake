@@ -7,8 +7,8 @@ set(USER "$ENV{USER}")
 
 set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 set(CTEST_DASHBOARD_ROOT "/fasttmp/${USER}/nightly")
-set(CTEST_BUILD_CONFIGURATION RelWithDebInfo)
-set(CTEST_BUILD_FLAGS -j 4)
+set(CTEST_BUILD_CONFIGURATION "RelWithDebInfo")
+set(CTEST_BUILD_FLAGS "-j 4")
 
 set(CTEST_PROJECT_NAME "msi")
 set(CTEST_SOURCE_NAME "msi")
@@ -278,18 +278,13 @@ SET(CONFIGURE_OPTIONS
   "-DPETSC_ARCH:FILEPATH=$ENV{PETSC_ARCH}"
   "-DENABLE_COMPLEX:BOOL=OFF"
   "-DENABLE_TESTING:BOOL=ON"
+  "-DCMAKE_BUILD_TYPE=Release"
   )
-
-SET(BUILD_TYPES "Release;Debug")
 
 setup_repo()
 
 foreach(BRANCH IN LISTS BRANCHES)
-  foreach(BUILD IN LISTS BUILD_TYPES)
-    check_tracking_branch("${BRANCH}"
-      "${CONFIGURE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD}"
-      CHECK_ERR)
-  endforeach()
+  check_tracking_branch("${BRANCH}" "${CONFIGURE_OPTIONS}" CHECK_ERR)
 endforeach()
 
 try_merge(master develop "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
