@@ -273,10 +273,10 @@ endfunction(try_merge)
 
 # Main code !
 ctest_start(${CTEST_TEST_TYPE})
-ctest_update()
-ctest_configure()
-ctest_build()
-ctest_test()
+#ctest_update()
+#ctest_configure()
+#ctest_build()
+#ctest_test()
 
 SET(CONFIGURE_OPTIONS
   "-DCMAKE_C_COMPILER:FILEPATH=mpicc"
@@ -292,14 +292,14 @@ SET(CONFIGURE_OPTIONS
 
 SET(BUILD_TYPES "Release;Debug")
 
-#setup_repo()
+setup_repo()
 
-#foreach(BRANCH IN LISTS BRANCHES)
-#  foreach(BUILD IN LISTS BUILD_TYPES)
-#    check_tracking_branch("${BRANCH}"
-#      "${CONFIGURE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD}"
-#      CHECK_ERR)
-#  endforeach()
-#endforeach()
+foreach(BRANCH IN LISTS BRANCHES)
+  foreach(BUILD IN LISTS BUILD_TYPES)
+    check_tracking_branch("${BRANCH}"
+      "${CONFIGURE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD}"
+      CHECK_ERR)
+  endforeach()
+endforeach()
 
 try_merge(master develop "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
