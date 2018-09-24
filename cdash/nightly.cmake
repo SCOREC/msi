@@ -26,11 +26,9 @@ find_program(CTEST_GIT_COMMAND NAMES git)
 set(CTEST_UPDATE_COMMAND "${CTEST_GIT_COMMAND}")
 
 function(setup_repo)
-  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}")
-    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}\"")
-    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git
-        "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
-        RESULT_VARIABLE CLONE_RET)
+  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/")
+    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}\"")
+    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone "${REPO_URL_BASE}.git" "${CTEST_SOURCE_DIRECTORY}" RESULT_VARIABLE CLONE_RET)
     if(CLONE_RET)
       message(FATAL_ERROR "Cloning ${REPO_URL_BASE}.git failed (code ${RETVAR})!")
     else()

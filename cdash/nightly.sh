@@ -37,6 +37,6 @@ patch ${build_dir}/config.sh ${build_dir}/scorec-nightly.patch
 cd ${build_dir}
 ./config.sh
 
-ctest --output-on-failue --script ${nightly_dir}/nightly.cmake # &> cmake.log
+ctest --verbose --output-on-failue --script ${nightly_dir}/nightly.cmake # &> cmake.log
 #cp cmake.log ${WWW}
 
