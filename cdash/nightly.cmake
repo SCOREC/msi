@@ -61,7 +61,7 @@ function(git_exec CMD ACTION)
   string(REPLACE " " ";" CMD2 "${CMD}")
   message("Running \"git ${CMD}\"")
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" ${CMD2}
-    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}"
     RESULT_VARIABLE RETVAR)
   if(RETVAR)
     message(FATAL_ERROR "${ACTION} failed (code ${RETVAR})!")
@@ -81,11 +81,9 @@ function(checkout_branch BRANCH_NAME)
 endfunction(checkout_branch)
 
 function(setup_repo)
-  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}")
-    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}\"")
-    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git
-        "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
-        RESULT_VARIABLE CLONE_RET)
+  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}\"")
+    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git "${CTEST_SOURCE_DIRECTORY}" RESULT_VARIABLE CLONE_RET)
     if(CLONE_RET)
       message(FATAL_ERROR "Cloning ${REPO_URL_BASE}.git failed (code ${RETVAR})!")
     else()
@@ -100,13 +98,12 @@ function(setup_repo)
   endif()
 endfunction(setup_repo)
 
-function(check_current_branch BRANCH_NAME CONFIG_OPTS
-    ERRVAR)
-  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}")
+function(check_current_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
+  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
   ctest_configure(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
-      SOURCE "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
+      SOURCE "${CTEST_SOURCE_DIRECTORY}"
       OPTIONS "${CONFIG_OPTS}"
       RETURN_VALUE CONFIG_RET)
   if(CONFIG_RET)
@@ -116,7 +113,7 @@ function(check_current_branch BRANCH_NAME CONFIG_OPTS
   endif()
 
   ctest_build(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
       NUMBER_ERRORS NUM_BUILD_ERRORS
       NUMBER_WARNINGS NUM_BUILD_WARNINGS
       RETURN_VALUE BUILD_RET)
@@ -132,7 +129,7 @@ ${BRANCH_NAME} build failed!
   endif()
 
   ctest_test(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
       RETURN_VALUE TEST_RET)
   if(TEST_RET)
     message(WARNING "${BRANCH_NAME} testing failed (code ${TEST_RET})!")
@@ -168,8 +165,7 @@ function(check_tracking_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
   checkout_branch("${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY SubProject "${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY Label "${BRANCH_NAME}")
-  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}"
-      RETURN_VALUE NUM_UPDATES)
+  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE NUM_UPDATES)
   if("${NUM_UPDATES}" EQUAL "-1")
     message(FATAL_ERROR "Could not update ${BRANCH_NAME} branch!")
   endif()
@@ -199,7 +195,7 @@ function(start_merge FIRST_BRANCH SECOND_BRANCH NEXT_ACTION)
   checkout_branch(${NEW_BRANCH})
   message("Running \"git merge --no-ff --no-commit ${SECOND_BRANCH}\"")
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" merge --no-ff --no-commit ${SECOND_BRANCH}
-    WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}
+    WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
     OUTPUT_VARIABLE MERGE_OUTPUT
     RESULT_VARIABLE MERGE_RET)
   if("${MERGE_OUTPUT}" MATCHES "CONFLICT")
@@ -232,7 +228,7 @@ function(accept_merge FIRST_BRANCH SECOND_BRANCH)
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" commit
     -m "Merging ${SECOND_BRANCH} into ${FIRST_BRANCH}"
     --author="${MERGE_AUTHOR}"
-    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}"
     RESULT_VARIABLE RETVAR)
   if(RETVAR)
     message(FATAL_ERROR "Commiting merge ${NEW_BRANCH} failed (code ${RETVAR})!")
