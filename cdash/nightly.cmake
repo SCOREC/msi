@@ -14,7 +14,7 @@ set(CTEST_PROJECT_NAME "msi")
 set(CTEST_SOURCE_NAME "msi")
 set(CTEST_BINARY_NAME "build")
 
-set(REPO_URL_BASE "git@github.com:SCOREC/xgc_scorec")
+set(REPO_URL_BASE "git@github.com:SCOREC/msi")
 set(BRANCHES "master;dev")
 set(MERGE_AUTHOR "Nightly Bot <donotemail@scorec.rpi.edu>")
 
