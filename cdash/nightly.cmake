@@ -287,4 +287,4 @@ foreach(BRANCH IN LISTS BRANCHES)
   check_tracking_branch("${BRANCH}" "${CONFIGURE_OPTIONS}" CHECK_ERR)
 endforeach()
 
-try_merge(master develop "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
+try_merge(master dev "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
