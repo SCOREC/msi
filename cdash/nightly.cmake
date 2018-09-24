@@ -7,14 +7,14 @@ set(USER "$ENV{USER}")
 
 set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 set(CTEST_DASHBOARD_ROOT "/fasttmp/${USER}/nightly")
-set(CTEST_BUILD_CONFIGURATION RelWithDebInfo)
-set(CTEST_BUILD_FLAGS -j 4)
+set(CTEST_BUILD_CONFIGURATION "RelWithDebInfo")
+set(CTEST_BUILD_FLAGS "-j 4")
 
 set(CTEST_PROJECT_NAME "msi")
 set(CTEST_SOURCE_NAME "msi")
 set(CTEST_BINARY_NAME "build")
 
-set(REPO_URL_BASE "git@github.com:SCOREC/xgc_scorec")
+set(REPO_URL_BASE "git@github.com:SCOREC/msi")
 set(BRANCHES "master;dev")
 set(MERGE_AUTHOR "Nightly Bot <donotemail@scorec.rpi.edu>")
 
@@ -26,11 +26,9 @@ find_program(CTEST_GIT_COMMAND NAMES git)
 set(CTEST_UPDATE_COMMAND "${CTEST_GIT_COMMAND}")
 
 function(setup_repo)
-  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}")
-    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}\"")
-    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git
-        "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
-        RESULT_VARIABLE CLONE_RET)
+  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/")
+    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}\"")
+    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone "${REPO_URL_BASE}.git" "${CTEST_SOURCE_DIRECTORY}" RESULT_VARIABLE CLONE_RET)
     if(CLONE_RET)
       message(FATAL_ERROR "Cloning ${REPO_URL_BASE}.git failed (code ${RETVAR})!")
     else()
@@ -63,7 +61,7 @@ function(git_exec CMD ACTION)
   string(REPLACE " " ";" CMD2 "${CMD}")
   message("Running \"git ${CMD}\"")
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" ${CMD2}
-    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}"
     RESULT_VARIABLE RETVAR)
   if(RETVAR)
     message(FATAL_ERROR "${ACTION} failed (code ${RETVAR})!")
@@ -83,11 +81,9 @@ function(checkout_branch BRANCH_NAME)
 endfunction(checkout_branch)
 
 function(setup_repo)
-  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}")
-    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}\"")
-    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git
-        "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
-        RESULT_VARIABLE CLONE_RET)
+  if(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}")
+    message("Running \"git clone ${REPO_URL_BASE}.git ${CTEST_SOURCE_DIRECTORY}\"")
+    execute_process(COMMAND "${CTEST_GIT_COMMAND}" clone ${REPO_URL_BASE}.git "${CTEST_SOURCE_DIRECTORY}" RESULT_VARIABLE CLONE_RET)
     if(CLONE_RET)
       message(FATAL_ERROR "Cloning ${REPO_URL_BASE}.git failed (code ${RETVAR})!")
     else()
@@ -102,13 +98,12 @@ function(setup_repo)
   endif()
 endfunction(setup_repo)
 
-function(check_current_branch BRANCH_NAME CONFIG_OPTS
-    ERRVAR)
-  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}")
+function(check_current_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
+  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
 
   ctest_configure(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
-      SOURCE "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
+      SOURCE "${CTEST_SOURCE_DIRECTORY}"
       OPTIONS "${CONFIG_OPTS}"
       RETURN_VALUE CONFIG_RET)
   if(CONFIG_RET)
@@ -118,7 +113,7 @@ function(check_current_branch BRANCH_NAME CONFIG_OPTS
   endif()
 
   ctest_build(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
       NUMBER_ERRORS NUM_BUILD_ERRORS
       NUMBER_WARNINGS NUM_BUILD_WARNINGS
       RETURN_VALUE BUILD_RET)
@@ -134,7 +129,7 @@ ${BRANCH_NAME} build failed!
   endif()
 
   ctest_test(
-      BUILD "${CTEST_BINARY_DIRECTORY}/${BRANCH_NAME}"
+      BUILD "${CTEST_BINARY_DIRECTORY}"
       RETURN_VALUE TEST_RET)
   if(TEST_RET)
     message(WARNING "${BRANCH_NAME} testing failed (code ${TEST_RET})!")
@@ -170,8 +165,7 @@ function(check_tracking_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
   checkout_branch("${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY SubProject "${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY Label "${BRANCH_NAME}")
-  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
-      RETURN_VALUE NUM_UPDATES)
+  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE NUM_UPDATES)
   if("${NUM_UPDATES}" EQUAL "-1")
     message(FATAL_ERROR "Could not update ${BRANCH_NAME} branch!")
   endif()
@@ -201,7 +195,7 @@ function(start_merge FIRST_BRANCH SECOND_BRANCH NEXT_ACTION)
   checkout_branch(${NEW_BRANCH})
   message("Running \"git merge --no-ff --no-commit ${SECOND_BRANCH}\"")
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" merge --no-ff --no-commit ${SECOND_BRANCH}
-    WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}
+    WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
     OUTPUT_VARIABLE MERGE_OUTPUT
     RESULT_VARIABLE MERGE_RET)
   if("${MERGE_OUTPUT}" MATCHES "CONFLICT")
@@ -234,7 +228,7 @@ function(accept_merge FIRST_BRANCH SECOND_BRANCH)
   execute_process(COMMAND "${CTEST_GIT_COMMAND}" commit
     -m "Merging ${SECOND_BRANCH} into ${FIRST_BRANCH}"
     --author="${MERGE_AUTHOR}"
-    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+    WORKING_DIRECTORY "${CTEST_SOURCE_DIRECTORY}"
     RESULT_VARIABLE RETVAR)
   if(RETVAR)
     message(FATAL_ERROR "Commiting merge ${NEW_BRANCH} failed (code ${RETVAR})!")
@@ -273,33 +267,24 @@ endfunction(try_merge)
 
 # Main code !
 ctest_start(${CTEST_TEST_TYPE})
-ctest_update()
-ctest_configure()
-ctest_build()
-ctest_test()
 
 SET(CONFIGURE_OPTIONS
   "-DCMAKE_C_COMPILER:FILEPATH=mpicc"
   "-DCMAKE_CXX_COMPILER:FILEPATH=mpicxx"
   "-DCMAKE_Fortran_COMPILER:FILEPATH=mpif90"
-  "-DCMAKE_Fortran_FLAGS=\"-fpic -ffree-line-length-0\""
-  "-Dmsi_DIR=${MSI_ROOT}"
-  "-SCOREC_DIR=${SCOREC_ROOT}"
-  "-DENABLE_ZOLTAN:BOOL=ON"
-  "-DPCU_COMPRESS:BOOL=ON"
+  "-DSCOREC_DIR:FILEPATH=/fasttmp/wtobin/dev/install/core/lib/cmake/SCOREC/"
+  "-DENABLE_PETSC:BOOL=ON"
+  "-DPETSC_DIR:FILEPATH=$ENV{PETSC_DIR}"
+  "-DPETSC_ARCH:FILEPATH=$ENV{PETSC_ARCH}"
+  "-DENABLE_COMPLEX:BOOL=OFF"
   "-DENABLE_TESTING:BOOL=ON"
+  "-DCMAKE_BUILD_TYPE=Release"
   )
 
-SET(BUILD_TYPES "Release;Debug")
+setup_repo()
 
-#setup_repo()
+foreach(BRANCH IN LISTS BRANCHES)
+  check_tracking_branch("${BRANCH}" "${CONFIGURE_OPTIONS}" CHECK_ERR)
+endforeach()
 
-#foreach(BRANCH IN LISTS BRANCHES)
-#  foreach(BUILD IN LISTS BUILD_TYPES)
-#    check_tracking_branch("${BRANCH}"
-#      "${CONFIGURE_OPTIONS} -DCMAKE_BUILD_TYPE=${BUILD}"
-#      CHECK_ERR)
-#  endforeach()
-#endforeach()
-
-try_merge(master develop "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
+try_merge(master dev "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})

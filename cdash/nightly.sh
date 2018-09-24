@@ -24,6 +24,7 @@ build_dir=${project_root}/build
 nightly_dir=${project_root}/cdash
 
 [[ ! -d ${project_root} ]] && git clone "${REPO}" "${DEVROOT}/${PROJECT}"
+cd ${project_root} && git checkout dev && git pull
 
 [[ -d ${build_dir} ]] && rm -rf ${build_dir}
 mkdir ${build_dir}
@@ -36,6 +37,6 @@ patch ${build_dir}/config.sh ${build_dir}/scorec-nightly.patch
 cd ${build_dir}
 ./config.sh
 
-ctest --output-on-failue --script ${nightly_dir}/nightly.cmake # &> cmake.log
+ctest -VV --output-on-failue --script ${nightly_dir}/nightly.cmake # &> cmake.log
 #cp cmake.log ${WWW}
 
