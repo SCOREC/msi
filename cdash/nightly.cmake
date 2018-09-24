@@ -170,7 +170,7 @@ function(check_tracking_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
   checkout_branch("${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY SubProject "${BRANCH_NAME}")
   set_property(GLOBAL PROPERTY Label "${BRANCH_NAME}")
-  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}/${CTEST_PROJECT_NAME}"
+  ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}"
       RETURN_VALUE NUM_UPDATES)
   if("${NUM_UPDATES}" EQUAL "-1")
     message(FATAL_ERROR "Could not update ${BRANCH_NAME} branch!")
