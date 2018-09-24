@@ -273,20 +273,16 @@ endfunction(try_merge)
 
 # Main code !
 ctest_start(${CTEST_TEST_TYPE})
-#ctest_update()
-#ctest_configure()
-#ctest_build()
-#ctest_test()
 
 SET(CONFIGURE_OPTIONS
   "-DCMAKE_C_COMPILER:FILEPATH=mpicc"
   "-DCMAKE_CXX_COMPILER:FILEPATH=mpicxx"
   "-DCMAKE_Fortran_COMPILER:FILEPATH=mpif90"
-  "-DCMAKE_Fortran_FLAGS=\"-fpic -ffree-line-length-0\""
-  "-Dmsi_DIR=${MSI_ROOT}"
-  "-SCOREC_DIR=${SCOREC_ROOT}"
-  "-DENABLE_ZOLTAN:BOOL=ON"
-  "-DPCU_COMPRESS:BOOL=ON"
+  "-DSCOREC_DIR:FILEPATH=$ENV{PUMI_ROOT}/lib/cmake/SCOREC/"
+  "-DENABLE_PETSC:BOOL=ON"
+  "-DPETSC_DIR:FILEPATH=$ENV{PETSC_DIR}"
+  "-DPETSC_ARCH:FILEPATH=$ENV{PETSC_ARCH}"
+  "-DENABLE_COMPLEX:BOOL=OFF"
   "-DENABLE_TESTING:BOOL=ON"
   )
 
