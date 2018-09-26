@@ -6,5 +6,5 @@
 <   echo "No PUMI_ROOT in environment, default is $INSTALLROOT/core/"
 <   PUMI_ROOT=${INSTALLROOT}/core/
 ---
->   echo "No PUMI_ROOT in environment, default is /fasttmp/wtobin/dev/installcore/"
+>   echo "No PUMI_ROOT in environment, default is /fasttmp/wtobin/dev/install/core/"
 >   PUMI_ROOT=/fasttmp/wtobin/dev/install/core/
