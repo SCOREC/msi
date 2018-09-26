@@ -3,4 +3,4 @@
 ---
 > DEVDIR=nightly
 19a20
-> PUMI_ROOT=/fasttmp/${USER}/dev/install/core
+> PUMI_ROOT=/fasttmp/${USER}/dev/install/core/
