@@ -10,7 +10,7 @@ IMPLICIT_PETSC=OFF
 
 # derived vars
 USER=`whoami`
-DEVROOT=${DEVLOC}/${USER}/${DEVDIR}
+DEVROOT=/${DEVLOC}/${USER}/${DEVDIR}
 
 if [ -z "${INSTALLROOT}" ] ; then
   echo "No INSTALLROOT in environment, default is ${DEVROOT}/install"
@@ -42,7 +42,6 @@ else
 fi
 
 PREFIX=${INSTALLROOT}/msi
-echo $PREFIX
 
 cmake .. \
       -DCMAKE_C_COMPILER=$CC \
