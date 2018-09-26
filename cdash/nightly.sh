@@ -37,6 +37,7 @@ cp ${nightly_dir}/scorec-nightly.patch ${build_dir}/scorec-nightly.patch
 patch ${build_dir}/config.sh ${build_dir}/scorec-nightly.patch
 
 cd ${build_dir}
+rm CMakeCache.txt
 ./config.sh
 
 ctest -VV --output-on-failue --script ${nightly_dir}/nightly.cmake &> cmake.log
@@ -44,7 +45,7 @@ cp cmake.log ${WWW}
 
 cd ${build_dir}
 git checkout dev
-rm CMakeLists.txt
+rm CMakeCache.txt
 ./config.sh
 make install
 
