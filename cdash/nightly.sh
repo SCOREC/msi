@@ -49,6 +49,5 @@ cd ${build_dir}
 git checkout dev
 rm CMakeCache.txt
 ./config.sh
-make install
-
+#make install
 

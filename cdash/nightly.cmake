@@ -272,14 +272,14 @@ SET(CONFIGURE_OPTIONS
   "-DCMAKE_C_COMPILER:FILEPATH=mpicc"
   "-DCMAKE_CXX_COMPILER:FILEPATH=mpicxx"
   "-DCMAKE_Fortran_COMPILER:FILEPATH=mpif90"
-  "-DSCOREC_DIR:FILEPATH=/fasttmp/wtobin/dev/install/core/lib/cmake/SCOREC/"
+  "-DSCOREC_DIR:FILEPATH=/fasttmp/${USER}/dev/install/core/lib/cmake/SCOREC/"
   "-DENABLE_PETSC:BOOL=ON"
   "-DPETSC_DIR:FILEPATH=$ENV{PETSC_DIR}"
   "-DPETSC_ARCH:FILEPATH=$ENV{PETSC_ARCH}"
   "-DENABLE_COMPLEX:BOOL=OFF"
   "-DENABLE_TESTING:BOOL=ON"
   "-DCMAKE_BUILD_TYPE=Release"
-  "-DCMAKE_INSTALL_PREFIX:FILEPATH=/fasttmp/wtobin/nightly/install/msi"
+  "-DCMAKE_INSTALL_PREFIX:FILEPATH=/fasttmp/${USER}/nightly/install/msi"
   )
 
 setup_repo()
