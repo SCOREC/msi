@@ -17,7 +17,6 @@ module load cmake
 module load gcc
 module load mpich
 module load petsc/3.9.3-int32-hdf5+ftn-real-c-meo4jde
-module load pumi
 
 project_root=${DEVROOT}/${PROJECT}
 build_dir=${project_root}/build
@@ -25,6 +24,9 @@ nightly_dir=${project_root}/cdash
 
 [[ ! -d ${project_root} ]] && git clone "${REPO}" "${DEVROOT}/${PROJECT}"
 cd ${project_root} && git checkout dev && git pull
+
+git rev-parse --verify dev-into-master
+[[ $? == 0 ]] && git branch -d dev-into-master
 
 [[ -d ${build_dir} ]] && rm -rf ${build_dir}
 mkdir ${build_dir}
@@ -37,6 +39,13 @@ patch ${build_dir}/config.sh ${build_dir}/scorec-nightly.patch
 cd ${build_dir}
 ./config.sh
 
-ctest -VV --output-on-failue --script ${nightly_dir}/nightly.cmake # &> cmake.log
-#cp cmake.log ${WWW}
+ctest -VV --output-on-failue --script ${nightly_dir}/nightly.cmake &> cmake.log
+cp cmake.log ${WWW}
+
+cd ${build_dir}
+git checkout dev
+rm CMakeLists.txt
+./config.sh
+make install
+
 

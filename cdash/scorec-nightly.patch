@@ -1,4 +1,10 @@
-3c3
-< DEVDIR=dev
+2c2
+< DEVLOC=fasttmp
 ---
-> DEVDIR=nightly
+> DEVLOC=nightly
+19,20c19,20
+<   echo "No PUMI_ROOT in environment, default is $INSTALLROOT/core/"
+<   PUMI_ROOT=${INSTALLROOT}/core/
+---
+>   echo "No PUMI_ROOT in environment, default is /fasttmp/wtobin/dev/installcore/"
+>   PUMI_ROOT=/fasttmp/wtobin/dev/install/core/
