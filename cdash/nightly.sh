@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PROJECT="msi"
 REPO="git@github.com:SCOREC/msi.git"
 

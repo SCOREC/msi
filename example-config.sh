@@ -1,3 +1,5 @@
+#/bin/bash -x
+
 # edit these params
 DEVLOC=fasttmp
 DEVDIR=dev
@@ -11,12 +13,12 @@ USER=`whoami`
 DEVROOT=${DEVLOC}/${USER}/${DEVDIR}
 
 if [ -z "${INSTALLROOT}" ] ; then
-  echo "No INSTALLROOT in environment, default is $DEVROOT/install"
-  INSTALLROOT=$DEVROOT/install
+  echo "No INSTALLROOT in environment, default is ${DEVROOT}/install"
+  INSTALLROOT=${DEVROOT}/install
 fi
 
 if [ -z "${PUMI_ROOT}" ] ; then
-  echo "No PUMI_ROOT in environment, default is $INSTALLROOT/core/"
+  echo "No PUMI_ROOT in environment, default is ${INSTALLROOT}/core/"
   PUMI_ROOT=${INSTALLROOT}/core/
 fi
 
@@ -37,7 +39,7 @@ if [ "${IMPLICIT_PETSC}" == "OFF" ] ; then
   CONFIG_PARAMS="${CONFIG_PARAMS} -DPETSC_DIR=${PETSC_DIR} -DPETSC_ARCH=${PETSC_ARCH}"
 fi
 
-PREFIX=$INSTALLROOT/msi
+PREFIX=${INSTALLROOT}/msi
 
 cmake .. \
       -DCMAKE_C_COMPILER=$CC \
@@ -47,6 +49,6 @@ cmake .. \
       -DENABLE_COMPLEX=OFF \
       -DENABLE_TESTING=ON \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
       ${CONFIG_PARAMS}
 
