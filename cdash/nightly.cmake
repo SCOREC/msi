@@ -279,6 +279,7 @@ SET(CONFIGURE_OPTIONS
   "-DENABLE_COMPLEX:BOOL=OFF"
   "-DENABLE_TESTING:BOOL=ON"
   "-DCMAKE_BUILD_TYPE=Release"
+  "-DCMAKE_INSTALL_PREFIX:FILEPATH=/fasttmp/wtobin/nightly/install/msi"
   )
 
 setup_repo()
