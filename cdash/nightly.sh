@@ -2,6 +2,7 @@
 
 PROJECT="msi"
 REPO="git@github.com:SCOREC/msi.git"
+PATCHFILE="scorec-nightly.patch"
 
 USER=`whoami`
 WWW="/net/web/public/${USER}/nightly/cdash/${PROJECT}/cmake.log"
@@ -35,8 +36,7 @@ mkdir ${build_dir}
 
 cp ${nightly_dir}/CTestConfig.cmake ${build_dir}/CTestConfig.cmake
 cp ${project_root}/example-config.sh ${build_dir}/config.sh
-cp ${nightly_dir}/scorec-nightly.patch ${build_dir}/scorec-nightly.patch
-patch ${build_dir}/config.sh ${build_dir}/scorec-nightly.patch
+patch ${build_dir}/config.sh ${nightly_dir}/${PATCHFILE}
 
 cd ${build_dir}
 rm CMakeCache.txt
@@ -49,5 +49,5 @@ cd ${build_dir}
 git checkout dev
 rm CMakeCache.txt
 ./config.sh
-#make install
+make install
 
