@@ -17,6 +17,7 @@ fi
 
 if [ -z "${PUMI_ROOT}" ] ; then
   echo "No PUMI_ROOT in environment, default is $INSTALLROOT/core/"
+  PUMI_ROOT=${INSTALLROOT}/core/
 fi
 
 if [ -z "${PETSC_DIR}" ] ; then
