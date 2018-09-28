@@ -23,12 +23,14 @@ using std::vector;
 #include <cassert>
 #include <iostream>
 #include <vector>
+
+// prerequisite: pumi_start();
 void msi_init(int argc, char * argv[], MPI_Comm cm)
 {
-  pumi_start();
   msi_matrix_setComm(cm);
   PetscInitialize(&argc,&argv,NULL,NULL);
 }
+
 // declaration for use in msi_start
 void set_adj_node_tag(pMesh m,
                       pOwnership,
@@ -85,12 +87,12 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   {
 #ifdef DEBUG
     assert(apf::isNumbered(msi_solver::instance( )->local_n, e, 0, 0));
-    assert(apf::isNumbered(msi_solver::instance( )->global_n, e, 0, 0));
 #endif
     msi_solver::instance( )->vertices[msi_node_getID(e, 0)] = e;
   }
   m->end(it);
 }
+
 void msi_stop(pMesh m)
 {
   apf::removeTagFromDimension(
@@ -102,11 +104,13 @@ void msi_stop(pMesh m)
   pumi_numbering_delete(msi_solver::instance( )->local_n);
   pumi_numbering_delete(msi_solver::instance( )->global_n);
 }
+
 void msi_finalize()
 {
   PetscFinalize();
   pumi_finalize();
 }
+
 // Synchronization alternative to apf::synchronizeFieldData for multiple
 // ownership in parasol
 template <class T>
@@ -429,6 +433,7 @@ void msi_node_getGlobalFieldID(pField f,
   *start_dof_id = ent_id * num_dof;
   *end_dof_id_plus_one = *start_dof_id + num_dof;
 }
+
 pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
                                                  const char* name,
                                                  pShape s,
@@ -474,7 +479,9 @@ pNumbering msi_numbering_createGlobal_multiOwner(pMesh m,
 #endif
   return n;
 }
+
 pOwnership msi_getOwnership( ) { return msi_solver::instance( )->ownership; }
+
 //*******************************************************
 void msi_field_assign(pField f, double* fac)
 //*******************************************************
