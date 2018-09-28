@@ -15,7 +15,7 @@ set(CTEST_SOURCE_NAME "msi")
 set(CTEST_BINARY_NAME "build")
 
 set(REPO_URL_BASE "git@github.com:SCOREC/msi")
-set(BRANCHES "master;dev")
+set(BRANCHES "master;develop")
 set(MERGE_AUTHOR "Nightly Bot <donotemail@scorec.rpi.edu>")
 
 set(CTEST_SOURCE_DIRECTORY "${CTEST_DASHBOARD_ROOT}/${CTEST_SOURCE_NAME}")
@@ -288,4 +288,4 @@ foreach(BRANCH IN LISTS BRANCHES)
   check_tracking_branch("${BRANCH}" "${CONFIGURE_OPTIONS}" CHECK_ERR)
 endforeach()
 
-try_merge(master dev "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
+try_merge(master develop "${CONFIGURE_OPTIONS}" ${ALLOWED_WARNINGS})
