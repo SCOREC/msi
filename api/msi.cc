@@ -25,7 +25,6 @@ using std::vector;
 #include <vector>
 void msi_init(int argc, char * argv[], MPI_Comm cm)
 {
-  pumi_start();
   msi_matrix_setComm(cm);
   PetscInitialize(&argc,&argv,NULL,NULL);
 }
