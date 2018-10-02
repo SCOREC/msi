@@ -28,11 +28,13 @@ void msi_init(int argc, char * argv[], MPI_Comm cm)
   msi_matrix_setComm(cm);
   PetscInitialize(&argc,&argv,NULL,NULL);
 }
+
 // declaration for use in msi_start
 void set_adj_node_tag(pMesh m,
                       pOwnership,
                       pMeshTag num_global_adj_node_tag,
                       pMeshTag num_own_adj_node_tag);
+
 void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
 {
   if (o)
@@ -101,11 +103,12 @@ void msi_stop(pMesh m)
   pumi_numbering_delete(msi_solver::instance( )->local_n);
   pumi_numbering_delete(msi_solver::instance( )->global_n);
 }
+
 void msi_finalize()
 {
   PetscFinalize();
-  pumi_finalize();
 }
+
 // Synchronization alternative to apf::synchronizeFieldData for multiple
 // ownership in parasol
 template <class T>
