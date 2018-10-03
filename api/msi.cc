@@ -36,6 +36,7 @@ void set_adj_node_tag(pMesh m,
                       pOwnership,
                       pMeshTag num_global_adj_node_tag,
                       pMeshTag num_own_adj_node_tag);
+
 void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
 {
   if (o)
@@ -108,7 +109,6 @@ void msi_stop(pMesh m)
 void msi_finalize()
 {
   PetscFinalize();
-  pumi_finalize();
 }
 
 // Synchronization alternative to apf::synchronizeFieldData for multiple

@@ -26,10 +26,10 @@ build_dir=${project_root}/build
 nightly_dir=${project_root}/cdash
 
 [[ ! -d ${project_root} ]] && git clone "${REPO}" "${DEVROOT}/${PROJECT}"
-cd ${project_root} && git checkout dev && git pull
+cd ${project_root} && git checkout develop && git pull
 
-git rev-parse --verify dev-into-master
-[[ $? == 0 ]] && git branch -d dev-into-master
+git rev-parse --verify develop-into-master
+[[ $? == 0 ]] && git branch -d develop-into-master
 
 [[ -d ${build_dir} ]] && rm -rf ${build_dir}
 mkdir ${build_dir}
@@ -46,7 +46,7 @@ ctest -VV --output-on-failue --script ${nightly_dir}/nightly.cmake &> cmake.log
 cp cmake.log ${WWW}
 
 cd ${build_dir}
-git checkout dev
+git checkout develop
 rm CMakeCache.txt
 ./config.sh
 make install
