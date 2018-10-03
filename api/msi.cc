@@ -23,9 +23,9 @@ using std::vector;
 #include <cassert>
 #include <iostream>
 #include <vector>
+
 void msi_init(int argc, char * argv[], MPI_Comm cm)
 {
-  msi_matrix_setComm(cm);
   PetscInitialize(&argc,&argv,NULL,NULL);
 }
 
@@ -41,7 +41,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   {
     msi_solver::instance( )->ownership = o;
     if (!pumi_rank( ))
-      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
+      std::cout << "[msi] " << __func__
                 << ": user-defined ownership is in use\n";
     pumi_ownership_verify(m, o);
   }
@@ -49,23 +49,27 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   {
     msi_solver::instance( )->ownership = new apf::NormalSharing(m);
     if (!pumi_rank( ))
-      std::cout << "[msi] (" << pumi_rank( ) << ") " << __func__
+      std::cout << "[msi] " << __func__
                 << ": the default mesh ownership is in use\n";
   }
+
   pumi_mesh_setCount(m, o);
   if (s)
     pumi_mesh_setShape(m, s);
   else
     s = pumi_mesh_getShape(m);
+
   PetscMemorySetGetMaximumUsage( );
   msi_solver::instance( )->num_global_adj_node_tag =
     m->createIntTag("msi_num_global_adj_node", 1);
   msi_solver::instance( )->num_own_adj_node_tag =
     m->createIntTag("msi_num_own_adj_node", 1);
+
   set_adj_node_tag(m,
                    o,
                    msi_solver::instance( )->num_global_adj_node_tag,
                    msi_solver::instance( )->num_own_adj_node_tag);
+
   // set local numbering
   const char* name = s->getName( );
   pNumbering ln = m->findNumbering(name);
@@ -92,6 +96,7 @@ void msi_start(pMesh m, pOwnership o, pShape s, MPI_Comm cm)
   }
   m->end(it);
 }
+
 void msi_stop(pMesh m)
 {
   apf::removeTagFromDimension(
@@ -957,9 +962,7 @@ void set_adj_node_tag(pMesh m,
       int owner = pumi_ment_getOwnPID(elements[i], o);
       msgs.push_back(entMsg(owner, ownerEnt2));
       if (own_partid == PCU_Comm_Self( ))
-      {
         count_map2[e].insert(*msgs.rbegin( ));
-      }
     }
     if (own_partid != PCU_Comm_Self( ))
     {
