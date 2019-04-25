@@ -32,16 +32,20 @@ class msi_matrix
   virtual ~msi_matrix( );
   virtual int initialize( ) = 0;  // create a matrix and solver object
   int destroy( );                 // delete a matrix and solver object
-  int set_value(int row,
-                int col,
+  int set_value(msi_int row,
+                msi_int col,
                 int operation,
                 double real_val,
                 double imag_val);  // insertion/addition with global numbering
   // values use column-wise, size * size block
-  int add_values(int rsize, int* rows, int csize, int* columns, double* values);
-  int get_values(std::vector<int>& rows,
-                 std::vector<int>& n_columns,
-                 std::vector<int>& columns,
+  int add_values(msi_int rsize,
+                 msi_int* rows,
+                 msi_int csize,
+                 msi_int* columns,
+                 double* values);
+  int get_values(std::vector<msi_int>& rows,
+                 std::vector<msi_int>& n_columns,
+                 std::vector<msi_int>& columns,
                  std::vector<double>& values);
   void set_status(int s) { mat_status = s; }
   int get_status( ) { return mat_status; }
@@ -93,12 +97,12 @@ class matrix_solve : public msi_matrix
   virtual int initialize( );
   virtual ~matrix_solve( );
   int solve(pField rhs, pField sol);
-  int set_bc(int row);
-  int set_row(int row, int numVals, int* colums, double* vals);
-  int add_blockvalues(int rbsize,
-                      int* rows,
-                      int cbsize,
-                      int* columns,
+  int set_bc(msi_int row);
+  int set_row(msi_int row, msi_int numVals, msi_int* colums, double* vals);
+  int add_blockvalues(msi_int rbsize,
+                      msi_int* rows,
+                      msi_int cbsize,
+                      msi_int* columns,
                       double* values);
   virtual int get_type( ) const { return 1; }
   virtual int assemble( );

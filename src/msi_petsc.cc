@@ -17,9 +17,9 @@
 #include "apfMesh.h"
 #include "apfNumbering.h"
 #include "apfShape.h"
+#include <petscversion.h>
 #ifdef PETSC_USE_COMPLEX
 #include <complex>
-#include "petscsys.h"  // for PetscComplex
 using std::complex;
 #endif
 #include <algorithm>
@@ -88,8 +88,8 @@ msi_matrix::~msi_matrix( )
   delete A;
 }
 int msi_matrix::set_value(
-  int row,
-  int col,
+  msi_int row,
+  msi_int col,
   int operation,
   double real_val,
   double imag_val)  // insertion/addition with global numbering
@@ -111,10 +111,10 @@ int msi_matrix::set_value(
 #endif
   CHKERRQ(ierr);
 }
-int msi_matrix::add_values(int rsize,
-                           int* rows,
-                           int csize,
-                           int* columns,
+int msi_matrix::add_values(msi_int rsize,
+                           msi_int * rows,
+                           msi_int csize,
+                           msi_int * columns,
                            double* values)
 {
   if (mat_status == MSI_FIXED)
@@ -142,13 +142,13 @@ int msi_matrix::add_values(int rsize,
 #endif
   CHKERRQ(ierr);
 }
-int matrix_solve::add_blockvalues(int rbsize,
-                                  int* rows,
-                                  int cbsize,
-                                  int* columns,
+int matrix_solve::add_blockvalues(msi_int rbsize,
+                                  msi_int* rows,
+                                  msi_int cbsize,
+                                  msi_int* columns,
                                   double* values)
 {
-  int bs;
+  msi_int bs;
   MatGetBlockSize(remoteA, &bs);
   vector<PetscScalar> petscValues(rbsize * cbsize * bs * bs);
   for (int i = 0; i < rbsize * bs; i++)
@@ -167,9 +167,9 @@ int matrix_solve::add_blockvalues(int rbsize,
   int ierr = MatSetValuesBlocked(
     remoteA, rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES);
 }
-int msi_matrix::get_values(vector<int>& rows,
-                           vector<int>& n_columns,
-                           vector<int>& columns,
+int msi_matrix::get_values(vector<msi_int>& rows,
+                           vector<msi_int>& n_columns,
+                           vector<msi_int>& columns,
                            vector<double>& values)
 {
   if (mat_status != MSI_FIXED)
@@ -237,7 +237,7 @@ int matrix_mult::multiply(pField in_field, pField out_field)
 #endif
     assert(num_dof == num_dof2);
 #endif
-    int bs;
+    msi_int bs;
     int ierr;
     MatGetBlockSize(*A, &bs);
     PetscScalar* array[2];
@@ -343,8 +343,8 @@ int matrix_solve::assemble( )
       vecAdj.push_back(ent);
       int numAdj = vecAdj.size( );
       assert(numAdj == it2->second);
-      std::vector<int> localNodeId(numAdj);
-      std::vector<int> columns(total_num_dof * numAdj);
+      std::vector<msi_int> localNodeId(numAdj);
+      std::vector<msi_int> columns(total_num_dof * numAdj);
       for (int i = 0; i < numAdj; i++)
       {
         int local_id = msi_node_getID(vecAdj.at(i), 0);
@@ -493,7 +493,7 @@ int matrix_solve::assemble( )
     while (valueOffset < numValues)
     {
       int numAdj = idx.at(idxOffset++);
-      std::vector<int> columns(total_num_dof * numAdj);
+      std::vector<msi_int> columns(total_num_dof * numAdj);
       int offset = 0;
       for (int i = 0; i < numAdj; i++, idxOffset++)
       {
@@ -532,7 +532,7 @@ int msi_matrix::flushAssembly( )
   ierr = MatAssemblyEnd(*A, MAT_FLUSH_ASSEMBLY);
   CHKERRQ(ierr);
 }
-int matrix_solve::set_bc(int row)
+int matrix_solve::set_bc(msi_int row)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
@@ -541,7 +541,7 @@ int matrix_solve::set_bc(int row)
 #endif
   MatSetValue(*A, row, row, 1.0, ADD_VALUES);
 }
-int matrix_solve::set_row(int row, int numVals, int* columns, double* vals)
+int matrix_solve::set_row(msi_int row, msi_int numVals, msi_int* columns, double* vals)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
@@ -652,7 +652,7 @@ int matrix_solve::setUpRemoteAStruct( )
   int total_num_dof = msi_field_getSize(field);
   int dofPerVar = total_num_dof / num_values;
   int num_vtx = pumi_mesh_getNumEnt(pumi::instance( )->mesh, 0);
-  std::vector<int> nnz_remote(num_values * num_vtx);
+  std::vector<msi_int> nnz_remote(num_values * num_vtx);
   int brgType = 2;
   if (pumi::instance( )->mesh->getDimension( ) == 3)
     brgType = 3;
@@ -717,7 +717,7 @@ int matrix_solve::setUpRemoteAStructParaMat( )
   int wrank[1], crank[1];
   MPI_Comm_group(PETSC_COMM_WORLD, &comm_group);
   MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-  std::vector<int> nnz_remote(num_values * num_vtx);
+  std::vector<msi_int> nnz_remote(num_values * num_vtx);
   int brgType = 2;
   if (pumi::instance( )->mesh->getDimension( ) == 3)
     brgType = 3;
@@ -1061,7 +1061,7 @@ int matrix_solve::setKspType( )
       CHKERRQ(ierr);
       ierr = PCFieldSplitSetBlockSize(pc, total_num_dof / num_values);
       CHKERRQ(ierr);
-      for (int i = 0; i < num_values; i++)
+      for (msi_int i = 0; i < num_values; i++)
       {
         sprintf(field_name, "%dth", i);
         ierr = PCFieldSplitSetFields(pc, field_name, 1, &i, &i);
@@ -1071,7 +1071,7 @@ int matrix_solve::setKspType( )
       ierr = KSPSetUp(*ksp);
       CHKERRQ(ierr);
       KSP* subksp;
-      int numSplit = -1;
+      msi_int numSplit = -1;
       ierr = PCFieldSplitGetSubKSP(pc, &numSplit, &subksp);
       CHKERRQ(ierr);
       assert(numSplit == num_values);

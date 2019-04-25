@@ -582,8 +582,8 @@ void msi_matrix_delete(pMatrix mat)
 }
 //*******************************************************
 void msi_matrix_insert(pMatrix mat,
-                       int row,
-                       int col,
+                       msi_int row,
+                       msi_int col,
                        int scalar_type,
                        double* val)
 //*******************************************************
@@ -602,7 +602,7 @@ void msi_matrix_insert(pMatrix mat,
     mat->set_value(row, col, INSERT_VALUES, *val, 0);
 }
 //*******************************************************
-void msi_matrix_add(pMatrix mat, int row, int col, int scalar_type, double* val)
+void msi_matrix_add(pMatrix mat, msi_int row, msi_int col, int scalar_type, double* val)
 //*******************************************************
 {
   assert(mat->get_status( ) != MSI_FIXED);
@@ -619,7 +619,7 @@ void msi_matrix_add(pMatrix mat, int row, int col, int scalar_type, double* val)
     mat->set_value(row, col, ADD_VALUES, *val, 0);
 }
 //*******************************************************
-void msi_matrix_setBC(pMatrix mat, int row)
+void msi_matrix_setBC(pMatrix mat, msi_int row)
 //*******************************************************
 {
   assert(mat->get_type( ) == MSI_SOLVE);
@@ -642,14 +642,14 @@ void msi_matrix_setBC(pMatrix mat, int row)
 }
 //*******************************************************
 void msi_matrix_setLaplaceBC(pMatrix mat,
-                             int row,
-                             int numVals,
-                             int* columns,
+                             msi_int row,
+                             msi_int numVals,
+                             msi_int* columns,
                              double* values)
 //*******************************************************
 {
   assert(mat->get_type( ) == MSI_SOLVE);
-  std::vector<int> columns_g(numVals);
+  std::vector<msi_int> columns_g(numVals);
   int num_values = msi_field_getNumVal(mat->get_field( ));
   int total_num_dof = msi_field_getSize(mat->get_field( ));
   int inode = row / total_num_dof;
@@ -707,8 +707,8 @@ int msi_matrix_getNumIter(pMatrix mat)
 //*******************************************************
 void msi_matrix_addBlock(pMatrix mat,
                          pMeshEnt e,
-                         int rowIdx,
-                         int columnIdx,
+                         msi_int rowIdx,
+                         msi_int columnIdx,
                          double* values)
 //*******************************************************
 {
@@ -726,8 +726,10 @@ void msi_matrix_addBlock(pMatrix mat,
   int* nodes = new int[num_node];
   for (int i = 0; i < num_node; ++i)
     nodes[i] = msi_node_getID(vertices[i], 0);
-  int start_global_dof_id, end_global_dof_id_plus_one;
-  int start_global_dof, end_global_dof_id;
+  int start_global_dof_id;
+  int end_global_dof_id_plus_one;
+  int start_global_dof;
+  int end_global_dof_id;
   // need to change later, should get the value from field calls ...
   int scalar_type = 0;
 #ifdef PETSC_USE_COMPLEX
@@ -736,7 +738,8 @@ void msi_matrix_addBlock(pMatrix mat,
   int numDofs = total_num_dof;
   int numVar = numDofs / dofPerVar;
   assert(rowIdx < numVar && columnIdx < numVar);
-  int rows[1024], columns[1024];
+  msi_int rows[1024];
+  msi_int columns[1024];
   assert(sizeof(rows) / sizeof(int) >= dofPerVar * num_node);
   if (mat->get_type( ) == 0)  // multiply
   {
@@ -764,15 +767,16 @@ void msi_matrix_addBlock(pMatrix mat,
           start_global_dof_id + columnIdx * dofPerVar + i;
       }
     }
+    msi_int dof_cnt = dofPerVar * num_node;
     mmat->add_values(
-      dofPerVar * num_node, rows, dofPerVar * num_node, columns, values);
+      dof_cnt, rows, dof_cnt, columns, values);
   }
   else  // solve
   {
     matrix_solve* smat = dynamic_cast<matrix_solve*>(mat);
-    int* nodeOwner = new int[num_node];
-    int* columns_bloc = new int[num_node];
-    int* rows_bloc = new int[num_node];
+    msi_int* nodeOwner = new msi_int[num_node];
+    msi_int* columns_bloc = new msi_int[num_node];
+    msi_int* rows_bloc = new msi_int[num_node];
     for (int inode = 0; inode < num_node; inode++)
     {
       nodeOwner[inode] =
@@ -814,7 +818,7 @@ void msi_matrix_addBlock(pMatrix mat,
   delete[] nodes;
 }
 //*******************************************************
-void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
+void msi_matrix_write(pMatrix mat, const char* filename, msi_int start_index)
 //*******************************************************
 {
   if (!filename)
@@ -823,9 +827,9 @@ void msi_matrix_write(pMatrix mat, const char* filename, int start_index)
   sprintf(matrix_filename, "%s-%d", filename, PCU_Comm_Self( ));
   FILE* fp = fopen(matrix_filename, "w");
   int row, col, csize, sum_csize = 0, index = 0;
-  vector<int> rows;
-  vector<int> n_cols;
-  vector<int> cols;
+  vector<msi_int> rows;
+  vector<msi_int> n_cols;
+  vector<msi_int> cols;
   vector<double> vals;
   mat->get_values(rows, n_cols, cols, vals);
   for (int i = 0; i < rows.size( ); ++i)
@@ -854,9 +858,9 @@ void msi_matrix_print(pMatrix mat)
 //*******************************************************
 {
   int row, col, csize, sum_csize = 0, index = 0;
-  vector<int> rows;
-  vector<int> n_cols;
-  vector<int> cols;
+  vector<msi_int> rows;
+  vector<msi_int> n_cols;
+  vector<msi_int> cols;
   vector<double> vals;
   mat->get_values(rows, n_cols, cols, vals);
   for (int i = 0; i < rows.size( ); ++i)

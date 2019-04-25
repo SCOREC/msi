@@ -10,7 +10,8 @@
 #ifndef MSI_HEADER_H
 #define MSI_HEADER_H
 #include "mpi.h"
-#include "msi_petsc.h"
+//#include "msi_petsc.h"
+#include "msi_types.h"
 #include "pumi.h"
 // Added for the synchronization function
 #include "apfFieldData.h"
@@ -90,43 +91,41 @@ void msi_node_getGlobalFieldID(pField f,
                                int n,
                                int* /* out */ start_dof_id,
                                int* /* out */ end_dof_id_plus_one);
-class msi_matrix;
-typedef msi_matrix* pMatrix;
 /*
  * Set the communicator on which the linear system will operate.
  * Must be set after MPI_Init() but before PetscInitialize();
  */
 void msi_matrix_setComm(MPI_Comm);
 /** matrix and solver functions with PETSc */
-pMatrix msi_matrix_create(int matrix_type, pField f);
-void msi_matrix_delete(pMatrix mat);
-pField msi_matrix_getField(pMatrix mat);
-void msi_matrix_assemble(pMatrix mat);
-void msi_matrix_insert(pMatrix mat,
-                       int row,
-                       int column,
+msi_matrix * msi_matrix_create(int matrix_type, pField f);
+void msi_matrix_delete(msi_matrix * mat);
+pField msi_matrix_getField(msi_matrix * mat);
+void msi_matrix_assemble(msi_matrix * mat);
+void msi_matrix_insert(msi_matrix * mat,
+                       msi_int row,
+                       msi_int column,
                        int scalar_type,
                        double* val);
-void msi_matrix_add(pMatrix mat,
-                    int row,
-                    int column,
+void msi_matrix_add(msi_matrix * mat,
+                    msi_int row,
+                    msi_int column,
                     int scalar_type,
                     double* val);
-void msi_matrix_addBlock(pMatrix mat,
+void msi_matrix_addBlock(msi_matrix * mat,
                          pMeshEnt elem,
-                         int rowVarIdx,
-                         int columnVarIdx,
+                         msi_int rowVarIdx,
+                         msi_int columnVarIdx,
                          double* values);
-void msi_matrix_setBC(pMatrix mat, int row);
-void msi_matrix_setLaplaceBC(pMatrix mat,
-                             int row,
-                             int size,
-                             int* columns,
+void msi_matrix_setBC(msi_matrix * mat, msi_int row);
+void msi_matrix_setLaplaceBC(msi_matrix * mat,
+                             msi_int row,
+                             msi_int size,
+                             msi_int* columns,
                              double* values);
-void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec);
-void msi_matrix_solve(pMatrix mat, pField rhs, pField sol);
-int msi_matrix_getNumIter(pMatrix mat);
+void msi_matrix_multiply(msi_matrix * mat, pField inputvec, pField outputvec);
+void msi_matrix_solve(msi_matrix * mat, pField rhs, pField sol);
+int msi_matrix_getNumIter(msi_matrix * mat);
 // auxiliary
-void msi_matrix_write(pMatrix mat, const char* file_name, int start_index = 0);
-void msi_matrix_print(pMatrix mat);
+void msi_matrix_write(msi_matrix * mat, const char* file_name, msi_int start_index = 0);
+void msi_matrix_print(msi_matrix * mat);
 #endif
