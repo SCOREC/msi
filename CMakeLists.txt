@@ -53,6 +53,7 @@ set(SOURCES
 
 set(HEADERS
   api/msi.h
+  api/msi_types.h
   include/msi_solver.h
   include/msi_petsc.h
   )
