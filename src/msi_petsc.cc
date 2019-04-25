@@ -8,7 +8,8 @@
 
 *******************************************************************************/
 #include "msi_petsc.h"
-#include <assert.h>
+#include "msi_petsc_version.h"
+#include <cassert>
 #include <iostream>
 #include <set>
 #include <vector>
@@ -17,7 +18,6 @@
 #include "apfMesh.h"
 #include "apfNumbering.h"
 #include "apfShape.h"
-#include <petscversion.h>
 #ifdef PETSC_USE_COMPLEX
 #include <complex>
 using std::complex;
@@ -1031,7 +1031,7 @@ int matrix_solve::setKspType( )
     CHKERRQ(ierr);
     ierr = PCSetType(pc, PCLU);
     CHKERRQ(ierr);
-    ierr = PCFactorSetMatSolverPackage(pc, MATSOLVERSUPERLU_DIST);
+    ierr = PetscSetPCBackend(pc, MATSOLVERSUPERLU_DIST);
     CHKERRQ(ierr);
 #else
     if (1 || num_values == 1)
@@ -1043,7 +1043,7 @@ int matrix_solve::setKspType( )
       CHKERRQ(ierr);
       ierr = PCSetType(pc, PCLU);
       CHKERRQ(ierr);
-      ierr = PCFactorSetMatSolverPackage(pc, MATSOLVERSUPERLU_DIST);
+      ierr = PetscSetPCBackend(pc, MATSOLVERSUPERLU_DIST);
       CHKERRQ(ierr);
     }
     else
@@ -1084,7 +1084,7 @@ int matrix_solve::setKspType( )
         CHKERRQ(ierr);
         ierr = PCSetType(pc, PCLU);
         CHKERRQ(ierr);
-        ierr = PCFactorSetMatSolverPackage(pc, MATSOLVERSUPERLU_DIST);
+        ierr = PetscSetPCBackend(pc, MATSOLVERSUPERLU_DIST);
         CHKERRQ(ierr);
       }
       PetscFree(subksp);

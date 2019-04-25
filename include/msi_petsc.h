@@ -13,18 +13,20 @@
 #include <vector>
 #include "msi.h"
 #include "msi_solver.h"
-#include "petscksp.h"
 #include "pumi.h"
-int copyField2PetscVec(pField f, Vec& petscVec);
-int copyPetscVec2Field(Vec& petscVec, pField f);
-void printMemStat( );
+#include <petsc.h>
 // Added for the synchronization function
+// TODO : make it so these are not necessary
 #include "apfFieldData.h"
 #include "apfNew.h"
 #include "apfNumbering.h"
 #include "apfNumberingClass.h"
 #include "apfShape.h"
-// NOTE: all field realted interaction is done through msi api rather than apf
+int copyField2PetscVec(pField f, Vec& petscVec);
+int copyPetscVec2Field(Vec& petscVec, pField f);
+void printMemStat( );
+
+// NOTE: all field related interaction is done through msi api rather than apf
 class msi_matrix
 {
   public:

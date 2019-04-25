@@ -26,21 +26,19 @@ set(TARGET_LIB_NAME msi)
 
 find_package(SCOREC CONFIG REQUIRED)
 
-if(ENABLE_PETSC)
-  if(NOT PETSC_IMPLICIT_DEP)
-    find_package(PETSc REQUIRED)
-  endif()
-  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
+if(NOT PETSC_IMPLICIT_DEP)
+  find_package(PETSc REQUIRED)
+endif()
+set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
 
-  set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES})
-  set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PETSC_INCLUDE_DIRS})
+set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES})
+set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PETSC_INCLUDE_DIRS})
 
-  if(ENABLE_COMPLEX)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX)
-    set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
-  endif()
+if(ENABLE_COMPLEX)
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX)
+  set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
 endif()
 
 # source and header files
@@ -56,6 +54,7 @@ set(HEADERS
   api/msi_types.h
   include/msi_solver.h
   include/msi_petsc.h
+  include/msi_petsc_version.h
   )
 
 # create the msi library and set include dirs and link libraries
