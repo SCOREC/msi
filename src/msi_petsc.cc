@@ -1,6 +1,6 @@
 /******************************************************************************
 
-  (c) 2017 Scientific Computation Research Center,
+  (c) 2017 - 2019 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
 
   This work is open source software, licensed under the terms of the
