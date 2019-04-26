@@ -7,44 +7,12 @@
   BSD license as described in the LICENSE file in the top-level directory.
 
 *******************************************************************************/
-#ifndef MSI_HEADER_H
-#define MSI_HEADER_H
-#include "mpi.h"
-//#include "msi_petsc.h"
+#ifndef MSI_API_H_
+#define MSI_API_H_
 #include "msi_types.h"
-#include "pumi.h"
-// Added for the synchronization function
-#include "apfFieldData.h"
-#include "apfNew.h"
-#include "apfNumbering.h"
-//#include "/lore/trusza/scorec/apf/apfNumberingClass.h"
-#include "apfNumberingClass.h"
-#include "apfShape.h"
-// to-delete
-#define MSI_SUCCESS 0
-#define MSI_FAILURE 1
-// end of to-delete
-enum msi_matrix_type
-{ /*0*/ MSI_MULTIPLY = 0,
-  /*1*/ MSI_SOLVE };
-enum msi_matrix_status
-{ /*0*/ MSI_NOT_FIXED = 0,
-  /*1*/ MSI_FIXED };
-template <class T>
-void synchronizeFieldData_parasol(apf::FieldDataOf<T>* data,
-                                  apf::Sharing* shr,
-                                  MPI_Comm comm,
-                                  bool delete_shr);
-void accumulateFieldData_parasol(apf::FieldDataOf<double>* data,
-                                 apf::Sharing* shr,
-                                 MPI_Comm comm,
-                                 bool delete_shr);
-template <class T>
-void synchronizeFieldData_parasol_all_planes(apf::FieldDataOf<T>* data,
-                                             apf::Sharing* shr,
-                                             int iplane,
-                                             bool delete_shr);
-// START OF API
+#include "msi_sync.h" // todo : require that this is explicitly included by the user since this contains developer-only functions
+#include <pumi.h>
+#include <mpi.h>
 void msi_init(int argc, char * argv[], MPI_Comm cm);
 // remember to delete ownership after use
 void msi_start(pMesh m,

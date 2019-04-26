@@ -9,12 +9,12 @@
 *******************************************************************************/
 #ifndef MSI_PETSC_H
 #define MSI_PETSC_H
-#include <map>
-#include <vector>
 #include "msi.h"
 #include "msi_solver.h"
-#include "pumi.h"
+#include <pumi.h>
 #include <petsc.h>
+#include <map>
+#include <vector>
 // Added for the synchronization function
 // TODO : make it so these are not necessary
 #include "apfFieldData.h"
@@ -25,7 +25,6 @@
 int copyField2PetscVec(pField f, Vec& petscVec);
 int copyPetscVec2Field(Vec& petscVec, pField f);
 void printMemStat( );
-
 // NOTE: all field related interaction is done through msi api rather than apf
 class msi_matrix
 {

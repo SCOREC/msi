@@ -45,16 +45,18 @@ endif()
 
 set(SOURCES
   api/msi.cc
-  src/msi_solver.cc
   src/msi_petsc.cc
+  src/msi_solver.cc
+  src/msi_sync.cc
   )
 
 set(HEADERS
   api/msi.h
   api/msi_types.h
-  include/msi_solver.h
   include/msi_petsc.h
   include/msi_petsc_version.h
+  include/msi_solver.h
+  include/msi_sync.h
   )
 
 # create the msi library and set include dirs and link libraries

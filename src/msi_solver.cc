@@ -7,24 +7,14 @@
   BSD license as described in the LICENSE file in the top-level directory.
 
 *******************************************************************************/
-#ifdef MSI_PETSC
 #include "msi_solver.h"
-#include <assert.h>
-#include <iostream>
-#include <set>
-#include <vector>
-#include "PCU.h"
-#include "apf.h"
-#include "apfMesh.h"
-#include "apfShape.h"
-#include "msi.h"
-#ifdef PETSC_USE_COMPLEX
+#include <PCU.h>
+#include <apf.h>
+#include <cassert>
 #include <complex>
-#include "petscsys.h"  // for PetscComplex
-using std::complex;
-#endif
+
 // ***********************************
-// 		MSI_SOLVER
+//              MSI_SOLVER
 // ***********************************
 msi_solver* msi_solver::_instance = NULL;
 msi_solver* msi_solver::instance( )
@@ -108,4 +98,3 @@ int msi_field_getowndofid(pField f,
   *end_dof_id_plus_one = *start_dof_id + num_own_ent * num_dof;
   return MSI_SUCCESS;
 }
-#endif

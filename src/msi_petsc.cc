@@ -9,24 +9,14 @@
 *******************************************************************************/
 #include "msi_petsc.h"
 #include "msi_petsc_version.h"
+#include "msi_sync.h"
+#include <PCU.h>
+#include <apf.h>
 #include <cassert>
-#include <iostream>
-#include <set>
-#include <vector>
-#include "PCU.h"
-#include "apf.h"
-#include "apfMesh.h"
-#include "apfNumbering.h"
-#include "apfShape.h"
-#ifdef PETSC_USE_COMPLEX
 #include <complex>
-using std::complex;
-#endif
-#include <algorithm>
-#include <cmath>
+#include <iostream>
 #include <numeric>
-using std::set;
-using std::vector;
+
 void printMemStat( )
 {
   PetscLogDouble mem, mem_max;
@@ -150,7 +140,7 @@ int matrix_solve::add_blockvalues(msi_int rbsize,
 {
   msi_int bs;
   MatGetBlockSize(remoteA, &bs);
-  vector<PetscScalar> petscValues(rbsize * cbsize * bs * bs);
+  std::vector<PetscScalar> petscValues(rbsize * cbsize * bs * bs);
   for (int i = 0; i < rbsize * bs; i++)
   {
     for (int j = 0; j < cbsize * bs; j++)
@@ -167,10 +157,10 @@ int matrix_solve::add_blockvalues(msi_int rbsize,
   int ierr = MatSetValuesBlocked(
     remoteA, rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES);
 }
-int msi_matrix::get_values(vector<msi_int>& rows,
-                           vector<msi_int>& n_columns,
-                           vector<msi_int>& columns,
-                           vector<double>& values)
+int msi_matrix::get_values(std::vector<msi_int>& rows,
+                           std::vector<msi_int>& n_columns,
+                           std::vector<msi_int>& columns,
+                           std::vector<double>& values)
 {
   if (mat_status != MSI_FIXED)
     return MSI_FAILURE;
@@ -487,8 +477,8 @@ int matrix_solve::assemble( )
     int destPid = *it;
     int valueOffset = 0;
     int idxOffset = 0;
-    vector<int>& idx = idxRecvBuff[destPid];
-    vector<PetscScalar>& values = valuesRecvBuff[destPid];
+    std::vector<int>& idx = idxRecvBuff[destPid];
+    std::vector<PetscScalar>& values = valuesRecvBuff[destPid];
     int numValues = values.size( );
     while (valueOffset < numValues)
     {
