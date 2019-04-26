@@ -11,7 +11,7 @@
 #define MSI_TYPES_H_
 
 // backend-dependent types
-#include <petscsystypes.h>
+#include "msi_petsc_version.h"
 
 using msi_int = PetscInt;
 using msi_scalar = PetscScalar;
