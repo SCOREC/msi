@@ -14,7 +14,13 @@
 #include <utility>
 
 template <typename ... Args>
-auto PetscSetPCBackend(Args&&... args) -> decltype(PCFactorSetMatSolverType(std::forward<Args>(args)...))
+auto PetscSetPCBackend(Args&&... args) -> decltype(
+#if PETSC_VERSION_GT(3,9,5)
+  PCFactorSetMatSolverType(std::forward<Args>(args)...)
+#else
+  PCFactorSetMatSolverPackage(std::forward<Args>(args)...)
+#endif
+  )
 {
 #if PETSC_VERSION_GT(3,9,5)
   return PCFactorSetMatSolverType(std::forward<Args>(args)...);
