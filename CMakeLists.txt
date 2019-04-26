@@ -61,6 +61,7 @@ set(HEADERS
 
 # create the msi library and set include dirs and link libraries
 add_library(${TARGET_LIB_NAME} STATIC ${SOURCES})
+set_property(TARGET ${TARGET_LIB_NAME} PROPERTY CXX_STANDARD 11)
 set_target_properties(${TARGET_LIB_NAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 target_link_libraries(${TARGET_LIB_NAME} SCOREC::pumi SCOREC::apf ${DEP_LIBS})
 target_include_directories(${TARGET_LIB_NAME} PUBLIC
@@ -85,6 +86,7 @@ enable_testing()
 function(add_mpi_test tgt file np)
   message(STATUS "Adding test " ${tgt})
   add_executable(${tgt} ${file})
+  set_property(TARGET ${tgt} PROPERTY CXX_STANDARD 11)
   target_link_libraries(${tgt} ${TARGET_LIB_NAME} ${DEP_LIBS})
   set(prms -np ${np} "${CMAKE_CURRENT_BINARY_DIR}/${tgt}" ${ARGN})
   add_test(NAME ${tgt} COMMAND "mpirun" ${prms})
@@ -103,11 +105,9 @@ set(MPIRUN_PROCFLAG "-np"
 if(ENABLE_TESTING)
   add_mpi_test(msi_init test/init.cc 4)
   add_mpi_test(msi_init_subcomm test/init_subcomm 4)
-  if(ENABLE_PETSC)
-    add_executable(petsc test/petsc/main.cc)
-    target_link_libraries(petsc ${TARGET_LIB_NAME} ${DEP_LIBS})
-    # INSTALL(TARGETS petsc RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-  endif()
+  add_executable(petsc test/petsc/main.cc)
+  target_link_libraries(petsc ${TARGET_LIB_NAME} ${DEP_LIBS})
+  set_property(TARGET petsc PROPERTY CXX_STANDARD 11)
 endif()
 
 # doxygen generation system
