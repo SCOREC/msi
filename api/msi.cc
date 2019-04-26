@@ -295,32 +295,29 @@ int msi_field_getSize(pField f)
   return countComponents(f);
 #endif
 }
-void msi_matrix_setComm(MPI_Comm cm) { PETSC_COMM_WORLD = cm; }
-/** matrix and solver functions */
-//*******************************************************
+void msi_matrix_setComm(MPI_Comm cm)
+{
+  PETSC_COMM_WORLD = cm;
+}
 msi_matrix* msi_matrix_create(int matrix_type, pField f)
-//*******************************************************
 {
 #ifdef DEBUG
   if (!PCU_Comm_Self( ))
     std::cout << "[msi] " << __func__ << ": type " << matrix_type << ", field "
               << getName(f) << "\n";
 #endif
+  msi_matrix * new_mat = nullptr;
   if (matrix_type == MSI_MULTIPLY)  // matrix for multiplication
-  {
-    matrix_mult* new_mat = new matrix_mult(f);
-    return ( msi_matrix* )new_mat;
-  }
+    new_mat = new matrix_mult(f);
   else
-  {
-    matrix_solve* new_mat = new matrix_solve(f);
-    return ( msi_matrix* )new_mat;
-  }
+    new_mat = new matrix_solve(f);
+  return new_mat;
 }
-pField msi_matrix_getField(pMatrix mat) { return mat->get_field( ); }
-//*******************************************************
+pField msi_matrix_getField(pMatrix mat)
+{
+  return mat->get_field( );
+}
 void msi_matrix_assemble(pMatrix mat)
-//*******************************************************
 {
 #ifdef DEBUG
   if (!PCU_Comm_Self( ))
@@ -328,9 +325,7 @@ void msi_matrix_assemble(pMatrix mat)
 #endif
   mat->assemble( );
 }
-//*******************************************************
 void msi_matrix_delete(pMatrix mat)
-//*******************************************************
 {
 #ifdef DEBUG
   if (!PCU_Comm_Self( ))
@@ -338,13 +333,7 @@ void msi_matrix_delete(pMatrix mat)
 #endif
   delete mat;
 }
-//*******************************************************
-void msi_matrix_insert(pMatrix mat,
-                       msi_int row,
-                       msi_int col,
-                       int scalar_type,
-                       double* val)
-//*******************************************************
+void msi_matrix_insert(pMatrix mat, msi_int row, msi_int col, msi_scalar val)
 {
   assert(mat->get_status( ) != MSI_FIXED);
 #ifdef DEBUG
@@ -354,14 +343,9 @@ void msi_matrix_insert(pMatrix mat,
   apf::MeshEntity* e = msi_solver::instance( )->vertices[ent_id];
   assert(e && !pumi::instance( )->mesh->isGhost(e));
 #endif
-  if (scalar_type)  // complex
-    mat->set_value(row, col, INSERT_VALUES, val[0], val[1]);
-  else
-    mat->set_value(row, col, INSERT_VALUES, *val, 0);
+  mat->set_value(row, col, val);
 }
-//*******************************************************
-void msi_matrix_add(pMatrix mat, msi_int row, msi_int col, int scalar_type, double* val)
-//*******************************************************
+void msi_matrix_add(pMatrix mat, msi_int row, msi_int col, msi_scalar val)
 {
   assert(mat->get_status( ) != MSI_FIXED);
 #ifdef DEBUG
@@ -371,10 +355,7 @@ void msi_matrix_add(pMatrix mat, msi_int row, msi_int col, int scalar_type, doub
   apf::MeshEntity* e = msi_solver::instance( )->vertices[ent_id];
   assert(e && !pumi::instance( )->mesh->isGhost(e));
 #endif
-  if (scalar_type)  // complex
-    mat->set_value(row, col, ADD_VALUES, val[0], val[1]);
-  else
-    mat->set_value(row, col, ADD_VALUES, *val, 0);
+  mat->add_value(row, col, val);
 }
 //*******************************************************
 void msi_matrix_setBC(pMatrix mat, msi_int row)
@@ -467,7 +448,7 @@ void msi_matrix_addBlock(pMatrix mat,
                          pMeshEnt e,
                          msi_int rowIdx,
                          msi_int columnIdx,
-                         double* values)
+                         msi_scalar * values)
 //*******************************************************
 {
   // need to change later, should get the value from field calls ...

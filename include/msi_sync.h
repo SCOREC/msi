@@ -10,7 +10,10 @@
 #ifndef MSI_SYNC_H_
 #define MSI_SYNC_H_
 
+#include <apfField.h>
 #include <apfFieldData.h>
+#include <apfNumbering.h>
+#include <apfNumberingClass.h>
 #include <mpi.h>
 
 template <class T>

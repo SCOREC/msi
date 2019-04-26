@@ -7,57 +7,35 @@
   BSD license as described in the LICENSE file in the top-level directory.
 
 *******************************************************************************/
-#ifndef MSI_PETSC_H
-#define MSI_PETSC_H
+#ifndef MSI_PETSC_H_
+#define MSI_PETSC_H_
 #include "msi.h"
 #include "msi_solver.h"
 #include <pumi.h>
 #include <petsc.h>
 #include <map>
 #include <vector>
-// Added for the synchronization function
-// TODO : make it so these are not necessary
-#include "apfFieldData.h"
-#include "apfNew.h"
-#include "apfNumbering.h"
-#include "apfNumberingClass.h"
-#include "apfShape.h"
+
 int copyField2PetscVec(pField f, Vec& petscVec);
 int copyPetscVec2Field(Vec& petscVec, pField f);
 void printMemStat( );
-// NOTE: all field related interaction is done through msi api rather than apf
+
 class msi_matrix
 {
   public:
   msi_matrix(pField f);
   virtual ~msi_matrix( );
-  virtual int initialize( ) = 0;  // create a matrix and solver object
-  int destroy( );                 // delete a matrix and solver object
-  int set_value(msi_int row,
-                msi_int col,
-                int operation,
-                double real_val,
-                double imag_val);  // insertion/addition with global numbering
-  // values use column-wise, size * size block
-  int add_values(msi_int rsize,
-                 msi_int* rows,
-                 msi_int csize,
-                 msi_int* columns,
-                 double* values);
+  virtual int initialize( ) = 0;
+  int destroy( );
+  int add_value(msi_int rw, msi_int cl, msi_scalar val);
+  int set_value(msi_int rw, msi_int cl, msi_scalar val);
+  int add_values(msi_int rw_cnt, msi_int * rws, msi_int cl_cnt, msi_int * cls, msi_scalar * vals);
   int get_values(std::vector<msi_int>& rows,
                  std::vector<msi_int>& n_columns,
                  std::vector<msi_int>& columns,
                  std::vector<double>& values);
   void set_status(int s) { mat_status = s; }
   int get_status( ) { return mat_status; }
-  int get_scalar_type( )
-  {
-#ifdef MSI_COMPLEX
-    return 1;
-#else
-    return 0;
-#endif
-  }
   pField get_field( ) { return field; }
   int write(const char* file_name);
   virtual int get_type( ) const = 0;
@@ -67,14 +45,14 @@ class msi_matrix
   virtual int flushAssembly( );
   int printInfo( );
   // PETSc data structures
-  Mat* A;
   protected:
   int setupSeqMat( );
   int setupParaMat( );
   int preAllocateSeqMat( );
   int preAllocateParaMat( );
+  Mat * A;
   int mat_status;
-  pField field;  // the field that provide numbering
+  pField field;
 };
 class matrix_mult : public msi_matrix
 {

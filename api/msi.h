@@ -59,41 +59,93 @@ void msi_node_getGlobalFieldID(pField f,
                                int n,
                                int* /* out */ start_dof_id,
                                int* /* out */ end_dof_id_plus_one);
-/*
- * Set the communicator on which the linear system will operate.
- * Must be set after MPI_Init() but before PetscInitialize();
+/**
+ *  @brief Set the communicator on which the linear system
+ *         will operate.
+ *  @note  Must be set after MPI_Init() but before
+ *         PetscInitialize();
  */
 void msi_matrix_setComm(MPI_Comm);
-/** matrix and solver functions with PETSc */
+/**
+ * @brief create a global parallel matrix or a local matrix
+ *        structured to hold dofs from the provided field
+ *        for a global parallel matrix, the rows owned
+ *        correspond to the dofs on field nodes that are also
+ *        owned, for a local matrix, all rows are owned, and
+ *        there are rows for all dofs on the local process,
+ *        regardless of ownership
+ */
 msi_matrix * msi_matrix_create(int matrix_type, pField f);
+/**
+ * @brief destroy the specified matrix
+ */
 void msi_matrix_delete(msi_matrix * mat);
+/**
+ * @brief destroy the specified matrix
+ */
 pField msi_matrix_getField(msi_matrix * mat);
+/**
+ * @brief finalize the assembly of the matrix, this must
+ *        be done prior to a matrix solve or multiplication
+ *        operation.
+ */
 void msi_matrix_assemble(msi_matrix * mat);
-void msi_matrix_insert(msi_matrix * mat,
-                       msi_int row,
-                       msi_int column,
-                       int scalar_type,
-                       double* val);
+/**
+ * @brief insert a single scalar value at the specified
+ *        location in the matrix.
+ */
+void msi_matrix_insert(msi_matrix * m,
+                       msi_int rw,
+                       msi_int cl,
+                       msi_scalar val);
+/**
+ * @brief add a single scalar value to the specified
+ *        location in the matrix
+ */
 void msi_matrix_add(msi_matrix * mat,
-                    msi_int row,
-                    msi_int column,
-                    int scalar_type,
-                    double* val);
+                    msi_int rw,
+                    msi_int cl,
+                    msi_scalar val);
+/**
+ * @brief add a block of values ...
+ */
 void msi_matrix_addBlock(msi_matrix * mat,
                          pMeshEnt elem,
                          msi_int rowVarIdx,
                          msi_int columnVarIdx,
-                         double* values);
+                         msi_scalar * vals);
+/**
+ * @brief set a dirichlet boundary condition on the
+ *        specified row. This zeros all values in the
+ *        row and sets a 1.0 on the diagonal.
+ */
 void msi_matrix_setBC(msi_matrix * mat, msi_int row);
+/**
+ * @brief set a laplacian boundary condition on the
+ *        specified row, for the specified columns.
+ *        this overwrites all existing values in the
+ *        row;
+ * @note the row and columns in this are specified
+ *       using local indices rather than global indices
+ */
 void msi_matrix_setLaplaceBC(msi_matrix * mat,
                              msi_int row,
                              msi_int size,
-                             msi_int* columns,
-                             double* values);
-void msi_matrix_multiply(msi_matrix * mat, pField inputvec, pField outputvec);
-void msi_matrix_solve(msi_matrix * mat, pField rhs, pField sol);
+                             msi_int * col,
+                             msi_scalar * vals);
+
+void msi_matrix_multiply(msi_matrix * mat,
+                         pField inputvec,
+                         pField outputvec);
+
+void msi_matrix_solve(msi_matrix * mat,
+                      pField rhs,
+                      pField sol);
+/**
+ * @brief retrieve the number of iterations the last
+ *        linear solve took to converge
+ */
 int msi_matrix_getNumIter(msi_matrix * mat);
-// auxiliary
 void msi_matrix_write(msi_matrix * mat, const char* file_name, msi_int start_index = 0);
 void msi_matrix_print(msi_matrix * mat);
 #endif

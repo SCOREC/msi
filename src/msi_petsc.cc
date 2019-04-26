@@ -77,85 +77,41 @@ msi_matrix::~msi_matrix( )
   destroy( );
   delete A;
 }
-int msi_matrix::set_value(
-  msi_int row,
-  msi_int col,
-  int operation,
-  double real_val,
-  double imag_val)  // insertion/addition with global numbering
+int msi_matrix::set_value(msi_int rw,  msi_int cl, msi_scalar val)
 {
   if (mat_status == MSI_FIXED)
     return MSI_FAILURE;
-  PetscErrorCode ierr;
-#ifndef PETSC_USE_COMPLEX
-  if (operation)
-    ierr = MatSetValue(*A, row, col, real_val, ADD_VALUES);
-  else
-    ierr = MatSetValue(*A, row, col, real_val, INSERT_VALUES);
-#else  // #ifdef PETSC_USE_COMPLEX
-  PetscScalar value = complex<double>(real_val, imag_val);
-  if (operation)
-    ierr = MatSetValue(*A, row, col, value, ADD_VALUES);
-  else
-    ierr = MatSetValue(*A, row, col, value, INSERT_VALUES);
-#endif
-  CHKERRQ(ierr);
+  MatSetValue(*A, rw, cl, val, INSERT_VALUES);
+  return MSI_SUCCESS;
 }
-int msi_matrix::add_values(msi_int rsize,
-                           msi_int * rows,
-                           msi_int csize,
-                           msi_int * columns,
-                           double* values)
+int msi_matrix::add_value(msi_int rw,  msi_int cl, msi_scalar val)
 {
   if (mat_status == MSI_FIXED)
     return MSI_FAILURE;
-  PetscErrorCode ierr;
-#if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
-  vector<PetscScalar> petscValues(rsize * csize);
-  for (int i = 0; i < rsize; i++)
-  {
-    for (int j = 0; j < csize; j++)
-    {
-#ifndef PETSC_USE_COMPLEX
-      petscValues.at(i * csize + j) = values[i * csize + j];
-#else
-      petscValues.at(i * csize + j) = complex<double>(
-        values[2 * i * csize + 2 * j], values[2 * i * csize + 2 * j + 1]);
-#endif
-    }
-  }
-  ierr =
-    MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
-#else
-  ierr = MatSetValues(
-    *A, rsize, rows, csize, columns, ( PetscScalar* )values, ADD_VALUES);
-#endif
-  CHKERRQ(ierr);
+  MatSetValue(*A, rw, cl, val, ADD_VALUES);
+  return MSI_SUCCESS;
 }
-int matrix_solve::add_blockvalues(msi_int rbsize,
-                                  msi_int* rows,
-                                  msi_int cbsize,
-                                  msi_int* columns,
-                                  double* values)
+int msi_matrix::add_values(msi_int rw_cnt,
+                           msi_int * rws,
+                           msi_int cl_cnt,
+                           msi_int * cls,
+                           msi_scalar * vals)
 {
-  msi_int bs;
-  MatGetBlockSize(remoteA, &bs);
-  std::vector<PetscScalar> petscValues(rbsize * cbsize * bs * bs);
-  for (int i = 0; i < rbsize * bs; i++)
-  {
-    for (int j = 0; j < cbsize * bs; j++)
-    {
-#ifndef PETSC_USE_COMPLEX
-      petscValues.at(i * cbsize * bs + j) = values[i * cbsize * bs + j];
-#else
-      petscValues.at(i * cbsize * bs + j) =
-        complex<double>(values[2 * i * cbsize * bs + 2 * j],
-                        values[2 * i * cbsize * bs + 2 * j + 1]);
-#endif
-    }
-  }
-  int ierr = MatSetValuesBlocked(
-    remoteA, rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES);
+  if (mat_status == MSI_FIXED)
+    return MSI_FAILURE;
+  CHKERRQ(MatSetValues(*A, rw_cnt, rws, cl_cnt, cls, vals, ADD_VALUES));
+  return MSI_SUCCESS;
+}
+int matrix_solve::add_blockvalues(msi_int rw_cnt,
+                                  msi_int * blk_rws,
+                                  msi_int cl_cnt,
+                                  msi_int * blk_cls,
+                                  msi_scalar * vals)
+{
+  if (mat_status == MSI_FIXED)
+    return MSI_FAILURE;
+  CHKERRQ(MatSetValuesBlocked(remoteA, rw_cnt, blk_rws, cl_cnt, blk_cls, vals, ADD_VALUES));
+  return MSI_SUCCESS;
 }
 int msi_matrix::get_values(std::vector<msi_int>& rows,
                            std::vector<msi_int>& n_columns,
@@ -531,21 +487,14 @@ int matrix_solve::set_bc(msi_int row)
 #endif
   MatSetValue(*A, row, row, 1.0, ADD_VALUES);
 }
-int matrix_solve::set_row(msi_int row, msi_int numVals, msi_int* columns, double* vals)
+int matrix_solve::set_row(msi_int rw, msi_int cl_cnt, msi_int * cls, msi_scalar * vals)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
   int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
   assert(row >= firstRow && row < lastRowPlusOne);
 #endif
-  for (int i = 0; i < numVals; i++)
-  {
-#ifndef PETSC_USE_COMPLEX
-    set_value(row, columns[i], 1, vals[i], 0);
-#else
-    set_value(row, columns[i], 1, vals[2 * i], vals[2 * i + 1]);
-#endif
-  }
+  CHKERRQ(MatSetValues(*A, 1, &rw, cl_cnt, cls, vals, INSERT_VALUES));
 }
 int msi_matrix::preAllocateParaMat( )
 {
