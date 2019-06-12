@@ -1121,3 +1121,21 @@ int msi_matrix::printInfo( )
   std::cout << "\t nstash, reallocs, bnstash, breallocs " << nstash << " "
             << reallocs << " " << bnstash << " " << breallocs << std::endl;
 }
+void msi_AxpBy(msi_matrix * A, pField x, msi_matrix * B, pField y, pField z)
+{
+  assert(A->get_type() == MSI_MULTIPLY);
+  assert(B->get_type() == MSI_MULTIPLY);
+  Vec xvec;
+  Vec yvec;
+  copyField2PetscVec(x,xvec);
+  copyField2PetscVec(y,yvec);
+  Vec Ax;
+  Vec By;
+  VecDuplicate(xvec, &Ax);
+  VecDuplicate(yvec, &By);
+  MatMult(*(A->A),xvec,Ax);
+  MatMult(*(B->A),yvec,By);
+  VecAXPY(Ax,1.0,By);
+  // can we avoid the field sync in here?
+  copyPetscVec2Field(Ax,z);
+}
