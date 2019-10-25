@@ -90,9 +90,9 @@ void msi_matrix_setLaplaceBC(msi_matrix * mat,
                              msi_int size,
                              msi_int* columns,
                              double* values);
-void msi_matrix_multiply(msi_matrix * mat, pField inputvec, pField outputvec);
+void msi_matrix_multiply(msi_matrix * mat, pField inputvec, pField outputvec, bool sync = true);
 void msi_AxpBy(msi_matrix * A, pField x, msi_matrix * B, pField y, pField z);
-void msi_matrix_solve(msi_matrix * mat, pField rhs, pField sol);
+void msi_matrix_solve(msi_matrix * mat, pField rhs, pField sol, bool sync = true);
 int msi_matrix_getNumIter(msi_matrix * mat);
 // auxiliary
 void msi_matrix_write(msi_matrix * mat, const char* file_name, msi_int start_index = 0);
