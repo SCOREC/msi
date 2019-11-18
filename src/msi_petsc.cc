@@ -204,9 +204,9 @@ int matrix_mult::multiply(pField in_field, pField out_field, bool sync)
     copyField2PetscVec(in_field, b);
     int ierr = VecDuplicate(b, &c);
     CHKERRQ(ierr);
-		MatMult(*A, b, c);
-		copyPetscVec2Field(c, out_field, sync);
- 		ierr = VecDestroy(&b);
+    MatMult(*A, b, c);
+    copyPetscVec2Field(c, out_field, sync);
+    ierr = VecDestroy(&b);
     CHKERRQ(ierr);
     ierr = VecDestroy(&c);
     CHKERRQ(ierr);
@@ -230,7 +230,7 @@ int matrix_mult::multiply(pField in_field, pField out_field, bool sync)
     msi_int bs;
     int ierr;
     MatGetBlockSize(*A, &bs);
-		PetscScalar* array[2];
+    PetscScalar* array[2];
     msi_field_getdataptr(in_field, ( double** )array);
     ierr = VecCreateSeqWithArray(
       PETSC_COMM_SELF, bs, num_dof, ( PetscScalar* )array[0], &b);
@@ -247,18 +247,18 @@ int matrix_mult::multiply(pField in_field, pField out_field, bool sync)
     CHKERRQ(ierr);
     ierr = VecAssemblyEnd(c);
     CHKERRQ(ierr);
-		MatMult(*A, b, c);
-		ierr = VecDestroy(&b);
+    MatMult(*A, b, c);
+    ierr = VecDestroy(&b);
     CHKERRQ(ierr);
     ierr = VecDestroy(&c);
     CHKERRQ(ierr);
-		if (sync){
-    	accumulateFieldData_parasol(out_field->getData( ),
-                                msi_solver::instance( )->ownership,
-                                PETSC_COMM_WORLD,
-                                false);
-		}
-	}
+    if (sync){
+      accumulateFieldData_parasol(out_field->getData( ),
+                                  msi_solver::instance( )->ownership,
+                                  PETSC_COMM_WORLD,
+                                  false);
+    }
+  }
 }
 int matrix_mult::assemble( )
 {
@@ -970,21 +970,22 @@ int copyPetscVec2Field(Vec& petscVec, pField f, bool sync)
     msi_node_setField(f, ent, 0, dofPerEnt, &dof_data[0]);
   }
   pumi::instance( )->mesh->end(it);
-	if (sync)
-  	synchronizeFieldData_parasol<double>(
-			f->getData( ), msi_solver::instance( )->ownership, PETSC_COMM_WORLD, false);
+  if (sync)
+    synchronizeFieldData_parasol<double>(f->getData( ),
+                                         msi_solver::instance( )->ownership,
+                                         PETSC_COMM_WORLD, false);
   return 0;
 }
 int matrix_solve::solve(pField rhs, pField sol, bool sync)
 {
   Vec x, b;
-	copyField2PetscVec(rhs, b);
-	int ierr = VecDuplicate(b, &x);
+  copyField2PetscVec(rhs, b);
+  int ierr = VecDuplicate(b, &x);
   CHKERRQ(ierr);
   if (!kspSet)
     setKspType( );
-	ierr = KSPSolve(*ksp, b, x);
- 	CHKERRQ(ierr);
+  ierr = KSPSolve(*ksp, b, x);
+  CHKERRQ(ierr);
   PetscInt its;
   ierr = KSPGetIterationNumber(*ksp, &its);
   CHKERRQ(ierr);
@@ -992,9 +993,9 @@ int matrix_solve::solve(pField rhs, pField sol, bool sync)
   if (PCU_Comm_Self( ) == 0)
     std::cout << "\t-- # solver iterations " << its << std::endl;
   iterNum = its;
-	copyPetscVec2Field(x, sol, sync);
-	ierr = VecDestroy(&b);
-	CHKERRQ(ierr);
+  copyPetscVec2Field(x, sol, sync);
+  ierr = VecDestroy(&b);
+  CHKERRQ(ierr);
   ierr = VecDestroy(&x);
   CHKERRQ(ierr);
 }
@@ -1129,28 +1130,28 @@ void msi_AxpBy(msi_matrix * A, pField x, msi_matrix * B, pField y, pField z)
   assert(A->get_type() == MSI_MULTIPLY);
   assert(B->get_type() == MSI_MULTIPLY);
 
-	Vec xvec;
+  Vec xvec;
   Vec yvec;
   copyField2PetscVec(x,xvec);
   copyField2PetscVec(y,yvec);
 
-	PetscInt xsz, ysz;
-	VecGetLocalSize(xvec, &xsz);
-	VecGetLocalSize(yvec, &ysz);
+  PetscInt xsz, ysz;
+  VecGetLocalSize(xvec, &xsz);
+  VecGetLocalSize(yvec, &ysz);
 
-	Vec Ax;
+  Vec Ax;
   Vec By;
   VecDuplicate(xvec, &Ax);
   VecDuplicate(yvec, &By);
 
-	MatMult(*(A->A),xvec,Ax);
-	MatMult(*(B->A),yvec,By);
+  MatMult(*(A->A),xvec,Ax);
+  MatMult(*(B->A),yvec,By);
   VecAXPY(Ax,1.0,By);
   // can we avoid the field sync in here?
   copyPetscVec2Field(Ax,z,true);
 
-	VecDestroy(&Ax);
+  VecDestroy(&Ax);
   VecDestroy(&By);
- 	VecDestroy(&xvec);
- 	VecDestroy(&yvec);
+  VecDestroy(&xvec);
+  VecDestroy(&yvec);
 }
