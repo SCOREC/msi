@@ -23,7 +23,7 @@
 #include "apfNumberingClass.h"
 #include "apfShape.h"
 int copyField2PetscVec(pField f, Vec& petscVec);
-int copyPetscVec2Field(Vec& petscVec, pField f);
+int copyPetscVec2Field(Vec& petscVec, pField f, bool);
 void printMemStat( );
 // NOTE: all field related interaction is done through msi api rather than apf
 class msi_matrix
@@ -83,7 +83,7 @@ class matrix_mult : public msi_matrix
   virtual int initialize( );
   void set_mat_local(bool flag) { localMat = flag; }
   int is_mat_local( ) { return localMat; }
-  int multiply(pField in_f, pField out_f);
+  int multiply(pField in_f, pField out_f, bool sync = true);
   virtual int get_type( ) const { return 0; }  // MSI_MULTIPLY; }
   virtual int assemble( );
   virtual int setupMat( );
@@ -97,7 +97,7 @@ class matrix_solve : public msi_matrix
   matrix_solve(pField f);
   virtual int initialize( );
   virtual ~matrix_solve( );
-  int solve(pField rhs, pField sol);
+  int solve(pField rhs, pField sol, bool sync = true);
   int set_bc(msi_int row);
   int set_row(msi_int row, msi_int numVals, msi_int* colums, double* vals);
   int add_blockvalues(msi_int rbsize,

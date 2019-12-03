@@ -433,7 +433,7 @@ void msi_matrix_setLaplaceBC(pMatrix mat,
     ->set_row(row_g, numVals, &columns_g[0], values);
 }
 //*******************************************************
-void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
+void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec, bool sync)
 //*******************************************************
 {
 #ifdef DEBUG
@@ -442,10 +442,10 @@ void msi_matrix_multiply(pMatrix mat, pField inputvec, pField outputvec)
               << "\", output \"" << getName(outputvec) << "\"\n";
 #endif
   assert(mat->get_type( ) == MSI_MULTIPLY);
-  (dynamic_cast<matrix_mult*>(mat))->multiply(inputvec, outputvec);
+  (dynamic_cast<matrix_mult*>(mat))->multiply(inputvec, outputvec, sync);
 }
 //*******************************************************
-void msi_matrix_solve(pMatrix mat, pField rhs, pField sol)
+void msi_matrix_solve(pMatrix mat, pField rhs, pField sol, bool sync)
 //*******************************************************
 {
   assert(mat->get_type( ) == MSI_SOLVE);
@@ -454,7 +454,7 @@ void msi_matrix_solve(pMatrix mat, pField rhs, pField sol)
     std::cout << "[msi] " << __func__ << ": RHS \"" << getName(rhs)
               << "\", sol \"" << getName(sol) << "\"\n";
 #endif
-  (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol);
+  (dynamic_cast<matrix_solve*>(mat))->solve(rhs, sol, sync);
 }
 //*******************************************************
 int msi_matrix_getNumIter(pMatrix mat)
