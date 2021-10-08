@@ -26,9 +26,8 @@ set(TARGET_LIB_NAME msi)
 
 find_package(SCOREC CONFIG REQUIRED)
 
-if(NOT PETSC_IMPLICIT_DEP)
-  find_package(PETSc REQUIRED)
-endif()
+find_package(PkgConfig REQUIRED)                                                
+pkg_check_modules(PETSC REQUIRED IMPORTED_TARGET PETSc>=3.12.0 PETSc<3.16)
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DMSI_PETSC)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DMSI_PETSC)
 
